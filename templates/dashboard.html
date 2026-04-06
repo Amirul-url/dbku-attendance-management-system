@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div id="dashboard-data"
+     data-total-staff="{{ total_staff_attendance|default:0 }}"
+     data-total-visitor="{{ total_visitor_attendance|default:0 }}">
+</div>
+
+<div class="mb-6">
+  <h1 class="text-2xl font-bold">Dashboard</h1>
+  <p class="text-gray-500 mt-1">
+    Welcome,
+    <span class="font-semibold">
+      {{ current_employee.full_name|default:request.user.username }}
+    </span>
+    {% if current_employee %}
+      <span class="inline-block ml-2 px-2 py-1 rounded text-xs
+        {% if current_employee.role == 'admin' %}
+          bg-red-100 text-red-600
+        {% elif current_employee.role == 'editor' %}
+          bg-yellow-100 text-yellow-700
+        {% else %}
+          bg-gray-100 text-gray-700
+        {% endif %}
+      ">
+        {{ current_employee.role|title }}
+      </span>
+    {% endif %}
+  </p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+  <div class="bg-white p-4 rounded-xl shadow border border-gray-200">
+    <p class="text-gray-500 text-sm">Total Employees</p>
+    <h2 class="text-2xl font-bold mt-1">{{ total_employees }}</h2>
+  </div>
+
+  <div class="bg-white p-4 rounded-xl shadow border border-gray-200">
+    <p class="text-gray-500 text-sm">Total Visitors</p>
+    <h2 class="text-2xl font-bold mt-1">{{ total_visitors }}</h2>
+  </div>
+
+  <div class="bg-white p-4 rounded-xl shadow border border-gray-200">
+    <p class="text-gray-500 text-sm">Total Events</p>
+    <h2 class="text-2xl font-bold mt-1">{{ total_events }}</h2>
+  </div>
+
+  <div class="bg-white p-4 rounded-xl shadow border border-gray-200">
+    <p class="text-gray-500 text-sm">Total Staff Attendance</p>
+    <h2 class="text-2xl font-bold mt-1">{{ total_staff_attendance }}</h2>
+  </div>
+
+  <div class="bg-white p-4 rounded-xl shadow border border-gray-200">
+    <p class="text-gray-500 text-sm">Total Visitor Attendance</p>
+    <h2 class="text-2xl font-bold mt-1">{{ total_visitor_attendance }}</h2>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+  <div class="xl:col-span-2 bg-white p-5 rounded-xl shadow border border-gray-200">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="font-semibold text-lg">Attendance Overview</h3>
+        <p class="text-sm text-gray-500">
+          Comparison between staff attendance and visitor attendance
+        </p>
+      </div>
+      <span class="text-sm text-gray-500">
+        Total Attendance: {{ total_attendance }}
+      </span>
+    </div>
+
+    <div class="max-w-md mx-auto">
+      <canvas id="overviewChart"></canvas>
+    </div>
+  </div>
+
+  <div class="bg-white p-5 rounded-xl shadow border border-gray-200">
+    <h3 class="font-semibold text-lg mb-4">Access Summary</h3>
+
+    <div class="space-y-3 text-sm">
+      <div class="p-3 rounded-lg border border-gray-200 bg-gray-50">
+        <div class="font-semibold">Your Role</div>
+        <div class="text-gray-600 mt-1">
+          {% if current_employee %}
+            {{ current_employee.role|title }}
+          {% else %}
+            User
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="p-3 rounded-lg border border-gray-200 bg-gray-50">
+        <div class="font-semibold">Dashboard Access</div>
+        <div class="text-gray-600 mt-1">
+          All logged-in employees can view dashboard information.
+        </div>
+      </div>
+
+      <div class="p-3 rounded-lg border border-gray-200 bg-gray-50">
+        <div class="font-semibold">Management Access</div>
+        <div class="text-gray-600 mt-1">
+          {% if is_admin %}
+            Full access to employees, events, attendance records, analytics export, create, update and delete actions.
+          {% elif can_manage %}
+            Manage events, attendance records and export actions.
+          {% else %}
+            View only. Add, edit, delete and export actions are hidden.
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const dashboardData = document.getElementById('dashboard-data');
+  const totalStaff = Number(dashboardData.dataset.totalStaff || 0);
+  const totalVisitor = Number(dashboardData.dataset.totalVisitor || 0);
+
+  const overviewCanvas = document.getElementById('overviewChart');
+  if (overviewCanvas) {
+    new Chart(overviewCanvas, {
+      type: 'pie',
+      data: {
+        labels: ['Staff', 'Visitor'],
+        datasets: [{
+          data: [totalStaff, totalVisitor],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+          title: {
+            display: true,
+            text: 'Attendance Overview'
+          }
+        }
+      }
+    });
+  }
+});
+</script>
+
+{% endblock %}

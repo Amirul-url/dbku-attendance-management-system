@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Register Employee</title>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center px-4 py-8">
+
+<div class="w-full max-w-md bg-white p-6 rounded-xl shadow border border-gray-200">
+  <h2 class="text-2xl font-bold mb-2 text-center">Register Employee</h2>
+  <p class="text-sm text-gray-500 text-center mb-6">
+    Create your employee account. New registrations will be assigned as
+    <span class="font-semibold">Viewer</span> by default.
+  </p>
+
+  <!-- MODE -->
+  <div class="flex gap-2 mb-4">
+    <button id="manualBtn" onclick="manualMode()" type="button"
+      class="bg-blue-500 text-white px-3 py-2 rounded w-full hover:bg-blue-600">
+      Manual
+    </button>
+
+    <button id="mykadBtn" onclick="scanMyKad()" type="button"
+      class="bg-gray-300 text-gray-800 px-3 py-2 rounded w-full hover:bg-gray-400">
+      Scan MyKad
+    </button>
+  </div>
+
+  <!-- FORM -->
+  <div class="space-y-3">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+      <input id="name" placeholder="Enter full name"
+        class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+      <input id="emp_id" placeholder="Enter employee ID"
+        class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+      <input id="email" type="email" placeholder="Enter email"
+        class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+      <input id="dept" placeholder="Enter department"
+        class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+      <input id="password" type="password" placeholder="Enter password"
+        class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+      <input id="confirm_password" type="password" placeholder="Confirm password"
+        class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+    </div>
+  </div>
+
+  <!-- PASSWORD GUIDE -->
+  <div class="mt-4 p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-600">
+    <div class="font-semibold mb-1">Password Requirements</div>
+    <ul class="list-disc list-inside space-y-1">
+      <li>Minimum 8 characters</li>
+      <li>Must contain at least 1 letter</li>
+      <li>Must contain at least 1 number</li>
+    </ul>
+  </div>
+
+  <!-- MESSAGE -->
+  <p id="msg" class="mt-4 text-center text-sm font-medium"></p>
+
+  <!-- SUBMIT -->
+  <button id="submitBtn" onclick="submitForm()" type="button"
+    class="bg-blue-500 text-white px-4 py-3 rounded w-full mt-5 hover:bg-blue-600">
+    Register
+  </button>
+
+  <!-- BACK -->
+  <a href="/api/employees/login-page/"
+     class="block text-center bg-gray-300 text-gray-800 px-4 py-3 rounded w-full hover:bg-gray-400 mt-3">
+    I already have an account
+  </a>
+</div>
+
+<script>
+let method = "manual";
+
+function setMessage(message, type = "info") {
+  const msg = document.getElementById('msg');
+  msg.innerText = message;
+
+  if (type === "success") {
+    msg.className = "mt-4 text-center text-sm font-medium text-green-600";
+  } else if (type === "error") {
+    msg.className = "mt-4 text-center text-sm font-medium text-red-600";
+  } else {
+    msg.className = "mt-4 text-center text-sm font-medium text-gray-600";
+  }
+}
+
+function manualMode() {
+  method = "manual";
+
+  document.getElementById('manualBtn').className =
+    "bg-blue-500 text-white px-3 py-2 rounded w-full hover:bg-blue-600";
+  document.getElementById('mykadBtn').className =
+    "bg-gray-300 text-gray-800 px-3 py-2 rounded w-full hover:bg-gray-400";
+
+  setMessage("Manual mode selected");
+}
+
+function scanMyKad() {
+  method = "mykad";
+
+  document.getElementById('manualBtn').className =
+    "bg-gray-300 text-gray-800 px-3 py-2 rounded w-full hover:bg-gray-400";
+  document.getElementById('mykadBtn').className =
+    "bg-green-500 text-white px-3 py-2 rounded w-full hover:bg-green-600";
+
+  // simulation
+  document.getElementById('name').value = "Ali bin Abu";
+  document.getElementById('emp_id').value = "DBKU999";
+  document.getElementById('email').value = "ali@dbku.gov.my";
+  document.getElementById('dept').value = "HR";
+
+  setMessage("MyKad scanned successfully", "success");
+}
+
+function validateForm() {
+  const fullName = document.getElementById('name').value.trim();
+  const employeeId = document.getElementById('emp_id').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const department = document.getElementById('dept').value.trim();
+  const password = document.getElementById('password').value;
+  const confirmPassword = document.getElementById('confirm_password').value;
+
+  if (!fullName || !employeeId || !email || !department || !password || !confirmPassword) {
+    setMessage("Please fill in all fields", "error");
+    return false;
+  }
+
+  if (password.length < 8) {
+    setMessage("Password must be at least 8 characters", "error");
+    return false;
+  }
+
+  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+    setMessage("Password must contain letters and numbers", "error");
+    return false;
+  }
+
+  if (password !== confirmPassword) {
+    setMessage("Passwords do not match", "error");
+    return false;
+  }
+
+  return true;
+}
+
+function submitForm() {
+  if (!validateForm()) {
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerText = "Registering...";
+
+  fetch('/api/employees/register/manual/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      full_name: document.getElementById('name').value.trim(),
+      employee_id: document.getElementById('emp_id').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      department: document.getElementById('dept').value.trim(),
+      password: document.getElementById('password').value,
+      confirm_password: document.getElementById('confirm_password').value,
+      registration_method: method
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.message) {
+      setMessage("Registration successful. Redirecting to login...", "success");
+
+      setTimeout(() => {
+        window.location.href = "/api/employees/login-page/";
+      }, 1500);
+    } else {
+      setMessage(data.error || "Registration failed", "error");
+    }
+  })
+  .catch(() => {
+    setMessage("Error connecting to server", "error");
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerText = "Register";
+  });
+}
+</script>
+
+</body>
+</html>

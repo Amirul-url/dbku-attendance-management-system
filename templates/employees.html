@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1 class="text-2xl font-bold mb-6">Employee Management</h1>
+
+<form method="GET" class="mb-4 flex gap-2">
+  <input type="text" name="name" placeholder="Search Name"
+    value="{{ request.GET.name }}"
+    class="p-2 border rounded w-full">
+
+  <input type="text" name="department" placeholder="Department"
+    value="{{ request.GET.department }}"
+    class="p-2 border rounded w-full">
+
+  <button class="bg-blue-500 text-white px-4 rounded">Filter</button>
+</form>
+
+<div class="bg-white rounded-xl shadow overflow-hidden border border-gray-200">
+
+  <div class="flex justify-between items-center p-4 border-b border-gray-200">
+    <h2 class="font-semibold">Employees List</h2>
+
+    {% if is_admin %}
+    <button onclick="openModal()" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+      + Add Employee
+    </button>
+    {% endif %}
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm border-collapse">
+      <thead class="bg-gray-50">
+        <tr class="border-b border-gray-200">
+          <th class="p-3 text-left border-r border-gray-200">Name</th>
+          <th class="p-3 text-left border-r border-gray-200">Employee ID</th>
+          <th class="p-3 text-left border-r border-gray-200">Email</th>
+          <th class="p-3 text-left border-r border-gray-200">Department</th>
+          <th class="p-3 text-left border-r border-gray-200">Method</th>
+          <th class="p-3 text-left {% if is_admin %}border-r border-gray-200{% endif %}">Role</th>
+          {% if is_admin %}
+          <th class="p-3 text-left">Actions</th>
+          {% endif %}
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for emp in employees %}
+        <tr class="border-b border-gray-200 hover:bg-gray-50">
+          <td class="p-3 border-r border-gray-200">{{ emp.full_name }}</td>
+          <td class="p-3 border-r border-gray-200">{{ emp.employee_id }}</td>
+          <td class="p-3 border-r border-gray-200">{{ emp.email }}</td>
+          <td class="p-3 border-r border-gray-200">{{ emp.department }}</td>
+
+          <td class="p-3 border-r border-gray-200">
+            {% if emp.registration_method == "mykad" %}
+              <span class="bg-green-100 text-green-600 px-2 py-1 rounded text-xs">MyKad</span>
+            {% else %}
+              <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded text-xs">Manual</span>
+            {% endif %}
+          </td>
+
+          <td class="p-3 {% if is_admin %}border-r border-gray-200{% endif %}">
+            {% if emp.role == "admin" %}
+              <span class="bg-red-100 text-red-600 px-2 py-1 rounded text-xs">Admin</span>
+            {% elif emp.role == "editor" %}
+              <span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs">Editor</span>
+            {% else %}
+              <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">Viewer</span>
+            {% endif %}
+          </td>
+
+          {% if is_admin %}
+          <td class="p-3">
+            <button class="edit-btn text-blue-500 hover:underline"
+              data-id="{{ emp.id }}"
+              data-name="{{ emp.full_name }}"
+              data-empid="{{ emp.employee_id }}"
+              data-email="{{ emp.email }}"
+              data-dept="{{ emp.department }}"
+              data-method="{{ emp.registration_method }}"
+              data-role="{{ emp.role }}">
+              Edit
+            </button>
+
+            <button class="delete-btn text-red-500 ml-2 hover:underline"
+              data-id="{{ emp.id }}">
+              Delete
+            </button>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if is_admin %}7{% else %}6{% endif %}" class="p-4 text-center text-gray-500">
+            No employees found
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+{% if is_admin %}
+<div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded shadow w-96">
+
+    <h2 class="text-lg font-bold mb-4">Employee Form</h2>
+
+    <input id="m_name" placeholder="Name" class="w-full mb-2 p-2 border rounded">
+    <input id="m_id" placeholder="Employee ID" class="w-full mb-2 p-2 border rounded">
+    <input id="m_email" placeholder="Email" class="w-full mb-2 p-2 border rounded">
+    <input id="m_dept" placeholder="Department" class="w-full mb-2 p-2 border rounded">
+
+    <select id="m_method" class="w-full mb-2 p-2 border rounded">
+      <option value="manual">Manual</option>
+      <option value="mykad">MyKad</option>
+    </select>
+
+    <select id="m_role" class="w-full mb-4 p-2 border rounded">
+      <option value="viewer">Viewer</option>
+      <option value="editor">Editor</option>
+      <option value="admin">Admin</option>
+    </select>
+
+    <div class="flex justify-end gap-2">
+      <button onclick="closeModal()" class="px-3 py-1 bg-gray-300 rounded">Cancel</button>
+      <button onclick="saveEmployee()" class="px-3 py-1 bg-blue-500 text-white rounded">Save</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let editId = null;
+
+function openModal() {
+  editId = null;
+
+  document.getElementById('m_name').value = '';
+  document.getElementById('m_id').value = '';
+  document.getElementById('m_email').value = '';
+  document.getElementById('m_dept').value = '';
+  document.getElementById('m_method').value = 'manual';
+  document.getElementById('m_role').value = 'viewer';
+
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+}
+
+function saveEmployee() {
+  const data = {
+    full_name: document.getElementById('m_name').value,
+    employee_id: document.getElementById('m_id').value,
+    email: document.getElementById('m_email').value,
+    department: document.getElementById('m_dept').value,
+    registration_method: document.getElementById('m_method').value,
+    role: document.getElementById('m_role').value
+  };
+
+  let url = '/api/employees/add/';
+  if (editId) url = '/api/employees/update/' + editId + '/';
+
+  fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert(data.message || data.error);
+    if (data.message) {
+      location.reload();
+    }
+  })
+  .catch(() => {
+    alert('Error saving employee');
+  });
+}
+
+document.querySelectorAll('.edit-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    editId = this.dataset.id;
+
+    document.getElementById('m_name').value = this.dataset.name || '';
+    document.getElementById('m_id').value = this.dataset.empid || '';
+    document.getElementById('m_email').value = this.dataset.email || '';
+    document.getElementById('m_dept').value = this.dataset.dept || '';
+    document.getElementById('m_method').value = this.dataset.method || 'manual';
+    document.getElementById('m_role').value = this.dataset.role || 'viewer';
+
+    document.getElementById('modal').classList.remove('hidden');
+  });
+});
+
+document.querySelectorAll('.delete-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const id = this.dataset.id;
+    if (!confirm('Delete this employee?')) return;
+
+    fetch('/api/employees/delete/' + id + '/', {
+      method: 'POST'
+    })
+    .then(res => res.json())
+    .then(data => {
+      alert(data.message || data.error);
+      if (data.message) {
+        location.reload();
+      }
+    })
+    .catch(() => {
+      alert('Error deleting employee');
+    });
+  });
+});
+</script>
+{% endif %}
+
+{% endblock %}

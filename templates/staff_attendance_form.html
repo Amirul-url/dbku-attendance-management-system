@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Staff Attendance</title>
+</head>
+
+<body class="bg-gray-100 min-h-screen py-6 px-4">
+
+<div class="max-w-xl mx-auto bg-white p-6 rounded-2xl shadow-lg">
+
+  <!-- HEADER -->
+  <h2 class="text-2xl font-bold text-center mb-2">
+    Attendance Registration Form (Staff)
+  </h2>
+
+  <p class="text-center text-gray-500 mb-6">
+    Please complete the form below to record your attendance
+  </p>
+
+  <!-- EVENT INFO -->
+  <div class="bg-gray-50 p-4 rounded-lg mb-6 text-sm space-y-1">
+    <p><b>Event Name:</b> {{ event.name }}</p>
+    <p><b>Date:</b> {{ event.date|date:"d/m/Y" }}</p>
+    <p><b>Location:</b> {{ event.location }}</p>
+    <p><b>Description:</b> {{ event.description|default:"-" }}</p>
+    <p><b>Allowed Radius:</b> {{ event.radius_meter }} meter</p>
+  </div>
+
+  <!-- FORM -->
+  <div class="space-y-4">
+    <div>
+      <label class="font-semibold">1. Full Name</label>
+      <input id="name" placeholder="e.g. Ali bin Abu"
+        class="w-full mt-1 p-3 border rounded-lg">
+    </div>
+
+    <div>
+      <label class="font-semibold">2. Employee ID</label>
+      <input id="emp_id" placeholder="e.g. DBKU001"
+        class="w-full mt-1 p-3 border rounded-lg">
+    </div>
+
+    <div>
+      <label class="font-semibold">3. Phone Number</label>
+      <input id="phone" placeholder="e.g. 0123456789"
+        class="w-full mt-1 p-3 border rounded-lg">
+    </div>
+
+    <div>
+      <label class="font-semibold">4. Email</label>
+      <input id="email" placeholder="e.g. ali@dbku.gov.my"
+        class="w-full mt-1 p-3 border rounded-lg">
+    </div>
+
+    <div>
+      <label class="font-semibold">5. Department Category</label>
+      <select id="dept" onchange="toggleOtherDepartment()"
+        class="w-full mt-1 p-3 border rounded-lg bg-white">
+        <option value="">-- Select department category --</option>
+        <option value="Administration (ADM)">Administration (ADM)</option>
+        <option value="Internal Audit (AUD)">Internal Audit (AUD)</option>
+        <option value="Building (BLG)">Building (BLG)</option>
+        <option value="Community Development & Services (CDS)">Community Development & Services (CDS)</option>
+        <option value="Contract and Procurement (COP)">Contract and Procurement (COP)</option>
+        <option value="Committee Secretariat (CTS)">Committee Secretariat (CTS)</option>
+        <option value="Engineering Project (ENG)">Engineering Project (ENG)</option>
+        <option value="Enforcement and Security (ENS)">Enforcement and Security (ENS)</option>
+        <option value="Health and Environment (ENV)">Health and Environment (ENV)</option>
+        <option value="Finance (FIN)">Finance (FIN)</option>
+        <option value="Geoinformation and Property Management (GPM)">Geoinformation and Property Management (GPM)</option>
+        <option value="Human Resource Management (HRM)">Human Resource Management (HRM)</option>
+        <option value="Information and Communication Technology (ICT)">Information and Communication Technology (ICT)</option>
+        <option value="Infrastructure Maintenance (IMT)">Infrastructure Maintenance (IMT)</option>
+        <option value="Information Resource (IRD)">Information Resource (IRD)</option>
+        <option value="Legal Affairs (LAW)">Legal Affairs (LAW)</option>
+        <option value="Licensing (LES)">Licensing (LES)</option>
+        <option value="Landscape and Planning (LNP)">Landscape and Planning (LNP)</option>
+        <option value="Mechanical and Electrical (MNE)">Mechanical and Electrical (MNE)</option>
+        <option value="Public Relations (PRD)">Public Relations (PRD)</option>
+        <option value="Special Project & Public Facility (SPF)">Special Project & Public Facility (SPF)</option>
+        <option value="Transformation and Innovation (TRI)">Transformation and Innovation (TRI)</option>
+        <option value="Valuation and Taxation (VAL)">Valuation and Taxation (VAL)</option>
+        <option value="Others">Others</option>
+      </select>
+    </div>
+
+    <div id="otherDeptWrapper" class="hidden">
+      <label class="font-semibold">6. Please Specify</label>
+      <input id="other_dept" placeholder="e.g. Custom Department Name"
+        class="w-full mt-1 p-3 border rounded-lg">
+    </div>
+  </div>
+
+  <!-- BUTTON -->
+  <button id="submitBtn" onclick="submitForm()"
+    class="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700">
+    Register
+  </button>
+
+</div>
+
+<!-- POPUP -->
+<div id="popup" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+  <div class="bg-white p-6 rounded-xl text-center w-80">
+    <p id="popupMsg" class="mb-4 font-semibold"></p>
+    <button onclick="closePopup()" class="bg-blue-500 text-white px-4 py-2 rounded">
+      OK
+    </button>
+  </div>
+</div>
+
+<script>
+function showPopup(msg, type="info") {
+  const text = document.getElementById("popupMsg");
+
+  if (type === "success") {
+    text.innerHTML = "✅ " + msg;
+  } else if (type === "error") {
+    text.innerHTML = "❌ " + msg;
+  } else {
+    text.innerText = msg;
+  }
+
+  document.getElementById("popup").classList.remove("hidden");
+}
+
+function closePopup() {
+  document.getElementById("popup").classList.add("hidden");
+}
+
+function toggleOtherDepartment() {
+  const dept = document.getElementById("dept").value;
+  const wrapper = document.getElementById("otherDeptWrapper");
+  const otherInput = document.getElementById("other_dept");
+
+  if (dept === "Others") {
+    wrapper.classList.remove("hidden");
+  } else {
+    wrapper.classList.add("hidden");
+    otherInput.value = "";
+  }
+}
+
+function submitForm() {
+  const btn = document.getElementById("submitBtn");
+
+  const full_name = document.getElementById("name").value.trim();
+  const employee_id = document.getElementById("emp_id").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const deptCategory = document.getElementById("dept").value.trim();
+  const otherDept = document.getElementById("other_dept").value.trim();
+
+  let department = deptCategory;
+
+  if (deptCategory === "Others") {
+    department = otherDept;
+  }
+
+  if (!full_name || !employee_id || !phone || !email || !deptCategory) {
+    showPopup("Please fill all fields", "error");
+    return;
+  }
+
+  if (deptCategory === "Others" && !otherDept) {
+    showPopup("Please specify your department", "error");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = "Processing...";
+
+  if (!navigator.geolocation) {
+    showPopup("Geolocation not supported", "error");
+    btn.disabled = false;
+    btn.innerText = "Register";
+    return;
+  }
+
+  showPopup("Getting your location...");
+
+  navigator.geolocation.getCurrentPosition(position => {
+
+    showPopup("Submitting attendance...");
+
+    fetch('/api/employees/staff-attendance/submit/{{ event.id }}/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        full_name,
+        employee_id,
+        phone,
+        email,
+        department,
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+
+      if (data.error) {
+        showPopup(data.error, "error");
+      } else {
+        showPopup(data.message, "success");
+
+        document.getElementById("name").value = "";
+        document.getElementById("emp_id").value = "";
+        document.getElementById("phone").value = "";
+        document.getElementById("email").value = "";
+        document.getElementById("dept").value = "";
+        document.getElementById("other_dept").value = "";
+        document.getElementById("otherDeptWrapper").classList.add("hidden");
+      }
+
+      btn.disabled = false;
+      btn.innerText = "Register";
+
+    })
+    .catch(() => {
+      showPopup("Server error", "error");
+      btn.disabled = false;
+      btn.innerText = "Register";
+    });
+
+  }, (error) => {
+    if (error.code === 1) {
+      showPopup("Location permission denied. Please allow GPS.", "error");
+    } else if (error.code === 2) {
+      showPopup("Location unavailable. Please turn ON GPS.", "error");
+    } else if (error.code === 3) {
+      showPopup("Location request timed out. Try again.", "error");
+    } else {
+      showPopup("GPS not detected. Please turn ON location and try again.", "error");
+    }
+
+    btn.disabled = false;
+    btn.innerText = "Register";
+  }, {
+    enableHighAccuracy: true,
+    timeout: 5000,
+    maximumAge: 0
+  });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,447 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="mb-4">
+  <a href="/events/"
+     class="inline-block bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
+    ← Back to Events
+  </a>
+</div>
+
+<h1 class="text-2xl font-bold mb-6">Event Details</h1>
+
+<div class="bg-white rounded-xl shadow overflow-hidden mb-6 border border-gray-200">
+  <table class="w-full text-sm border-collapse">
+    <tr class="border-b border-gray-200">
+      <td class="p-6 align-top w-1/3 border-r border-gray-200">
+        <h2 class="text-xl font-bold mb-3">{{ event.name }}</h2>
+
+        <div class="space-y-2 text-gray-700">
+          <p><span class="font-semibold">Date:</span> {{ event.date|date:"d/m/Y" }}</p>
+          <p><span class="font-semibold">Location:</span> {{ event.location }}</p>
+          <p><span class="font-semibold">Radius:</span> {{ event.radius_meter }} meter</p>
+          <p><span class="font-semibold">Latitude:</span> {{ event.latitude|default:"-" }}</p>
+          <p><span class="font-semibold">Longitude:</span> {{ event.longitude|default:"-" }}</p>
+          <p>
+            <span class="font-semibold">Description:</span><br>
+            {{ event.description|default:"-" }}
+          </p>
+        </div>
+      </td>
+
+      <td class="p-6 align-top text-center w-1/3 border-r border-gray-200">
+        <p class="font-semibold mb-3">Visitor QR</p>
+        {% if event.visitor_qr_code %}
+          <img src="{{ event.visitor_qr_code.url }}" class="w-40 h-40 object-contain mx-auto border border-gray-300 p-2 rounded">
+        {% else %}
+          <p class="text-gray-400">No QR</p>
+        {% endif %}
+      </td>
+
+      <td class="p-6 align-top text-center w-1/3">
+        <p class="font-semibold mb-3">Staff QR</p>
+        {% if event.staff_qr_code %}
+          <img src="{{ event.staff_qr_code.url }}" class="w-40 h-40 object-contain mx-auto border border-gray-300 p-2 rounded">
+        {% else %}
+          <p class="text-gray-400">No QR</p>
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+</div>
+
+<div class="mb-4 flex justify-between items-center">
+  <h2 class="text-lg font-bold">Attendance Records</h2>
+
+  <div class="flex gap-3 items-center">
+    <div class="bg-blue-100 text-blue-600 px-3 py-1 rounded">
+      Total: {{ total_attendance }}
+    </div>
+
+    {% if can_manage %}
+    <a href="/events/{{ event.id }}/export/"
+       class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+      Export CSV
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<h3 class="text-lg font-semibold mb-3">Employee / Staff Attendance</h3>
+<form method="GET" class="bg-white border border-gray-200 rounded-xl shadow p-4 mb-4">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+    <input type="text" name="staff_search" placeholder="Search staff name"
+      value="{{ staff_search }}"
+      class="p-2 border border-gray-300 rounded">
+
+    <select name="staff_department" class="p-2 border border-gray-300 rounded bg-white">
+      <option value="">All Departments</option>
+      {% for dept in staff_departments %}
+        <option value="{{ dept }}" {% if staff_department == dept %}selected{% endif %}>{{ dept }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="staff_sort" class="p-2 border border-gray-300 rounded bg-white">
+      <option value="date" {% if staff_sort == 'date' %}selected{% endif %}>Sort by Date</option>
+      <option value="time" {% if staff_sort == 'time' %}selected{% endif %}>Sort by Time</option>
+      <option value="name" {% if staff_sort == 'name' %}selected{% endif %}>Sort by Name</option>
+    </select>
+
+    <div class="flex gap-2">
+      <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-full">
+        Search
+      </button>
+      <a href="/events/{{ event.id }}/" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 w-full text-center">
+        Reset
+      </a>
+    </div>
+  </div>
+</form>
+
+<div class="bg-white rounded-xl shadow overflow-hidden mb-3 border border-gray-200">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm border-collapse">
+      <thead class="bg-gray-50">
+        <tr class="border-b border-gray-200">
+          <th class="p-3 text-left border-r border-gray-200">Name</th>
+          <th class="p-3 text-left border-r border-gray-200">Employee ID</th>
+          <th class="p-3 text-left border-r border-gray-200">Email</th>
+          <th class="p-3 text-left border-r border-gray-200">Phone</th>
+          <th class="p-3 text-left border-r border-gray-200">Department</th>
+          <th class="p-3 text-left border-r border-gray-200">Date</th>
+          <th class="p-3 text-left border-r border-gray-200">Time</th>
+          <th class="p-3 text-left border-r border-gray-200">Latitude</th>
+          <th class="p-3 text-left {% if can_manage %}border-r border-gray-200{% endif %}">Longitude</th>
+          {% if can_manage %}
+          <th class="p-3 text-left">Action</th>
+          {% endif %}
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for att in employee_attendances %}
+        <tr class="border-b border-gray-200 hover:bg-gray-50">
+          <td class="p-3 border-r border-gray-200">{{ att.full_name|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.employee_id|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.email|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.phone_number|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.department|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.date|date:"d/m/Y" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.time }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.latitude|default:"-" }}</td>
+          <td class="p-3 {% if can_manage %}border-r border-gray-200{% endif %}">{{ att.longitude|default:"-" }}</td>
+
+          {% if can_manage %}
+          <td class="p-3">
+            <button
+              class="text-blue-500 hover:underline staff-edit-btn"
+              data-id="{{ att.id }}"
+              data-name="{{ att.full_name }}"
+              data-employeeid="{{ att.employee_id }}"
+              data-email="{{ att.email }}"
+              data-phone="{{ att.phone_number }}"
+              data-department="{{ att.department }}">
+              Edit
+            </button>
+            <button
+              class="text-red-500 hover:underline ml-2 staff-delete-btn"
+              data-id="{{ att.id }}">
+              Delete
+            </button>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if can_manage %}10{% else %}9{% endif %}" class="text-center p-4 text-gray-500">
+            No employee attendance
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="flex justify-end gap-2 mb-8">
+  {% if staff_page_obj.has_previous %}
+    <a href="?staff_page={{ staff_page_obj.previous_page_number }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&visitor_page={{ visitor_page_obj.number }}"
+       class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
+      Previous
+    </a>
+  {% endif %}
+
+  <span class="px-4 py-2 bg-gray-100 rounded">
+    Page {{ staff_page_obj.number }} of {{ staff_page_obj.paginator.num_pages }}
+  </span>
+
+  {% if staff_page_obj.has_next %}
+    <a href="?staff_page={{ staff_page_obj.next_page_number }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&visitor_page={{ visitor_page_obj.number }}"
+       class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
+      Next
+    </a>
+  {% endif %}
+</div>
+
+<h3 class="text-lg font-semibold mb-3">Visitor Attendance</h3>
+<form method="GET" class="bg-white border border-gray-200 rounded-xl shadow p-4 mb-4">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+    <input type="text" name="visitor_search" placeholder="Search visitor name"
+      value="{{ visitor_search }}"
+      class="p-2 border border-gray-300 rounded">
+
+    <select name="visitor_organization" class="p-2 border border-gray-300 rounded bg-white">
+      <option value="">All Organizations</option>
+      {% for org in visitor_organizations %}
+        <option value="{{ org }}" {% if visitor_organization == org %}selected{% endif %}>{{ org }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="visitor_sort" class="p-2 border border-gray-300 rounded bg-white">
+      <option value="date" {% if visitor_sort == 'date' %}selected{% endif %}>Sort by Date</option>
+      <option value="time" {% if visitor_sort == 'time' %}selected{% endif %}>Sort by Time</option>
+      <option value="name" {% if visitor_sort == 'name' %}selected{% endif %}>Sort by Name</option>
+    </select>
+
+    <div class="flex gap-2">
+      <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-full">
+        Search
+      </button>
+      <a href="/events/{{ event.id }}/" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 w-full text-center">
+        Reset
+      </a>
+    </div>
+  </div>
+</form>
+
+<div class="bg-white rounded-xl shadow overflow-hidden border border-gray-200 mb-3">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm border-collapse">
+      <thead class="bg-gray-50">
+        <tr class="border-b border-gray-200">
+          <th class="p-3 text-left border-r border-gray-200">Name</th>
+          <th class="p-3 text-left border-r border-gray-200">Phone</th>
+          <th class="p-3 text-left border-r border-gray-200">Email</th>
+          <th class="p-3 text-left border-r border-gray-200">Organization</th>
+          <th class="p-3 text-left border-r border-gray-200">Date</th>
+          <th class="p-3 text-left border-r border-gray-200">Time</th>
+          <th class="p-3 text-left border-r border-gray-200">Latitude</th>
+          <th class="p-3 text-left {% if can_manage %}border-r border-gray-200{% endif %}">Longitude</th>
+          {% if can_manage %}
+          <th class="p-3 text-left">Action</th>
+          {% endif %}
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for att in visitor_attendances %}
+        <tr class="border-b border-gray-200 hover:bg-gray-50">
+          <td class="p-3 border-r border-gray-200">{{ att.visitor.full_name|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.visitor.phone_number|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.visitor.email|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.visitor.organization|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.date|date:"d/m/Y" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.time }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.latitude|default:"-" }}</td>
+          <td class="p-3 {% if can_manage %}border-r border-gray-200{% endif %}">{{ att.longitude|default:"-" }}</td>
+
+          {% if can_manage %}
+          <td class="p-3">
+            <button
+              class="text-blue-500 hover:underline visitor-edit-btn"
+              data-id="{{ att.id }}"
+              data-name="{{ att.visitor.full_name }}"
+              data-phone="{{ att.visitor.phone_number }}"
+              data-email="{{ att.visitor.email }}"
+              data-organization="{{ att.visitor.organization }}">
+              Edit
+            </button>
+            <button
+              class="text-red-500 hover:underline ml-2 visitor-delete-btn"
+              data-id="{{ att.id }}">
+              Delete
+            </button>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if can_manage %}9{% else %}8{% endif %}" class="text-center p-4 text-gray-500">
+            No visitor attendance
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="flex justify-end gap-2 mb-6">
+  {% if visitor_page_obj.has_previous %}
+    <a href="?visitor_page={{ visitor_page_obj.previous_page_number }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&staff_page={{ staff_page_obj.number }}"
+       class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
+      Previous
+    </a>
+  {% endif %}
+
+  <span class="px-4 py-2 bg-gray-100 rounded">
+    Page {{ visitor_page_obj.number }} of {{ visitor_page_obj.paginator.num_pages }}
+  </span>
+
+  {% if visitor_page_obj.has_next %}
+    <a href="?visitor_page={{ visitor_page_obj.next_page_number }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&staff_page={{ staff_page_obj.number }}"
+       class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
+      Next
+    </a>
+  {% endif %}
+</div>
+
+{% if can_manage %}
+<div id="staffModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+  <div class="bg-white w-full max-w-lg p-6 rounded-xl shadow-lg">
+    <h3 class="text-lg font-bold mb-4">Edit Staff Attendance</h3>
+    <input type="hidden" id="staff_edit_id">
+    <input id="staff_name" class="w-full mb-3 p-3 border rounded" placeholder="Full Name">
+    <input id="staff_employee_id" class="w-full mb-3 p-3 border rounded" placeholder="Employee ID">
+    <input id="staff_email" class="w-full mb-3 p-3 border rounded" placeholder="Email">
+    <input id="staff_phone" class="w-full mb-3 p-3 border rounded" placeholder="Phone">
+    <input id="staff_department" class="w-full mb-4 p-3 border rounded" placeholder="Department">
+    <div class="flex justify-end gap-2">
+      <button onclick="closeStaffModal()" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
+      <button onclick="saveStaffEdit()" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="visitorModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+  <div class="bg-white w-full max-w-lg p-6 rounded-xl shadow-lg">
+    <h3 class="text-lg font-bold mb-4">Edit Visitor Attendance</h3>
+    <input type="hidden" id="visitor_edit_id">
+    <input id="visitor_name" class="w-full mb-3 p-3 border rounded" placeholder="Full Name">
+    <input id="visitor_phone" class="w-full mb-3 p-3 border rounded" placeholder="Phone">
+    <input id="visitor_email" class="w-full mb-3 p-3 border rounded" placeholder="Email">
+    <input id="visitor_organization_field" class="w-full mb-4 p-3 border rounded" placeholder="Organization">
+    <div class="flex justify-end gap-2">
+      <button onclick="closeVisitorModal()" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
+      <button onclick="saveVisitorEdit()" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.staff-edit-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.getElementById('staff_edit_id').value = this.dataset.id;
+    document.getElementById('staff_name').value = this.dataset.name || '';
+    document.getElementById('staff_employee_id').value = this.dataset.employeeid || '';
+    document.getElementById('staff_email').value = this.dataset.email || '';
+    document.getElementById('staff_phone').value = this.dataset.phone || '';
+    document.getElementById('staff_department').value = this.dataset.department || '';
+    document.getElementById('staffModal').classList.remove('hidden');
+  });
+});
+
+document.querySelectorAll('.staff-delete-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const id = this.dataset.id;
+    if (!confirm('Delete this staff attendance?')) return;
+
+    fetch('/api/employees/staff-attendance/delete/' + id + '/', {
+      method: 'POST'
+    })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message || data.error);
+        if (data.message) {
+          location.reload();
+        }
+      });
+  });
+});
+
+function closeStaffModal() {
+  document.getElementById('staffModal').classList.add('hidden');
+}
+
+function saveStaffEdit() {
+  const id = document.getElementById('staff_edit_id').value;
+
+  fetch('/api/employees/staff-attendance/update/' + id + '/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      full_name: document.getElementById('staff_name').value,
+      employee_id: document.getElementById('staff_employee_id').value,
+      email: document.getElementById('staff_email').value,
+      phone_number: document.getElementById('staff_phone').value,
+      department: document.getElementById('staff_department').value
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert(data.message || data.error);
+    if (data.message) {
+      location.reload();
+    }
+  });
+}
+
+document.querySelectorAll('.visitor-edit-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.getElementById('visitor_edit_id').value = this.dataset.id;
+    document.getElementById('visitor_name').value = this.dataset.name || '';
+    document.getElementById('visitor_phone').value = this.dataset.phone || '';
+    document.getElementById('visitor_email').value = this.dataset.email || '';
+    document.getElementById('visitor_organization_field').value = this.dataset.organization || '';
+    document.getElementById('visitorModal').classList.remove('hidden');
+  });
+});
+
+document.querySelectorAll('.visitor-delete-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const id = this.dataset.id;
+    if (!confirm('Delete this visitor attendance?')) return;
+
+    fetch('/api/employees/visitor-attendance/delete/' + id + '/', {
+      method: 'POST'
+    })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message || data.error);
+        if (data.message) {
+          location.reload();
+        }
+      });
+  });
+});
+
+function closeVisitorModal() {
+  document.getElementById('visitorModal').classList.add('hidden');
+}
+
+function saveVisitorEdit() {
+  const id = document.getElementById('visitor_edit_id').value;
+
+  fetch('/api/employees/visitor-attendance/update/' + id + '/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      full_name: document.getElementById('visitor_name').value,
+      phone_number: document.getElementById('visitor_phone').value,
+      email: document.getElementById('visitor_email').value,
+      organization: document.getElementById('visitor_organization_field').value
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert(data.message || data.error);
+    if (data.message) {
+      location.reload();
+    }
+  });
+}
+</script>
+{% endif %}
+
+{% endblock %}

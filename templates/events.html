@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h1 class="text-2xl font-bold mb-6">Event Management</h1>
+
+<form method="GET" class="mb-4 grid grid-cols-1 md:grid-cols-4 gap-2">
+  <input
+    type="text"
+    name="name"
+    placeholder="Search event name"
+    value="{{ request.GET.name }}"
+    class="p-2 border rounded w-full"
+  >
+
+  <input
+    type="text"
+    name="location"
+    placeholder="Search location"
+    value="{{ request.GET.location }}"
+    class="p-2 border rounded w-full"
+  >
+
+  <input
+    type="date"
+    name="date"
+    value="{{ request.GET.date }}"
+    class="p-2 border rounded w-full"
+  >
+
+  <div class="flex gap-2">
+    <button class="bg-blue-500 text-white px-4 rounded w-full">
+      Filter
+    </button>
+    <a href="/events/" class="bg-gray-300 text-gray-800 px-4 py-2 rounded text-center w-full">
+      Reset
+    </a>
+  </div>
+</form>
+
+<div class="bg-white rounded-xl shadow overflow-hidden border border-gray-200">
+
+  <div class="flex justify-between items-center p-4 border-b border-gray-200">
+    <h2 class="font-semibold">Events List</h2>
+
+    {% if can_manage %}
+    <button onclick="openModal()" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+      + Create Event
+    </button>
+    {% endif %}
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm border-collapse">
+      <thead class="bg-gray-50">
+        <tr class="border-b border-gray-200">
+          <th class="p-3 text-left border-r border-gray-200">Name</th>
+          <th class="p-3 text-left border-r border-gray-200">Location</th>
+          <th class="p-3 text-left border-r border-gray-200">Date</th>
+          <th class="p-3 text-left border-r border-gray-200">Description</th>
+          <th class="p-3 text-left border-r border-gray-200">Geofence</th>
+          <th class="p-3 text-left border-r border-gray-200">QR</th>
+          <th class="p-3 text-left">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for event in events %}
+        <tr class="border-b border-gray-200 hover:bg-gray-50">
+          <td class="p-3 border-r border-gray-200 font-medium">{{ event.name }}</td>
+          <td class="p-3 border-r border-gray-200">{{ event.location }}</td>
+          <td class="p-3 border-r border-gray-200">{{ event.date|date:"d/m/Y" }}</td>
+
+          <td class="p-3 border-r border-gray-200">
+            <div class="max-w-xs truncate">
+              {{ event.description|default:"-" }}
+            </div>
+          </td>
+
+          <td class="p-3 border-r border-gray-200 text-xs">
+            {% if event.latitude and event.longitude %}
+              <div>{{ event.latitude }}, {{ event.longitude }}</div>
+              <div class="text-gray-500">Radius: {{ event.radius_meter }} m</div>
+            {% else %}
+              <span class="text-gray-400">Not set</span>
+            {% endif %}
+          </td>
+
+          <td class="p-3 border-r border-gray-200">
+            {% if event.visitor_qr_code %}
+              <img src="{{ event.visitor_qr_code.url }}"
+                   class="w-16 h-16 object-contain border border-gray-300 rounded p-1">
+            {% else %}
+              <span class="text-gray-400">No QR</span>
+            {% endif %}
+          </td>
+
+          <td class="p-3">
+            <div class="flex gap-2 flex-wrap">
+              <a href="/events/{{ event.id }}/" class="text-green-600 hover:underline">
+                View
+              </a>
+
+              {% if can_manage %}
+              <button class="text-blue-500 edit-btn hover:underline"
+                data-id="{{ event.id }}"
+                data-name="{{ event.name }}"
+                data-location="{{ event.location }}"
+                data-date="{{ event.date|date:'Y-m-d' }}"
+                data-desc="{{ event.description }}"
+                data-latitude="{{ event.latitude }}"
+                data-longitude="{{ event.longitude }}"
+                data-radius="{{ event.radius_meter }}">
+                Edit
+              </button>
+
+              <button class="text-red-500 delete-btn hover:underline"
+                data-id="{{ event.id }}">
+                Delete
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="p-4 text-center text-gray-500">
+            No events found
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+{% if can_manage %}
+<div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded shadow w-full max-w-lg">
+
+    <h2 class="text-lg font-bold mb-4">Event Form</h2>
+
+    <input id="e_name" placeholder="Name" class="w-full mb-2 p-2 border rounded">
+    <input id="e_location" placeholder="Location" class="w-full mb-2 p-2 border rounded">
+    <input id="e_date" type="date" class="w-full mb-2 p-2 border rounded">
+    <textarea id="e_desc" placeholder="Description" class="w-full mb-3 p-2 border rounded"></textarea>
+
+    <h3 class="font-semibold mb-2">Geofence Setting</h3>
+
+    <input id="e_latitude" type="number" step="0.000001" placeholder="Latitude (contoh: 1.553300)" class="w-full mb-2 p-2 border rounded">
+    <input id="e_longitude" type="number" step="0.000001" placeholder="Longitude (contoh: 110.359200)" class="w-full mb-2 p-2 border rounded">
+    <input id="e_radius" type="number" placeholder="Radius in meter (contoh: 100)" class="w-full mb-4 p-2 border rounded">
+
+    <div class="flex justify-end gap-2">
+      <button onclick="closeModal()" class="bg-gray-300 px-3 py-1 rounded">Cancel</button>
+      <button onclick="saveEvent()" class="bg-blue-500 text-white px-3 py-1 rounded">Save</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let editId = null;
+
+function openModal() {
+  editId = null;
+
+  document.getElementById('modal').classList.remove('hidden');
+
+  document.getElementById('e_name').value = '';
+  document.getElementById('e_location').value = '';
+  document.getElementById('e_date').value = '';
+  document.getElementById('e_desc').value = '';
+  document.getElementById('e_latitude').value = '';
+  document.getElementById('e_longitude').value = '';
+  document.getElementById('e_radius').value = 100;
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+}
+
+function saveEvent() {
+  const data = {
+    name: document.getElementById('e_name').value,
+    location: document.getElementById('e_location').value,
+    date: document.getElementById('e_date').value,
+    description: document.getElementById('e_desc').value,
+    latitude: document.getElementById('e_latitude').value,
+    longitude: document.getElementById('e_longitude').value,
+    radius_meter: document.getElementById('e_radius').value
+  };
+
+  let url = '/api/employees/event/create/';
+  if (editId) {
+    url = '/api/employees/event/update/' + editId + '/';
+  }
+
+  fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert(data.message || data.error);
+    if (data.message) {
+      location.reload();
+    }
+  })
+  .catch(() => {
+    alert('Error saving event');
+  });
+}
+
+document.querySelectorAll('.edit-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    editId = this.dataset.id;
+
+    document.getElementById('e_name').value = this.dataset.name || '';
+    document.getElementById('e_location').value = this.dataset.location || '';
+    document.getElementById('e_date').value = this.dataset.date || '';
+    document.getElementById('e_desc').value = this.dataset.desc || '';
+    document.getElementById('e_latitude').value = this.dataset.latitude || '';
+    document.getElementById('e_longitude').value = this.dataset.longitude || '';
+    document.getElementById('e_radius').value = this.dataset.radius || 100;
+
+    document.getElementById('modal').classList.remove('hidden');
+  });
+});
+
+document.querySelectorAll('.delete-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const id = this.dataset.id;
+    if (!confirm('Delete this event?')) return;
+
+    fetch('/api/employees/event/delete/' + id + '/', {
+      method: 'POST'
+    })
+    .then(res => res.json())
+    .then(data => {
+      alert(data.message || data.error);
+      if (data.message) {
+        location.reload();
+      }
+    })
+    .catch(() => {
+      alert('Error deleting event');
+    });
+  });
+});
+</script>
+{% endif %}
+
+{% endblock %}

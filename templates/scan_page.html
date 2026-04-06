@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Scan Attendance</title>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+
+<div class="w-full max-w-lg bg-white p-6 rounded-xl shadow">
+  <h1 class="text-2xl font-bold mb-2 text-center">QR Attendance Scan</h1>
+  <p class="text-center text-gray-500 mb-6">Event: {{ event.name }}</p>
+
+  <div class="bg-gray-50 border rounded p-4 mb-4">
+    <p><span class="font-semibold">Location:</span> {{ event.location }}</p>
+    <p><span class="font-semibold">Date:</span> {{ event.date|date:"d/m/Y" }}</p>
+    <p><span class="font-semibold">Allowed Radius:</span> {{ event.radius_meter }} meter</p>
+  </div>
+
+  <div class="mb-4">
+    <button onclick="scanAttendance()" class="bg-blue-500 text-white px-4 py-3 rounded w-full">
+      Check Location & Record Attendance
+    </button>
+  </div>
+
+  <div id="statusBox" class="hidden p-4 rounded text-sm"></div>
+
+  <div class="mt-4 text-center">
+    <a href="/login-page/" class="text-blue-500 hover:underline">Back to Login</a>
+  </div>
+</div>
+
+<script>
+function showMessage(message, type="info") {
+  const box = document.getElementById("statusBox");
+  box.classList.remove("hidden", "bg-green-100", "text-green-700", "bg-red-100", "text-red-700", "bg-yellow-100", "text-yellow-700");
+  
+  if (type === "success") {
+    box.classList.add("bg-green-100", "text-green-700");
+  } else if (type === "error") {
+    box.classList.add("bg-red-100", "text-red-700");
+  } else {
+    box.classList.add("bg-yellow-100", "text-yellow-700");
+  }
+
+  box.innerText = message;
+}
+
+// 🔥 MAIN FUNCTION
+function scanAttendance() {
+
+  if (!navigator.geolocation) {
+    showMessage("Your browser does not support location.", "error");
+    return;
+  }
+
+  showMessage("Getting your current location...");
+
+  let gotLocation = false;
+
+  navigator.geolocation.getCurrentPosition(
+    function(position) {
+      gotLocation = true;
+
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+
+      fetch('/api/employees/scan/{{ event.id }}/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          latitude: latitude,
+          longitude: longitude
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          showMessage(data.error, "error");
+        } else {
+          let msg = data.message;
+          if (data.distance_meter !== undefined) {
+            msg += " | Distance: " + data.distance_meter + "m";
+          }
+          showMessage(msg, "success");
+        }
+      })
+      .catch(() => {
+        showMessage("Server error. Try again.", "error");
+      });
+    },
+    function(error) {
+      gotLocation = true;
+
+      if (error.code === 1) {
+        showMessage("Location permission denied. Please allow GPS.", "error");
+      } else if (error.code === 2) {
+        showMessage("Location unavailable. Please turn ON GPS.", "error");
+      } else if (error.code === 3) {
+        showMessage("Location request timed out. Try again.", "error");
+      } else {
+        showMessage("Unable to get location.", "error");
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 8000,
+      maximumAge: 0
+    }
+  );
+
+  // 🔥 FALLBACK (kalau GPS OFF tapi browser tak trigger error)
+  setTimeout(() => {
+    if (!gotLocation) {
+      showMessage("GPS not detected. Please turn ON location and try again.", "error");
+    }
+  }, 9000);
+}
+</script>
+
+</body>
+</html>

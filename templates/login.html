@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+
+<div class="w-full max-w-md bg-white p-6 rounded-xl shadow">
+  <h2 class="text-2xl font-bold mb-2 text-center">Login</h2>
+  <p class="text-sm text-gray-500 text-center mb-6">Login using Employee ID or Email</p>
+
+  <input id="username" placeholder="Employee ID or Email" class="w-full mb-3 p-3 border rounded">
+  <input id="password" type="password" placeholder="Password" class="w-full mb-4 p-3 border rounded">
+
+  <button onclick="loginUser()" class="bg-blue-500 text-white px-4 py-3 rounded w-full mb-3">
+    Login
+  </button>
+
+  <a href="/api/employees/register/"
+     class="block text-center bg-gray-300 text-gray-800 px-4 py-3 rounded w-full hover:bg-gray-400">
+    Sign Up
+  </a>
+
+  <p id="msg" class="mt-4 text-center text-sm"></p>
+</div>
+
+<script>
+function loginUser() {
+  fetch('/api/employees/login/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      username: document.getElementById('username').value,
+      password: document.getElementById('password').value
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.message) {
+      const params = new URLSearchParams(window.location.search);
+      const nextUrl = params.get('next');
+
+      if (nextUrl) {
+        window.location.href = nextUrl;
+      } else {
+        window.location.href = "/dashboard/";
+      }
+    } else {
+      document.getElementById('msg').innerText = data.error || "Login failed";
+    }
+  })
+  .catch(() => {
+    document.getElementById('msg').innerText = "Error connecting to server";
+  });
+}
+</script>
+
+</body>
+</html>

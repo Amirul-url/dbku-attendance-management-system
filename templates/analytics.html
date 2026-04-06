@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1 class="text-2xl font-bold mb-6">Analytics</h1>
+
+<form method="GET" class="bg-white border border-gray-200 rounded-xl shadow p-4 mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+    <input
+      type="text"
+      name="name"
+      placeholder="Search event name"
+      value="{{ filter_name }}"
+      class="p-2 border border-gray-300 rounded"
+    >
+
+    <select name="month" class="p-2 border border-gray-300 rounded bg-white">
+      <option value="">All Months</option>
+      <option value="1" {% if filter_month == '1' %}selected{% endif %}>January</option>
+      <option value="2" {% if filter_month == '2' %}selected{% endif %}>February</option>
+      <option value="3" {% if filter_month == '3' %}selected{% endif %}>March</option>
+      <option value="4" {% if filter_month == '4' %}selected{% endif %}>April</option>
+      <option value="5" {% if filter_month == '5' %}selected{% endif %}>May</option>
+      <option value="6" {% if filter_month == '6' %}selected{% endif %}>June</option>
+      <option value="7" {% if filter_month == '7' %}selected{% endif %}>July</option>
+      <option value="8" {% if filter_month == '8' %}selected{% endif %}>August</option>
+      <option value="9" {% if filter_month == '9' %}selected{% endif %}>September</option>
+      <option value="10" {% if filter_month == '10' %}selected{% endif %}>October</option>
+      <option value="11" {% if filter_month == '11' %}selected{% endif %}>November</option>
+      <option value="12" {% if filter_month == '12' %}selected{% endif %}>December</option>
+    </select>
+
+    <input
+      type="number"
+      name="year"
+      placeholder="Year"
+      value="{{ filter_year }}"
+      class="p-2 border border-gray-300 rounded"
+    >
+
+    <input
+      type="text"
+      name="location"
+      placeholder="Search location"
+      value="{{ filter_location }}"
+      class="p-2 border border-gray-300 rounded"
+    >
+
+    <div class="flex gap-2">
+      <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-full">
+        Search
+      </button>
+      <a href="/analytics/" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 w-full text-center">
+        Reset
+      </a>
+    </div>
+  </div>
+</form>
+
+<div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
+  <div class="p-4 border-b border-gray-200">
+    <h3 class="font-semibold">Event Attendance Analytics</h3>
+    <p class="text-sm text-gray-500 mt-1">
+      Staff / Employee by department and visitor by organization for each event
+    </p>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm border-collapse">
+      <thead class="bg-gray-50">
+        <tr class="border-b border-gray-200">
+          <th class="p-4 text-left border-r border-gray-200">Event</th>
+          <th class="p-4 text-left border-r border-gray-200">Staff / Employee by Department</th>
+          <th class="p-4 text-left border-r border-gray-200">Visitor by Organization</th>
+          {% if can_manage %}
+          <th class="p-4 text-left">Export</th>
+          {% endif %}
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for item in event_analytics %}
+        <tr class="border-b border-gray-200 align-top">
+          <td class="p-4 border-r border-gray-200 min-w-[320px]">
+            <div class="font-semibold text-base">{{ item.event.name }}</div>
+            <div class="text-gray-500 mt-1">Date: {{ item.event.date|date:"d/m/Y" }}</div>
+            <div class="text-gray-500">Location: {{ item.event.location }}</div>
+            <div class="text-gray-500">Description: {{ item.event.description|default:"-" }}</div>
+            <div class="text-gray-500">Latitude: {{ item.event.latitude|default:"-" }}</div>
+            <div class="text-gray-500">Longitude: {{ item.event.longitude|default:"-" }}</div>
+            <div class="text-gray-500">Radius: {{ item.event.radius_meter }} meter</div>
+
+            <div class="mt-3 text-xs text-gray-600">
+              <div>Staff Attendance: {{ item.staff_total }}</div>
+              <div>Visitor Attendance: {{ item.visitor_total }}</div>
+            </div>
+          </td>
+
+          <td class="p-4 border-r border-gray-200 min-w-[320px]">
+            {% if item.staff_total > 0 %}
+              <div class="w-64 h-64 mx-auto">
+                <canvas
+                  class="staff-chart"
+                  data-labels='{{ item.staff_labels_json|safe }}'
+                  data-values='{{ item.staff_data_json|safe }}'>
+                </canvas>
+              </div>
+            {% else %}
+              <div class="text-gray-400 text-center py-12">No staff attendance data</div>
+            {% endif %}
+          </td>
+
+          <td class="p-4 {% if can_manage %}border-r border-gray-200{% endif %} min-w-[320px]">
+            {% if item.visitor_total > 0 %}
+              <div class="w-64 h-64 mx-auto">
+                <canvas
+                  class="visitor-chart"
+                  data-labels='{{ item.visitor_labels_json|safe }}'
+                  data-values='{{ item.visitor_data_json|safe }}'>
+                </canvas>
+              </div>
+            {% else %}
+              <div class="text-gray-400 text-center py-12">No visitor attendance data</div>
+            {% endif %}
+          </td>
+
+          {% if can_manage %}
+          <td class="p-4 min-w-[140px]">
+            <a href="/api/employees/dashboard/export-event-summary/{{ item.event.id }}/"
+               class="inline-block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+              Export CSV
+            </a>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if can_manage %}4{% else %}3{% endif %}" class="p-6 text-center text-gray-500">
+            No event analytics available
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.staff-chart').forEach(function (canvas) {
+    const labels = JSON.parse(canvas.dataset.labels || '[]');
+    const values = JSON.parse(canvas.dataset.values || '[]');
+
+    new Chart(canvas, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+          title: {
+            display: true,
+            text: 'Staff / Employee by Department'
+          }
+        }
+      }
+    });
+  });
+
+  document.querySelectorAll('.visitor-chart').forEach(function (canvas) {
+    const labels = JSON.parse(canvas.dataset.labels || '[]');
+    const values = JSON.parse(canvas.dataset.values || '[]');
+
+    new Chart(canvas, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+          title: {
+            display: true,
+            text: 'Visitor by Organization'
+          }
+        }
+      }
+    });
+  });
+});
+</script>
+
+{% endblock %}
