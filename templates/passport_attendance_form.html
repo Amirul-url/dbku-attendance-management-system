@@ -14,7 +14,7 @@
   </h2>
 
   <p class="text-center text-gray-500 mb-6">
-    Upload or capture passport image, review OCR results, and correct manually if needed
+    Upload passport image, review OCR results, and correct manually if needed
   </p>
 
   <div class="bg-gray-50 p-4 rounded-lg mb-6 text-sm space-y-1">
@@ -25,30 +25,58 @@
     <p><b>Allowed Radius:</b> {{ event.radius_meter }} meter</p>
   </div>
 
-  <div class="space-y-4">
+  <div class="space-y-5">
+
+    <!-- STEP 1 -->
     <div>
-      <label class="font-semibold block mb-1">1. Upload Passport Image / Camera</label>
-      <input id="passport_img" type="file" accept="image/*" capture="environment"
-        class="w-full p-3 border rounded-lg bg-white">
+      <label class="font-semibold block mb-2">1. Upload Passport Image / Camera</label>
+
+      <div class="border-2 border-dashed border-gray-300 rounded-2xl p-4 bg-gray-50">
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button type="button" onclick="openCamera()"
+            class="flex-1 bg-indigo-600 text-white px-4 py-3 rounded-lg hover:bg-indigo-700">
+            Open Camera
+          </button>
+
+          <button type="button" onclick="openFilePicker()"
+            class="flex-1 bg-gray-700 text-white px-4 py-3 rounded-lg hover:bg-gray-800">
+            Choose File
+          </button>
+        </div>
+
+        <input id="passport_img" type="file" accept="image/*" capture="environment" class="hidden">
+
+        <div class="mt-3 p-3 rounded-lg border bg-white text-sm text-gray-600">
+          <span class="font-medium">Selected file:</span>
+          <span id="selectedFileName">No file selected</span>
+        </div>
+
+        <p class="text-xs text-gray-500 mt-3">
+          On mobile, “Open Camera” will try to open the back camera. Some browsers may still show camera/gallery choice.
+        </p>
+      </div>
     </div>
 
+    <!-- ACTIONS -->
     <div class="flex flex-wrap gap-3">
       <button id="scanBtn" type="button" onclick="uploadOCR()"
-        class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700">
+        class="bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700">
         Scan Passport
       </button>
 
       <button type="button" onclick="enableManualMode()"
-        class="bg-gray-500 text-white px-4 py-3 rounded-lg hover:bg-gray-600">
+        class="bg-gray-500 text-white px-5 py-3 rounded-lg hover:bg-gray-600">
         Manual Entry
       </button>
     </div>
 
     <div id="qualityNote" class="hidden p-3 rounded bg-yellow-100 text-yellow-800 text-sm"></div>
+
     <p class="text-xs text-gray-500">
       Please review extracted information before submitting.
     </p>
 
+    <!-- PREVIEW -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="bg-gray-50 p-4 rounded-xl border md:col-span-2">
         <p class="font-semibold mb-3">Passport Image Preview</p>
@@ -118,25 +146,73 @@
       <div id="dynamicFields" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </div>
 
-<div class="mt-4">
-  <label class="font-semibold block mb-1">Status</label>
-  <input id="status" readonly class="w-full p-3 border rounded-lg bg-gray-100" value="pending verification">
+    <div class="mt-4">
+      <label class="font-semibold block mb-1">Status</label>
+      <input id="status" readonly class="w-full p-3 border rounded-lg bg-gray-100" value="pending verification">
+    </div>
+
+    <button id="submitBtn" type="button" onclick="submitForm()"
+      class="mt-6 w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700">
+      Submit Attendance
+    </button>
+
+    <p id="msg" class="mt-4 text-center text-sm font-medium"></p>
+
+  </div>
 </div>
 
-<button id="submitBtn" type="button" onclick="submitForm()"
-  class="mt-6 w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700">
-  Submit Attendance
-</button>
-
-<p id="msg" class="mt-4 text-center text-sm font-medium"></p>
-
-</div> <!-- tutup .space-y-4 -->
-</div> <!-- tutup .max-w-4xl -->
+<!-- POPUP LOADING -->
+<div id="scanOverlay" class="hidden fixed inset-0 bg-black/40 z-50 items-center justify-center px-4">
+  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm text-center">
+    <div class="mx-auto w-14 h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+    <h3 class="text-lg font-semibold text-gray-800">Scanning Passport</h3>
+    <p class="text-sm text-gray-500 mt-2">
+      Please wait while the system processes the image.
+    </p>
+  </div>
+</div>
 
 <script>
 let originalImageName = "";
 let processedImageName = "";
 let autoExtractedSnapshot = {};
+
+function openCamera() {
+  const input = document.getElementById("passport_img");
+  input.setAttribute("capture", "environment");
+  input.click();
+}
+
+function openFilePicker() {
+  const input = document.getElementById("passport_img");
+  input.removeAttribute("capture");
+  input.click();
+}
+
+function setMessage(message, type = "info") {
+  const msg = document.getElementById("msg");
+  msg.innerText = message;
+
+  if (type === "success") {
+    msg.className = "mt-4 text-center text-sm font-medium text-green-600";
+  } else if (type === "error") {
+    msg.className = "mt-4 text-center text-sm font-medium text-red-600";
+  } else {
+    msg.className = "mt-4 text-center text-sm font-medium text-gray-600";
+  }
+}
+
+function showOverlay() {
+  const overlay = document.getElementById("scanOverlay");
+  overlay.classList.remove("hidden");
+  overlay.classList.add("flex");
+}
+
+function hideOverlay() {
+  const overlay = document.getElementById("scanOverlay");
+  overlay.classList.add("hidden");
+  overlay.classList.remove("flex");
+}
 
 function renderDynamicFields(fields = []) {
   const container = document.getElementById("dynamicFields");
@@ -204,6 +280,8 @@ document.getElementById("passport_img").addEventListener("change", function (e) 
   const file = e.target.files[0];
   if (!file) return;
 
+  document.getElementById("selectedFileName").innerText = file.name;
+
   const previewUrl = URL.createObjectURL(file);
   const passportPreview = document.getElementById("passportPreview");
   const noPreviewText = document.getElementById("noPreviewText");
@@ -211,27 +289,16 @@ document.getElementById("passport_img").addEventListener("change", function (e) 
   passportPreview.src = previewUrl;
   passportPreview.classList.remove("hidden");
   noPreviewText.classList.add("hidden");
+
+  setMessage("Image selected. You can now scan the passport.", "info");
 });
-
-function setMessage(message, type = "info") {
-  const msg = document.getElementById("msg");
-  msg.innerText = message;
-
-  if (type === "success") {
-    msg.className = "mt-4 text-center text-sm font-medium text-green-600";
-  } else if (type === "error") {
-    msg.className = "mt-4 text-center text-sm font-medium text-red-600";
-  } else {
-    msg.className = "mt-4 text-center text-sm font-medium text-gray-600";
-  }
-}
 
 function enableManualMode() {
   document.getElementById("status").value = "pending verification";
   setMessage("Manual mode enabled. You can fill in the fields manually.", "info");
 }
 
-function showPreview(imageUrl, processedUrl) {
+function showPreview(imageUrl) {
   const passportPreview = document.getElementById("passportPreview");
   const noPreviewText = document.getElementById("noPreviewText");
 
@@ -240,7 +307,6 @@ function showPreview(imageUrl, processedUrl) {
     passportPreview.classList.remove("hidden");
     noPreviewText.classList.add("hidden");
   }
-
 }
 
 function uploadOCR() {
@@ -258,6 +324,7 @@ function uploadOCR() {
 
   scanBtn.disabled = true;
   scanBtn.innerText = "Scanning...";
+  showOverlay();
   setMessage("Scanning passport image...", "info");
 
   fetch("/api/employees/passport/upload/", {
@@ -312,7 +379,7 @@ function uploadOCR() {
       qualityNote.innerText = "";
     }
 
-    showPreview(data.original_image_url, data.processed_image_url);
+    showPreview(data.original_image_url);
     setMessage(data.message || "Passport scanned successfully", "success");
   })
   .catch((err) => {
@@ -320,6 +387,7 @@ function uploadOCR() {
     setMessage(err.message + " You can still continue with manual entry.", "error");
   })
   .finally(() => {
+    hideOverlay();
     scanBtn.disabled = false;
     scanBtn.innerText = "Scan Passport";
   });
@@ -362,11 +430,7 @@ function resolveStatusBeforeSubmit() {
     current.date_of_issue !== (autoExtractedSnapshot.date_of_issue || "") ||
     current.date_of_expiry !== (autoExtractedSnapshot.date_of_expiry || "");
 
-  if (changed) {
-    return "manually-corrected";
-  }
-
-  return "auto-extracted";
+  return changed ? "manually-corrected" : "auto-extracted";
 }
 
 function submitForm() {
@@ -384,7 +448,7 @@ function submitForm() {
   const date_of_expiry = document.getElementById("date_of_expiry").value.trim();
   const dynamic_fields = collectDynamicFields();
 
-  if (!passport_number || !surname || !given_name || !nationality || !date_of_birth || !sex || !date_of_expiry) {
+  if (!passport_number || !surname || !given_name || !date_of_birth || !date_of_expiry) {
     setMessage("Please complete all required passport details", "error");
     return;
   }

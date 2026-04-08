@@ -1543,99 +1543,186 @@ def preprocess_passport_image(image_path, output_path):
 def extract_passport_data_from_text(text):
     lines = [line.strip() for line in text.split('\n') if line.strip()]
     upper_lines = [line.upper() for line in lines]
+    full_upper = "\n".join(upper_lines)
 
-    full_name = ''
-    passport_number = ''
-    country = ''
-    date_of_birth = ''
-    expiry_date = ''
-    gender = ''
+    result = {
+        'type': 'P',
+        'full_name': '',
+        'surname': '',
+        'given_name': '',
+        'passport_number': '',
+        'country': '',
+        'country_code': '',
+        'nationality': '',
+        'date_of_birth': '',
+        'date_of_issue': '',
+        'expiry_date': '',
+        'gender': '',
+        'sex': '',
+        'registered_domicile': '',
+        'issuing_authority': '',
+    }
 
-    # generic passport number
-    passport_match = re.search(r'\b[A-Z0-9]{6,12}\b', text.upper())
+    # passport number visual fallback
+    passport_match = re.search(r'\b[A-Z]{1,2}\d{6,8}\b', full_upper)
     if passport_match:
-        passport_number = fix_common_ocr_errors(passport_match.group(0), mode="passport")
+        result['passport_number'] = fix_common_ocr_errors(passport_match.group(0), mode="passport")
 
-    # generic country from known 3-letter code
-    for line in upper_lines:
-        for code in COUNTRY_CODE_MAP.keys():
-            if f" {code} " in f" {line} ":
-                country = country_code_to_name(code)
-                break
-        if country:
+    # country code
+    for code in COUNTRY_CODE_MAP.keys():
+        if f" {code} " in f" {full_upper} ":
+            result['country_code'] = code
+            result['country'] = country_code_to_name(code)
+            result['nationality'] = country_code_to_name(code)
             break
 
-    # dates like 05 APR 1975 or 31 AUG 2024
-    all_dates = re.findall(r'\b\d{1,2}\s+[A-Z]{3}\s+\d{4}\b', text.upper())
+    # safer label parsing
+    for i, line in enumerate(upper_lines):
+        next_line = upper_lines[i + 1] if i + 1 < len(upper_lines) else ""
+
+        if ('SURNAME' in line or 'S/SURNAME' in line) and next_line:
+            candidate = re.sub(r'[^A-Z\s]', ' ', next_line).strip()
+            candidate = re.sub(r'\s+', ' ', candidate)
+            if candidate and len(candidate.split()) <= 3:
+                result['surname'] = normalize_mrz_name(candidate)
+
+        if ('GIVEN NAME' in line or 'G/GIVEN NAME' in line or 'GIVENNAME' in line) and next_line:
+            candidate = re.sub(r'[^A-Z\s]', ' ', next_line).strip()
+            candidate = re.sub(r'\s+', ' ', candidate)
+            if candidate and len(candidate.split()) <= 4:
+                result['given_name'] = normalize_mrz_name(candidate)
+
+        if 'REGISTERED DOMICILE' in line and next_line:
+            candidate = re.sub(r'[^A-Z\s]', ' ', next_line).strip()
+            candidate = re.sub(r'\s+', ' ', candidate)
+            if candidate:
+                result['registered_domicile'] = normalize_mrz_name(candidate)
+
+        if 'AUTHORITY' in line and next_line:
+            candidate = re.sub(r'[^A-Z\s]', ' ', next_line).strip()
+            candidate = re.sub(r'\s+', ' ', candidate)
+            if candidate:
+                result['issuing_authority'] = normalize_mrz_name(candidate)
+
+    # dates visible area
+    dates = re.findall(r'\b\d{1,2}\s+[A-Z]{3}\s+\d{4}\b', full_upper)
     unique_dates = []
-    for d in all_dates:
+    for d in dates:
         if d not in unique_dates:
             unique_dates.append(d)
 
+    if len(unique_dates) >= 1:
+        result['date_of_birth'] = unique_dates[0]
     if len(unique_dates) >= 2:
-        date_of_birth = unique_dates[0]
-        expiry_date = unique_dates[-1]
-    elif len(unique_dates) == 1:
-        date_of_birth = unique_dates[0]
+        result['date_of_issue'] = unique_dates[1]
+    if len(unique_dates) >= 3:
+        result['expiry_date'] = unique_dates[2]
 
-    for line in upper_lines:
-        if re.search(r'\bF\b', line):
-            gender = 'Female'
-            break
-        if re.search(r'\bM\b', line):
-            gender = 'Male'
-            break
+    # sex visual fallback
+    if re.search(r'\bSEX\b', full_upper):
+        if re.search(r'\bF\b', full_upper):
+            result['gender'] = 'Female'
+            result['sex'] = 'Female'
+        elif re.search(r'\bM\b', full_upper):
+            result['gender'] = 'Male'
+            result['sex'] = 'Male'
 
-    # weak name guess
-    for i, line in enumerate(upper_lines):
-        if 'SURNAME' in line and i + 1 < len(upper_lines):
-            surname = re.sub(r'[^A-Z\s]', '', upper_lines[i + 1]).strip()
-            if surname:
-                full_name = surname.title()
-        if 'GIVEN NAME' in line and i + 1 < len(upper_lines):
-            given = re.sub(r'[^A-Z\s]', '', upper_lines[i + 1]).strip()
-            if given:
-                full_name = f"{full_name} {given.title()}".strip()
+    if not result['issuing_authority'] and 'MINISTRY OF FOREIGN AFFAIRS' in full_upper:
+        result['issuing_authority'] = 'Ministry of Foreign Affairs'
 
-    return {
-        'full_name': full_name,
-        'passport_number': passport_number,
-        'country': country if country else 'Unknown',
-        'date_of_birth': date_of_birth,
-        'expiry_date': expiry_date,
-        'gender': gender,
-    }
+    result['full_name'] = f"{result['surname']} {result['given_name']}".strip()
+
+    return result
+
+def merge_passport_results(mrz_result, visual_result):
+    final_result = {}
+
+    mrz_result = mrz_result or {}
+    visual_result = visual_result or {}
+
+    # MRZ first for reliable fields
+    final_result["type"] = mrz_result.get("type") or visual_result.get("type") or "P"
+    final_result["passport_number"] = mrz_result.get("passport_number") or visual_result.get("passport_number", "")
+    final_result["country"] = mrz_result.get("country") or visual_result.get("country", "")
+    final_result["country_code"] = mrz_result.get("country_code") or visual_result.get("country_code", "")
+    final_result["nationality"] = mrz_result.get("nationality") or visual_result.get("nationality", "")
+    final_result["nationality_code"] = mrz_result.get("nationality_code") or visual_result.get("nationality_code", "")
+    final_result["date_of_birth"] = mrz_result.get("date_of_birth") or visual_result.get("date_of_birth", "")
+    final_result["expiry_date"] = mrz_result.get("expiry_date") or visual_result.get("expiry_date", "")
+    final_result["sex"] = mrz_result.get("sex") or visual_result.get("sex", "")
+    final_result["gender"] = mrz_result.get("gender") or visual_result.get("gender", "")
+
+    # Name: use MRZ split if available
+    final_result["surname"] = mrz_result.get("surname") or visual_result.get("surname", "")
+    final_result["given_name"] = mrz_result.get("given_name") or visual_result.get("given_name", "")
+
+    # visual-only fields
+    final_result["date_of_issue"] = visual_result.get("date_of_issue", "")
+    final_result["registered_domicile"] = visual_result.get("registered_domicile", "")
+    final_result["issuing_authority"] = visual_result.get("issuing_authority", "")
+
+    final_result["full_name"] = f"{final_result.get('surname', '')} {final_result.get('given_name', '')}".strip()
+
+    # keep raw / score info
+    final_result["mrz_valid_score"] = mrz_result.get("mrz_valid_score", 0)
+    final_result["mrz_total_checks"] = mrz_result.get("mrz_total_checks", 0)
+    final_result["raw_mrz_line1"] = mrz_result.get("raw_mrz_line1", "")
+    final_result["raw_mrz_line2"] = mrz_result.get("raw_mrz_line2", "")
+    final_result["rescue_mode"] = mrz_result.get("rescue_mode", False)
+
+    return final_result
 
 def score_extraction_result(result):
     if not result:
         return -1
 
     score = 0
-    if result.get("full_name"):
-        score += 2
+
     if result.get("passport_number"):
+        score += 4
+    if result.get("surname"):
         score += 3
-    if result.get("country") and result.get("country") != "Unknown":
-        score += 1
+    if result.get("given_name"):
+        score += 3
+    if result.get("nationality"):
+        score += 2
     if result.get("date_of_birth"):
-        score += 1
+        score += 2
     if result.get("expiry_date"):
+        score += 2
+    if result.get("sex"):
         score += 1
-    if result.get("gender"):
+    if result.get("date_of_issue"):
+        score += 1
+    if result.get("registered_domicile"):
+        score += 1
+    if result.get("issuing_authority"):
         score += 1
 
-    score += result.get("mrz_valid_score", 0) * 5
-    score += int(result.get("avg_confidence", 0) * 4)
+    score += result.get("mrz_valid_score", 0) * 6
+    score += int(result.get("avg_confidence", 0) * 5)
+
+    # penalize obvious junk
+    for field in ["passport_number", "surname", "given_name", "nationality"]:
+        val = str(result.get(field, "")).strip().upper()
+        if val and re.search(r'\d{3,}', val):
+            score -= 3
+
     return score
-
 
 def run_paddleocr_retry_variants(input_img):
     results = []
 
+    # Full passport OCR for visual fields
     full_lines = paddleocr_lines_from_image(input_img, "full_passport.jpg")
     full_text = "\n".join([x["text"] for x in full_lines])
     full_avg = sum([x["score"] for x in full_lines]) / len(full_lines) if full_lines else 0
 
+    visual_result = extract_passport_data_from_text(full_text)
+    visual_result["raw_text"] = full_text
+    visual_result["avg_confidence"] = full_avg
+
+    # MRZ variants
     for filename, candidate_img in get_mrz_variants(input_img):
         mrz_lines = paddleocr_lines_from_image(candidate_img, filename)
         mrz_text = "\n".join([x["text"] for x in mrz_lines])
@@ -1643,40 +1730,29 @@ def run_paddleocr_retry_variants(input_img):
 
         mrz_data = extract_mrz_data(mrz_text)
         if mrz_data:
-            mrz_data["raw_text"] = mrz_text
-            mrz_data["avg_confidence"] = mrz_avg
-            results.append(mrz_data)
+            merged = merge_passport_results(mrz_data, visual_result)
+            merged["raw_text"] = full_text
+            merged["avg_confidence"] = max(mrz_avg, full_avg)
+            results.append(merged)
 
+    # rescue from full text
     rescue_full = parse_mrz_rescue(full_text)
     if rescue_full:
-        rescue_full["raw_text"] = full_text
-        rescue_full["avg_confidence"] = full_avg
-        results.append(rescue_full)
+        merged_rescue = merge_passport_results(rescue_full, visual_result)
+        merged_rescue["raw_text"] = full_text
+        merged_rescue["avg_confidence"] = full_avg
+        results.append(merged_rescue)
 
-    fallback = extract_passport_data_from_text(full_text)
-    fallback["raw_text"] = full_text
-    fallback["avg_confidence"] = full_avg
-    results.append(fallback)
+    # visual only fallback
+    visual_result["raw_text"] = full_text
+    results.append(visual_result)
 
-    # priority 1: valid MRZ with passport number
-    for item in results:
-        if item.get("mrz_valid_score", 0) >= 2 and item.get("passport_number"):
-            return item, 999
+    if not results:
+        return visual_result, score_extraction_result(visual_result)
 
-    # priority 2: partial MRZ with country/passport/name
-    for item in results:
-        if item.get("mrz_valid_score", 0) >= 1 and item.get("passport_number") and item.get("full_name"):
-            return item, 500
-
-    best = None
-    best_score = -1
-
-    for item in results:
-        item_score = score_extraction_result(item)
-        if item_score > best_score:
-            best_score = item_score
-            best = item
-    return best, best_score
+    best_result = max(results, key=score_extraction_result)
+    best_score = score_extraction_result(best_result)
+    return best_result, best_score
 
 
 def process_passport_ocr(image_path, processed_path):
@@ -1708,6 +1784,7 @@ def process_passport_ocr(image_path, processed_path):
     best_result['image_quality_note'] = image_quality_note
     best_result['confidence_score'] = best_score
     best_result['date_of_birth'] = normalize_date_for_html(best_result.get('date_of_birth'))
+    best_result['date_of_issue'] = normalize_date_for_html(best_result.get('date_of_issue'))
     best_result['expiry_date'] = normalize_date_for_html(best_result.get('expiry_date'))
 
     return best_result
@@ -2084,7 +2161,6 @@ def mrz_check_digit(data):
 def build_universal_passport_fields(extracted):
     dynamic_fields = []
 
-    # common universal fields
     result = {
         "type": extracted.get("type", "P"),
         "country_code": extracted.get("country_code", extracted.get("nationality_code", "")),
@@ -2098,21 +2174,12 @@ def build_universal_passport_fields(extracted):
         "date_of_expiry": normalize_date_for_html(extracted.get("expiry_date")),
     }
 
-    # extra dynamic examples
     if extracted.get("registered_domicile"):
         dynamic_fields.append({
             "key": "registered_domicile",
             "label": "Registered Domicile",
             "type": "text",
             "value": extracted.get("registered_domicile", "")
-        })
-
-    if extracted.get("place_of_birth"):
-        dynamic_fields.append({
-            "key": "place_of_birth",
-            "label": "Place of Birth",
-            "type": "text",
-            "value": extracted.get("place_of_birth", "")
         })
 
     if extracted.get("issuing_authority"):
@@ -2125,3 +2192,29 @@ def build_universal_passport_fields(extracted):
 
     result["dynamic_fields"] = dynamic_fields
     return result
+
+def merge_passport_results(primary_result, fallback_result):
+    if not primary_result:
+        return fallback_result or {}
+
+    final_result = dict(primary_result)
+
+    fields_from_fallback = [
+        "surname",
+        "given_name",
+        "full_name",
+        "date_of_issue",
+        "registered_domicile",
+        "issuing_authority",
+        "country_code",
+        "nationality",
+    ]
+
+    for field in fields_from_fallback:
+        if not final_result.get(field) and fallback_result.get(field):
+            final_result[field] = fallback_result.get(field)
+
+    if not final_result.get("full_name"):
+        final_result["full_name"] = f"{final_result.get('surname', '')} {final_result.get('given_name', '')}".strip()
+
+    return final_result

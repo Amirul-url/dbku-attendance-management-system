@@ -60,6 +60,12 @@ MIDDLEWARE = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 
+CORS_ALLOW_ALL_ORIGINS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://exospherical-kimberlie-unrefulgent.ngrok-free.dev",
+]
+
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
