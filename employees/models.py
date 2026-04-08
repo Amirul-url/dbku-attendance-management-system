@@ -14,12 +14,9 @@ class Employee(models.Model):
     employee_id = models.CharField(max_length=50, unique=True)
     email = models.EmailField(unique=True)
     department = models.CharField(max_length=100)
-
-    registration_method = models.CharField(max_length=20)  # manual / mykad
+    registration_method = models.CharField(max_length=20)
     ic_number = models.CharField(max_length=20, null=True, blank=True)
-
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='viewer')
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -34,6 +31,7 @@ class Event(models.Model):
 
     visitor_qr_code = models.ImageField(upload_to='qr_codes/', null=True, blank=True)
     staff_qr_code = models.ImageField(upload_to='qr_codes/', null=True, blank=True)
+    passport_qr_code = models.ImageField(upload_to='qr_codes/', null=True, blank=True)
 
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
@@ -72,7 +70,6 @@ class Visitor(models.Model):
     phone_number = models.CharField(max_length=20)
     email = models.EmailField()
     organization = models.CharField(max_length=150)
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -94,3 +91,49 @@ class VisitorAttendance(models.Model):
 
     def __str__(self):
         return f"{self.visitor} - {self.event}"
+
+
+class PassportVisitor(models.Model):
+    STATUS_CHOICES = [
+        ('auto-extracted', 'Auto Extracted'),
+        ('manually-corrected', 'Manually Corrected'),
+        ('pending verification', 'Pending Verification'),
+    ]
+
+    full_name = models.CharField(max_length=150)
+    passport_number = models.CharField(max_length=50, unique=True)
+    country = models.CharField(max_length=100, null=True, blank=True)
+    date_of_birth = models.CharField(max_length=50, null=True, blank=True)
+    expiry_date = models.CharField(max_length=50, null=True, blank=True)
+    gender = models.CharField(max_length=20, null=True, blank=True)
+
+    extra_data = models.JSONField(default=dict, blank=True)
+
+    image = models.ImageField(upload_to='passport_images/', null=True, blank=True)
+    extracted_image = models.ImageField(upload_to='passport_processed/', null=True, blank=True)
+
+    ocr_raw_text = models.TextField(null=True, blank=True)
+    image_quality_note = models.CharField(max_length=255, null=True, blank=True)
+
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pending verification')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.full_name} ({self.passport_number})"
+
+
+class PassportAttendance(models.Model):
+    passport_visitor = models.ForeignKey(PassportVisitor, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+
+    date = models.DateField(auto_now_add=True)
+    time = models.TimeField(auto_now_add=True)
+
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('passport_visitor', 'event')
+
+    def __str__(self):
+        return f"{self.passport_visitor.full_name} - {self.event.name}"

@@ -11,57 +11,120 @@
 
 <h1 class="text-2xl font-bold mb-6">Event Details</h1>
 
-<div class="bg-white rounded-xl shadow overflow-hidden mb-6 border border-gray-200">
-  <table class="w-full text-sm border-collapse">
-    <tr class="border-b border-gray-200">
-      <td class="p-6 align-top w-1/3 border-r border-gray-200">
-        <h2 class="text-xl font-bold mb-3">{{ event.name }}</h2>
+<div class="bg-white rounded-2xl shadow border border-gray-200 mb-6">
 
-        <div class="space-y-2 text-gray-700">
-          <p><span class="font-semibold">Date:</span> {{ event.date|date:"d/m/Y" }}</p>
-          <p><span class="font-semibold">Location:</span> {{ event.location }}</p>
-          <p><span class="font-semibold">Radius:</span> {{ event.radius_meter }} meter</p>
-          <p><span class="font-semibold">Latitude:</span> {{ event.latitude|default:"-" }}</p>
-          <p><span class="font-semibold">Longitude:</span> {{ event.longitude|default:"-" }}</p>
-          <p>
-            <span class="font-semibold">Description:</span><br>
-            {{ event.description|default:"-" }}
-          </p>
-        </div>
-      </td>
+  <!-- HEADER -->
+  <div class="p-5 border-b border-gray-200">
+    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3">
 
-      <td class="p-6 align-top text-center w-1/3 border-r border-gray-200">
-        <p class="font-semibold mb-3">Visitor QR</p>
-        {% if event.visitor_qr_code %}
-          <img src="{{ event.visitor_qr_code.url }}" class="w-40 h-40 object-contain mx-auto border border-gray-300 p-2 rounded">
-        {% else %}
-          <p class="text-gray-400">No QR</p>
-        {% endif %}
-      </td>
+      <div>
+        <h2 class="text-xl font-bold text-gray-800">{{ event.name }}</h2>
+        <p class="text-sm text-gray-500 mt-1">
+          {{ event.location }} • {{ event.date|date:"d/m/Y" }}
+        </p>
+      </div>
 
-      <td class="p-6 align-top text-center w-1/3">
-        <p class="font-semibold mb-3">Staff QR</p>
-        {% if event.staff_qr_code %}
-          <img src="{{ event.staff_qr_code.url }}" class="w-40 h-40 object-contain mx-auto border border-gray-300 p-2 rounded">
-        {% else %}
-          <p class="text-gray-400">No QR</p>
-        {% endif %}
-      </td>
-    </tr>
-  </table>
+      <div class="flex items-center gap-2 text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded-xl">
+        <i data-lucide="map-pin" class="w-4 h-4"></i>
+        Radius: {{ event.radius_meter }}m
+      </div>
+
+    </div>
+  </div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 p-5">
+
+  <div class="bg-gray-50 rounded-xl p-4 border">
+    <div class="flex items-center gap-2 mb-3 text-gray-800 font-semibold">
+      <i data-lucide="info" class="w-4 h-4"></i>
+      Event Info
+    </div>
+
+    <div class="space-y-2 text-sm text-gray-700">
+      <p><span class="font-semibold">Date:</span> {{ event.date|date:"d/m/Y" }}</p>
+      <p><span class="font-semibold">Location:</span> {{ event.location }}</p>
+      <p><span class="font-semibold">Latitude:</span> {{ event.latitude|default:"-" }}</p>
+      <p><span class="font-semibold">Longitude:</span> {{ event.longitude|default:"-" }}</p>
+      <p>
+        <span class="font-semibold">Description:</span><br>
+        {{ event.description|default:"-" }}
+      </p>
+    </div>
+  </div>
+
+  <div class="bg-gray-50 rounded-xl p-4 text-center border">
+    <div class="flex items-center justify-center gap-2 mb-3 text-gray-800 font-semibold">
+      <i data-lucide="qr-code" class="w-4 h-4"></i>
+      Visitor QR
+    </div>
+
+    {% if event.visitor_qr_code %}
+      <img
+        src="{{ event.visitor_qr_code.url }}"
+        class="w-40 h-40 object-contain mx-auto bg-white border border-gray-300 p-2 rounded-xl"
+        alt="Visitor QR"
+      >
+    {% else %}
+      <p class="text-gray-400">No QR</p>
+    {% endif %}
+  </div>
+
+  <div class="bg-gray-50 rounded-xl p-4 text-center border">
+    <div class="flex items-center justify-center gap-2 mb-3 text-gray-800 font-semibold">
+      <i data-lucide="qr-code" class="w-4 h-4"></i>
+      Staff QR
+    </div>
+
+    {% if event.staff_qr_code %}
+      <img
+        src="{{ event.staff_qr_code.url }}"
+        class="w-40 h-40 object-contain mx-auto bg-white border border-gray-300 p-2 rounded-xl"
+        alt="Staff QR"
+      >
+    {% else %}
+      <p class="text-gray-400">No QR</p>
+    {% endif %}
+  </div>
+
+  <div class="bg-gray-50 rounded-xl p-4 text-center border">
+    <div class="flex items-center justify-center gap-2 mb-3 text-gray-800 font-semibold">
+      <i data-lucide="qr-code" class="w-4 h-4"></i>
+      Passport QR
+    </div>
+
+    {% if event.passport_qr_code %}
+      <img
+        src="{{ event.passport_qr_code.url }}"
+        class="w-40 h-40 object-contain mx-auto bg-white border border-gray-300 p-2 rounded-xl"
+        alt="Passport QR"
+      >
+      <p class="text-xs text-gray-500 mt-2">Non-Malaysian Visitor</p>
+    {% else %}
+      <p class="text-gray-400">No QR</p>
+    {% endif %}
+  </div>
+
+</div>
 </div>
 
-<div class="mb-4 flex justify-between items-center">
-  <h2 class="text-lg font-bold">Attendance Records</h2>
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+  <div>
+    <h2 class="text-lg font-bold text-gray-800">Attendance Records</h2>
+    <p class="text-sm text-gray-500 mt-1">
+      Staff and visitor attendance for this event
+    </p>
+  </div>
 
-  <div class="flex gap-3 items-center">
-    <div class="bg-blue-100 text-blue-600 px-3 py-1 rounded">
+  <div class="flex flex-wrap gap-2 items-center">
+    <div class="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-xl text-sm font-medium">
+      <i data-lucide="users-round" class="w-4 h-4"></i>
       Total: {{ total_attendance }}
     </div>
 
     {% if can_manage %}
     <a href="/events/{{ event.id }}/export/"
-       class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+       class="inline-flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-xl hover:bg-green-600 transition font-medium">
+      <i data-lucide="download" class="w-4 h-4"></i>
       Export CSV
     </a>
     {% endif %}

@@ -1,107 +1,135 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<h1 class="text-2xl font-bold mb-6">Event Management</h1>
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">Event Management</h1>
+  <p class="text-sm text-gray-500 mt-1">
+    Manage event information, geofence settings, and QR attendance access.
+  </p>
+</div>
 
-<form method="GET" class="mb-4 grid grid-cols-1 md:grid-cols-4 gap-2">
-  <input
-    type="text"
-    name="name"
-    placeholder="Search event name"
-    value="{{ request.GET.name }}"
-    class="p-2 border rounded w-full"
-  >
+<form method="GET" class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+    <input
+      type="text"
+      name="name"
+      placeholder="Search event name"
+      value="{{ request.GET.name }}"
+      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+    >
 
-  <input
-    type="text"
-    name="location"
-    placeholder="Search location"
-    value="{{ request.GET.location }}"
-    class="p-2 border rounded w-full"
-  >
+    <input
+      type="text"
+      name="location"
+      placeholder="Search location"
+      value="{{ request.GET.location }}"
+      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+    >
 
-  <input
-    type="date"
-    name="date"
-    value="{{ request.GET.date }}"
-    class="p-2 border rounded w-full"
-  >
+    <input
+      type="date"
+      name="date"
+      value="{{ request.GET.date }}"
+      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+    >
 
-  <div class="flex gap-2">
-    <button class="bg-blue-500 text-white px-4 rounded w-full">
-      Filter
-    </button>
-    <a href="/events/" class="bg-gray-300 text-gray-800 px-4 py-2 rounded text-center w-full">
-      Reset
-    </a>
+    <div class="grid grid-cols-2 gap-2">
+      <button
+        class="bg-blue-500 text-white px-4 py-3 rounded-xl hover:bg-blue-600 transition font-medium">
+        Filter
+      </button>
+      <a
+        href="/events/"
+        class="bg-gray-200 text-gray-700 px-4 py-3 rounded-xl text-center hover:bg-gray-300 transition font-medium">
+        Reset
+      </a>
+    </div>
   </div>
 </form>
 
-<div class="bg-white rounded-xl shadow overflow-hidden border border-gray-200">
-
-  <div class="flex justify-between items-center p-4 border-b border-gray-200">
-    <h2 class="font-semibold">Events List</h2>
+<div class="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden">
+  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 border-b border-gray-200">
+    <div>
+      <h2 class="font-semibold text-gray-800">Events List</h2>
+      <p class="text-sm text-gray-500 mt-1">All available events in the system</p>
+    </div>
 
     {% if can_manage %}
-    <button onclick="openModal()" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+    <button
+      onclick="openModal()"
+      class="bg-green-500 text-white px-4 py-2.5 rounded-xl hover:bg-green-600 transition font-medium w-full sm:w-auto">
       + Create Event
     </button>
     {% endif %}
   </div>
 
   <div class="overflow-x-auto">
-    <table class="w-full text-sm border-collapse">
+    <table class="min-w-[980px] w-full text-sm border-collapse">
       <thead class="bg-gray-50">
-        <tr class="border-b border-gray-200">
-          <th class="p-3 text-left border-r border-gray-200">Name</th>
-          <th class="p-3 text-left border-r border-gray-200">Location</th>
-          <th class="p-3 text-left border-r border-gray-200">Date</th>
-          <th class="p-3 text-left border-r border-gray-200">Description</th>
-          <th class="p-3 text-left border-r border-gray-200">Geofence</th>
-          <th class="p-3 text-left border-r border-gray-200">QR</th>
-          <th class="p-3 text-left">Actions</th>
+        <tr class="border-b border-gray-200 text-gray-700">
+          <th class="p-4 text-left border-r border-gray-200 font-semibold">Name</th>
+          <th class="p-4 text-left border-r border-gray-200 font-semibold">Location</th>
+          <th class="p-4 text-left border-r border-gray-200 font-semibold">Date</th>
+          <th class="p-4 text-left border-r border-gray-200 font-semibold">Description</th>
+          <th class="p-4 text-left border-r border-gray-200 font-semibold">Geofence</th>
+
+          {% if can_manage %}
+          <th class="p-4 text-left font-semibold">Actions</th>
+          {% else %}
+          <th class="p-4 text-left font-semibold">View</th>
+          {% endif %}
         </tr>
       </thead>
 
       <tbody>
         {% for event in events %}
-        <tr class="border-b border-gray-200 hover:bg-gray-50">
-          <td class="p-3 border-r border-gray-200 font-medium">{{ event.name }}</td>
-          <td class="p-3 border-r border-gray-200">{{ event.location }}</td>
-          <td class="p-3 border-r border-gray-200">{{ event.date|date:"d/m/Y" }}</td>
+        <tr class="border-b border-gray-200 hover:bg-gray-50 align-top">
+          <td class="p-4 border-r border-gray-200 font-medium text-gray-800">
+            {{ event.name }}
+          </td>
 
-          <td class="p-3 border-r border-gray-200">
-            <div class="max-w-xs truncate">
+          <td class="p-4 border-r border-gray-200 text-gray-700">
+            {{ event.location }}
+          </td>
+
+          <td class="p-4 border-r border-gray-200 text-gray-700 whitespace-nowrap">
+            {{ event.date|date:"d/m/Y" }}
+          </td>
+
+          <td class="p-4 border-r border-gray-200 text-gray-700">
+            <div class="max-w-[220px] break-words">
               {{ event.description|default:"-" }}
             </div>
           </td>
 
-          <td class="p-3 border-r border-gray-200 text-xs">
+          <td class="p-4 border-r border-gray-200 text-xs text-gray-700">
             {% if event.latitude and event.longitude %}
-              <div>{{ event.latitude }}, {{ event.longitude }}</div>
-              <div class="text-gray-500">Radius: {{ event.radius_meter }} m</div>
+              <div class="font-medium text-gray-800 break-all">
+                {{ event.latitude }}, {{ event.longitude }}
+              </div>
+              <div class="mt-1 inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">
+                Radius: {{ event.radius_meter }} m
+              </div>
             {% else %}
-              <span class="text-gray-400">Not set</span>
+              <span class="inline-block bg-gray-100 text-gray-500 px-2 py-1 rounded-lg">
+                Not set
+              </span>
             {% endif %}
           </td>
 
-          <td class="p-3 border-r border-gray-200">
-            {% if event.visitor_qr_code %}
-              <img src="{{ event.visitor_qr_code.url }}"
-                   class="w-16 h-16 object-contain border border-gray-300 rounded p-1">
-            {% else %}
-              <span class="text-gray-400">No QR</span>
-            {% endif %}
-          </td>
-
-          <td class="p-3">
-            <div class="flex gap-2 flex-wrap">
-              <a href="/events/{{ event.id }}/" class="text-green-600 hover:underline">
-                View
+          <td class="p-4">
+            <div class="flex flex-wrap gap-2">
+              <a
+                href="/events/{{ event.id }}/"
+                class="inline-flex min-w-[95px] items-center justify-center gap-2 px-3 py-2 rounded-xl bg-green-500 text-white hover:bg-green-600 transition font-medium shadow-sm">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+                <span>View</span>
               </a>
 
               {% if can_manage %}
-              <button class="text-blue-500 edit-btn hover:underline"
+              <button
+                type="button"
+                class="edit-btn inline-flex min-w-[95px] items-center justify-center gap-2 px-3 py-2 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition font-medium shadow-sm"
                 data-id="{{ event.id }}"
                 data-name="{{ event.name }}"
                 data-location="{{ event.location }}"
@@ -110,12 +138,16 @@
                 data-latitude="{{ event.latitude }}"
                 data-longitude="{{ event.longitude }}"
                 data-radius="{{ event.radius_meter }}">
-                Edit
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+                <span>Edit</span>
               </button>
 
-              <button class="text-red-500 delete-btn hover:underline"
+              <button
+                type="button"
+                class="delete-btn inline-flex min-w-[95px] items-center justify-center gap-2 px-3 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition font-medium shadow-sm"
                 data-id="{{ event.id }}">
-                Delete
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                <span>Delete</span>
               </button>
               {% endif %}
             </div>
@@ -123,7 +155,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="7" class="p-4 text-center text-gray-500">
+          <td colspan="6" class="p-8 text-center text-gray-500">
             No events found
           </td>
         </tr>
@@ -131,42 +163,139 @@
       </tbody>
     </table>
   </div>
-
 </div>
 
 {% if can_manage %}
-<div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-  <div class="bg-white p-6 rounded shadow w-full max-w-lg">
+<div
+  id="modal"
+  class="hidden fixed inset-0 z-50 bg-black/40 px-4 py-6 sm:px-6 overflow-y-auto"
+  onclick="handleBackdropClick(event)"
+>
+  <div class="min-h-full flex items-center justify-center">
+    <div
+      class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-gray-200"
+      onclick="event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between p-5 border-b border-gray-200">
+        <div>
+          <h2 id="modalTitle" class="text-xl font-bold text-gray-800">Create Event</h2>
+          <p class="text-sm text-gray-500 mt-1">Fill in the event details below</p>
+        </div>
 
-    <h2 class="text-lg font-bold mb-4">Event Form</h2>
+        <button
+          type="button"
+          onclick="closeModal()"
+          class="w-10 h-10 rounded-full hover:bg-gray-100 text-gray-500 text-xl">
+          ×
+        </button>
+      </div>
 
-    <input id="e_name" placeholder="Name" class="w-full mb-2 p-2 border rounded">
-    <input id="e_location" placeholder="Location" class="w-full mb-2 p-2 border rounded">
-    <input id="e_date" type="date" class="w-full mb-2 p-2 border rounded">
-    <textarea id="e_desc" placeholder="Description" class="w-full mb-3 p-2 border rounded"></textarea>
+      <div class="p-5 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Event Name</label>
+            <input
+              id="e_name"
+              placeholder="Enter event name"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+          </div>
 
-    <h3 class="font-semibold mb-2">Geofence Setting</h3>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <input
+              id="e_location"
+              placeholder="Enter location"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+          </div>
 
-    <input id="e_latitude" type="number" step="0.000001" placeholder="Latitude (contoh: 1.553300)" class="w-full mb-2 p-2 border rounded">
-    <input id="e_longitude" type="number" step="0.000001" placeholder="Longitude (contoh: 110.359200)" class="w-full mb-2 p-2 border rounded">
-    <input id="e_radius" type="number" placeholder="Radius in meter (contoh: 100)" class="w-full mb-4 p-2 border rounded">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input
+              id="e_date"
+              type="date"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+          </div>
 
-    <div class="flex justify-end gap-2">
-      <button onclick="closeModal()" class="bg-gray-300 px-3 py-1 rounded">Cancel</button>
-      <button onclick="saveEvent()" class="bg-blue-500 text-white px-3 py-1 rounded">Save</button>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              id="e_desc"
+              rows="4"
+              placeholder="Enter event description"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-200 pt-4">
+          <h3 class="font-semibold text-gray-800 mb-1">Geofence Setting</h3>
+          <p class="text-sm text-gray-500 mb-4">
+            Leave blank if geofence is not needed. If one coordinate is filled, both must be filled.
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
+              <input
+                id="e_latitude"
+                type="number"
+                step="0.000001"
+                placeholder="e.g. 1.553300"
+                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
+              <input
+                id="e_longitude"
+                type="number"
+                step="0.000001"
+                placeholder="e.g. 110.359200"
+                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Radius (meter)</label>
+              <input
+                id="e_radius"
+                type="number"
+                placeholder="e.g. 100"
+                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 p-5 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+        <button
+          type="button"
+          onclick="closeModal()"
+          class="w-full sm:w-auto px-4 py-3 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 transition font-medium">
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          onclick="saveEvent()"
+          id="saveBtn"
+          class="w-full sm:w-auto px-4 py-3 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition font-medium">
+          Save Event
+        </button>
+      </div>
     </div>
-
   </div>
 </div>
 
 <script>
 let editId = null;
 
-function openModal() {
-  editId = null;
-
-  document.getElementById('modal').classList.remove('hidden');
-
+function resetModalFields() {
   document.getElementById('e_name').value = '';
   document.getElementById('e_location').value = '';
   document.getElementById('e_date').value = '';
@@ -176,20 +305,51 @@ function openModal() {
   document.getElementById('e_radius').value = 100;
 }
 
+function openModal() {
+  editId = null;
+  document.getElementById('modalTitle').innerText = 'Create Event';
+  document.getElementById('saveBtn').innerText = 'Save Event';
+  resetModalFields();
+  document.getElementById('modal').classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
+}
+
 function closeModal() {
   document.getElementById('modal').classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
+}
+
+function handleBackdropClick(event) {
+  if (event.target.id === 'modal') {
+    closeModal();
+  }
 }
 
 function saveEvent() {
+  const saveBtn = document.getElementById('saveBtn');
+
   const data = {
-    name: document.getElementById('e_name').value,
-    location: document.getElementById('e_location').value,
+    name: document.getElementById('e_name').value.trim(),
+    location: document.getElementById('e_location').value.trim(),
     date: document.getElementById('e_date').value,
-    description: document.getElementById('e_desc').value,
-    latitude: document.getElementById('e_latitude').value,
-    longitude: document.getElementById('e_longitude').value,
-    radius_meter: document.getElementById('e_radius').value
+    description: document.getElementById('e_desc').value.trim(),
+    latitude: document.getElementById('e_latitude').value.trim(),
+    longitude: document.getElementById('e_longitude').value.trim(),
+    radius_meter: document.getElementById('e_radius').value.trim()
   };
+
+  if (!data.name || !data.location || !data.date) {
+    alert('Please fill event name, location, and date');
+    return;
+  }
+
+  if ((data.latitude && !data.longitude) || (!data.latitude && data.longitude)) {
+    alert('Please fill both latitude and longitude');
+    return;
+  }
+
+  saveBtn.disabled = true;
+  saveBtn.innerText = editId ? 'Updating...' : 'Saving...';
 
   let url = '/api/employees/event/create/';
   if (editId) {
@@ -198,7 +358,7 @@ function saveEvent() {
 
   fetch(url, {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
   .then(res => res.json())
@@ -210,12 +370,19 @@ function saveEvent() {
   })
   .catch(() => {
     alert('Error saving event');
+  })
+  .finally(() => {
+    saveBtn.disabled = false;
+    saveBtn.innerText = editId ? 'Update Event' : 'Save Event';
   });
 }
 
 document.querySelectorAll('.edit-btn').forEach(btn => {
   btn.addEventListener('click', function() {
     editId = this.dataset.id;
+
+    document.getElementById('modalTitle').innerText = 'Edit Event';
+    document.getElementById('saveBtn').innerText = 'Update Event';
 
     document.getElementById('e_name').value = this.dataset.name || '';
     document.getElementById('e_location').value = this.dataset.location || '';
@@ -226,12 +393,14 @@ document.querySelectorAll('.edit-btn').forEach(btn => {
     document.getElementById('e_radius').value = this.dataset.radius || 100;
 
     document.getElementById('modal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
   });
 });
 
 document.querySelectorAll('.delete-btn').forEach(btn => {
   btn.addEventListener('click', function() {
     const id = this.dataset.id;
+
     if (!confirm('Delete this event?')) return;
 
     fetch('/api/employees/event/delete/' + id + '/', {
@@ -248,6 +417,12 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
       alert('Error deleting event');
     });
   });
+});
+
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeModal();
+  }
 });
 </script>
 {% endif %}

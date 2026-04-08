@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Passport Attendance</title>
+</head>
+
+<body class="bg-gray-100 min-h-screen py-6 px-4">
+
+<div class="max-w-4xl mx-auto bg-white p-6 rounded-2xl shadow-lg">
+
+  <h2 class="text-2xl font-bold text-center mb-2">
+    Attendance Registration Form (Non-Malaysian)
+  </h2>
+
+  <p class="text-center text-gray-500 mb-6">
+    Upload or capture passport image, review OCR results, and correct manually if needed
+  </p>
+
+  <div class="bg-gray-50 p-4 rounded-lg mb-6 text-sm space-y-1">
+    <p><b>Event Name:</b> {{ event.name }}</p>
+    <p><b>Date:</b> {{ event.date|date:"d/m/Y" }}</p>
+    <p><b>Location:</b> {{ event.location }}</p>
+    <p><b>Description:</b> {{ event.description|default:"-" }}</p>
+    <p><b>Allowed Radius:</b> {{ event.radius_meter }} meter</p>
+  </div>
+
+  <div class="space-y-4">
+    <div>
+      <label class="font-semibold block mb-1">1. Upload Passport Image / Camera</label>
+      <input id="passport_img" type="file" accept="image/*" capture="environment"
+        class="w-full p-3 border rounded-lg bg-white">
+    </div>
+
+    <div class="flex flex-wrap gap-3">
+      <button id="scanBtn" type="button" onclick="uploadOCR()"
+        class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700">
+        Scan Passport
+      </button>
+
+      <button type="button" onclick="enableManualMode()"
+        class="bg-gray-500 text-white px-4 py-3 rounded-lg hover:bg-gray-600">
+        Manual Entry
+      </button>
+    </div>
+
+    <div id="qualityNote" class="hidden p-3 rounded bg-yellow-100 text-yellow-800 text-sm"></div>
+    <p class="text-xs text-gray-500">
+      Please review extracted information before submitting.
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-gray-50 p-4 rounded-xl border md:col-span-2">
+        <p class="font-semibold mb-3">Passport Image Preview</p>
+        <img id="passportPreview" src="" alt="Passport Preview"
+          class="hidden w-full max-h-80 object-contain border rounded bg-white p-2">
+        <p id="noPreviewText" class="text-sm text-gray-500">No passport image uploaded yet.</p>
+      </div>
+
+      <div>
+        <label class="font-semibold block mb-1">2. Type</label>
+        <input id="passport_type" placeholder="e.g. P" class="w-full p-3 border rounded-lg">
+      </div>
+
+      <div>
+        <label class="font-semibold block mb-1">3. Country Code</label>
+        <input id="country_code" placeholder="e.g. JPN" class="w-full p-3 border rounded-lg uppercase">
+      </div>
+
+      <div>
+        <label class="font-semibold block mb-1">4. Passport Number</label>
+        <input id="passport_number" placeholder="Passport Number" class="w-full p-3 border rounded-lg">
+      </div>
+
+      <div>
+        <label class="font-semibold block mb-1">5. Nationality</label>
+        <input id="nationality" placeholder="Nationality" class="w-full p-3 border rounded-lg">
+      </div>
+
+      <div>
+        <label class="font-semibold block mb-1">6. Surname</label>
+        <input id="surname" placeholder="Surname" class="w-full p-3 border rounded-lg">
+      </div>
+
+      <div>
+        <label class="font-semibold block mb-1">7. Given Name</label>
+        <input id="given_name" placeholder="Given Name" class="w-full p-3 border rounded-lg">
+      </div>
+
+      <div>
+        <label class="font-semibold block mb-1">8. Date of Birth</label>
+        <input id="date_of_birth" type="date" class="w-full p-3 border rounded-lg">
+      </div>
+
+      <div>
+        <label class="font-semibold block mb-1">9. Sex</label>
+        <select id="sex" class="w-full p-3 border rounded-lg bg-white">
+          <option value="">-- Select Sex --</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="X">Other / X</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="font-semibold block mb-1">10. Date of Issue</label>
+        <input id="date_of_issue" type="date" class="w-full p-3 border rounded-lg">
+      </div>
+
+      <div>
+        <label class="font-semibold block mb-1">11. Date of Expiry</label>
+        <input id="date_of_expiry" type="date" class="w-full p-3 border rounded-lg">
+      </div>
+    </div>
+
+    <div id="dynamicFieldsWrapper" class="mt-6">
+      <h3 class="text-lg font-semibold mb-3">Additional Passport Fields</h3>
+      <div id="dynamicFields" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </div>
+
+<div class="mt-4">
+  <label class="font-semibold block mb-1">Status</label>
+  <input id="status" readonly class="w-full p-3 border rounded-lg bg-gray-100" value="pending verification">
+</div>
+
+<button id="submitBtn" type="button" onclick="submitForm()"
+  class="mt-6 w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700">
+  Submit Attendance
+</button>
+
+<p id="msg" class="mt-4 text-center text-sm font-medium"></p>
+
+</div> <!-- tutup .space-y-4 -->
+</div> <!-- tutup .max-w-4xl -->
+
+<script>
+let originalImageName = "";
+let processedImageName = "";
+let autoExtractedSnapshot = {};
+
+function renderDynamicFields(fields = []) {
+  const container = document.getElementById("dynamicFields");
+  container.innerHTML = "";
+
+  fields.forEach((field) => {
+    const wrapper = document.createElement("div");
+
+    const label = document.createElement("label");
+    label.className = "font-semibold block mb-1";
+    label.innerText = field.label || field.key;
+
+    let input;
+    if (field.type === "date") {
+      input = document.createElement("input");
+      input.type = "date";
+    } else if (field.type === "select") {
+      input = document.createElement("select");
+      input.className = "w-full p-3 border rounded-lg bg-white";
+
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.text = "-- Select --";
+      input.appendChild(defaultOption);
+
+      (field.options || []).forEach(opt => {
+        const option = document.createElement("option");
+        option.value = opt;
+        option.text = opt;
+        if (field.value === opt) option.selected = true;
+        input.appendChild(option);
+      });
+    } else {
+      input = document.createElement("input");
+      input.type = "text";
+      input.value = field.value || "";
+    }
+
+    input.id = `dynamic_${field.key}`;
+    input.dataset.key = field.key;
+    input.className = input.className || "w-full p-3 border rounded-lg";
+
+    if (field.type !== "select" && field.value) {
+      input.value = field.value;
+    }
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(input);
+    container.appendChild(wrapper);
+  });
+}
+
+function collectDynamicFields() {
+  const fields = [];
+  document.querySelectorAll("#dynamicFields [data-key]").forEach((el) => {
+    fields.push({
+      key: el.dataset.key,
+      value: el.value.trim()
+    });
+  });
+  return fields;
+}
+
+document.getElementById("passport_img").addEventListener("change", function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const previewUrl = URL.createObjectURL(file);
+  const passportPreview = document.getElementById("passportPreview");
+  const noPreviewText = document.getElementById("noPreviewText");
+
+  passportPreview.src = previewUrl;
+  passportPreview.classList.remove("hidden");
+  noPreviewText.classList.add("hidden");
+});
+
+function setMessage(message, type = "info") {
+  const msg = document.getElementById("msg");
+  msg.innerText = message;
+
+  if (type === "success") {
+    msg.className = "mt-4 text-center text-sm font-medium text-green-600";
+  } else if (type === "error") {
+    msg.className = "mt-4 text-center text-sm font-medium text-red-600";
+  } else {
+    msg.className = "mt-4 text-center text-sm font-medium text-gray-600";
+  }
+}
+
+function enableManualMode() {
+  document.getElementById("status").value = "pending verification";
+  setMessage("Manual mode enabled. You can fill in the fields manually.", "info");
+}
+
+function showPreview(imageUrl, processedUrl) {
+  const passportPreview = document.getElementById("passportPreview");
+  const noPreviewText = document.getElementById("noPreviewText");
+
+  if (imageUrl) {
+    passportPreview.src = imageUrl;
+    passportPreview.classList.remove("hidden");
+    noPreviewText.classList.add("hidden");
+  }
+
+}
+
+function uploadOCR() {
+  const fileInput = document.getElementById("passport_img");
+  const scanBtn = document.getElementById("scanBtn");
+  const file = fileInput.files[0];
+
+  if (!file) {
+    setMessage("Please choose a passport image first", "error");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("image", file);
+
+  scanBtn.disabled = true;
+  scanBtn.innerText = "Scanning...";
+  setMessage("Scanning passport image...", "info");
+
+  fetch("/api/employees/passport/upload/", {
+    method: "POST",
+    body: formData
+  })
+  .then(async (res) => {
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to scan passport");
+    }
+    return data;
+  })
+  .then((data) => {
+    originalImageName = data.original_image_name || "";
+    processedImageName = data.processed_image_name || "";
+
+    document.getElementById("passport_type").value = data.type || "";
+    document.getElementById("country_code").value = data.country_code || "";
+    document.getElementById("passport_number").value = data.passport_number || "";
+    document.getElementById("surname").value = data.surname || "";
+    document.getElementById("given_name").value = data.given_name || "";
+    document.getElementById("nationality").value = data.nationality || "";
+    document.getElementById("date_of_birth").value = data.date_of_birth || "";
+    document.getElementById("sex").value = data.sex || "";
+    document.getElementById("date_of_issue").value = data.date_of_issue || "";
+    document.getElementById("date_of_expiry").value = data.date_of_expiry || "";
+    document.getElementById("status").value = data.status || "pending verification";
+
+    autoExtractedSnapshot = {
+      type: data.type || "",
+      country_code: data.country_code || "",
+      passport_number: data.passport_number || "",
+      surname: data.surname || "",
+      given_name: data.given_name || "",
+      nationality: data.nationality || "",
+      date_of_birth: data.date_of_birth || "",
+      sex: data.sex || "",
+      date_of_issue: data.date_of_issue || "",
+      date_of_expiry: data.date_of_expiry || "",
+      dynamic_fields: data.dynamic_fields || []
+    };
+
+    renderDynamicFields(data.dynamic_fields || []);
+
+    const qualityNote = document.getElementById("qualityNote");
+    if (data.image_quality_note) {
+      qualityNote.classList.remove("hidden");
+      qualityNote.innerText = data.image_quality_note;
+    } else {
+      qualityNote.classList.add("hidden");
+      qualityNote.innerText = "";
+    }
+
+    showPreview(data.original_image_url, data.processed_image_url);
+    setMessage(data.message || "Passport scanned successfully", "success");
+  })
+  .catch((err) => {
+    document.getElementById("status").value = "pending verification";
+    setMessage(err.message + " You can still continue with manual entry.", "error");
+  })
+  .finally(() => {
+    scanBtn.disabled = false;
+    scanBtn.innerText = "Scan Passport";
+  });
+}
+
+function resolveStatusBeforeSubmit() {
+  const current = {
+    type: document.getElementById("passport_type").value.trim(),
+    country_code: document.getElementById("country_code").value.trim(),
+    passport_number: document.getElementById("passport_number").value.trim(),
+    surname: document.getElementById("surname").value.trim(),
+    given_name: document.getElementById("given_name").value.trim(),
+    nationality: document.getElementById("nationality").value.trim(),
+    date_of_birth: document.getElementById("date_of_birth").value.trim(),
+    sex: document.getElementById("sex").value.trim(),
+    date_of_issue: document.getElementById("date_of_issue").value.trim(),
+    date_of_expiry: document.getElementById("date_of_expiry").value.trim(),
+    dynamic_fields: collectDynamicFields()
+  };
+
+  const hadAutoData =
+    Object.keys(autoExtractedSnapshot).length > 0 &&
+    Object.values(autoExtractedSnapshot).some(v =>
+      Array.isArray(v) ? v.length > 0 : !!v
+    );
+
+  if (!hadAutoData) {
+    return "pending verification";
+  }
+
+  const changed =
+    current.type !== (autoExtractedSnapshot.type || "") ||
+    current.country_code !== (autoExtractedSnapshot.country_code || "") ||
+    current.passport_number !== (autoExtractedSnapshot.passport_number || "") ||
+    current.surname !== (autoExtractedSnapshot.surname || "") ||
+    current.given_name !== (autoExtractedSnapshot.given_name || "") ||
+    current.nationality !== (autoExtractedSnapshot.nationality || "") ||
+    current.date_of_birth !== (autoExtractedSnapshot.date_of_birth || "") ||
+    current.sex !== (autoExtractedSnapshot.sex || "") ||
+    current.date_of_issue !== (autoExtractedSnapshot.date_of_issue || "") ||
+    current.date_of_expiry !== (autoExtractedSnapshot.date_of_expiry || "");
+
+  if (changed) {
+    return "manually-corrected";
+  }
+
+  return "auto-extracted";
+}
+
+function submitForm() {
+  const submitBtn = document.getElementById("submitBtn");
+
+  const type = document.getElementById("passport_type").value.trim();
+  const country_code = document.getElementById("country_code").value.trim().toUpperCase();
+  const passport_number = document.getElementById("passport_number").value.trim().toUpperCase();
+  const surname = document.getElementById("surname").value.trim();
+  const given_name = document.getElementById("given_name").value.trim();
+  const nationality = document.getElementById("nationality").value.trim();
+  const date_of_birth = document.getElementById("date_of_birth").value.trim();
+  const sex = document.getElementById("sex").value.trim();
+  const date_of_issue = document.getElementById("date_of_issue").value.trim();
+  const date_of_expiry = document.getElementById("date_of_expiry").value.trim();
+  const dynamic_fields = collectDynamicFields();
+
+  if (!passport_number || !surname || !given_name || !nationality || !date_of_birth || !sex || !date_of_expiry) {
+    setMessage("Please complete all required passport details", "error");
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    setMessage("Geolocation is not supported by this browser", "error");
+    return;
+  }
+
+  const finalStatus = resolveStatusBeforeSubmit();
+  document.getElementById("status").value = finalStatus;
+
+  submitBtn.disabled = true;
+  submitBtn.innerText = "Submitting...";
+  setMessage("Getting your location...", "info");
+
+  navigator.geolocation.getCurrentPosition(
+    function(position) {
+      fetch("/api/employees/passport-attendance/submit/{{ event.id }}/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          country_code,
+          passport_number,
+          surname,
+          given_name,
+          nationality,
+          date_of_birth,
+          sex,
+          date_of_issue,
+          date_of_expiry,
+          dynamic_fields,
+          status: finalStatus,
+          original_image_name: originalImageName,
+          processed_image_name: processedImageName,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        })
+      })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to submit attendance");
+        return data;
+      })
+      .then((data) => {
+        setMessage(
+          (data.message || "Attendance submitted successfully") +
+          " (Distance: " + data.distance_meter + "m)",
+          "success"
+        );
+      })
+      .catch((err) => {
+        setMessage(err.message, "error");
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Submit Attendance";
+      });
+    },
+    function(error) {
+      let msg = "Location error";
+      if (error.code === 1) msg = "Permission denied. Please allow GPS.";
+      else if (error.code === 2) msg = "Location unavailable.";
+      else if (error.code === 3) msg = "Location timeout.";
+
+      setMessage(msg, "error");
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Submit Attendance";
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 8000,
+      maximumAge: 60000
+    }
+  );
+}
+</script>
+
+</body>
+</html>

@@ -5,6 +5,7 @@ from .views import (
     event_detail,
     export_attendance_csv,
     export_event_summary_csv,
+    passport_attendance_page,
     register_manual,
     register_page,
     login_user,
@@ -20,6 +21,8 @@ from .views import (
     events_page,
     update_event,
     delete_event,
+    upload_passport,
+    submit_passport_attendance,
     visitor_attendance_page,
     submit_visitor_attendance,
     update_staff_attendance,
@@ -62,4 +65,8 @@ urlpatterns = [
     path('staff-attendance/submit/<int:event_id>/', submit_staff_attendance),
     path('staff-attendance/update/<int:id>/', update_staff_attendance),
     path('staff-attendance/delete/<int:id>/', delete_staff_attendance),
+
+    path('passport-attendance/<int:event_id>/', passport_attendance_page),
+    path('passport/upload/', upload_passport),
+    path('passport/submit/<int:event_id>/', submit_passport_attendance),
 ]

@@ -7,9 +7,9 @@
 <body class="bg-gray-100 min-h-screen flex items-center justify-center px-4 py-8">
 
 <div class="w-full max-w-md bg-white p-6 rounded-xl shadow border border-gray-200">
-  <h2 class="text-2xl font-bold mb-2 text-center">Register Employee</h2>
+  <h2 class="text-2xl font-bold mb-2 text-center">Register Staff</h2>
   <p class="text-sm text-gray-500 text-center mb-6">
-    Create your employee account. New registrations will be assigned as
+    Create your staff account. New registrations will be assigned as
     <span class="font-semibold">Viewer</span> by default.
   </p>
 
@@ -35,8 +35,8 @@
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
-      <input id="emp_id" placeholder="Enter employee ID"
+      <label class="block text-sm font-medium text-gray-700 mb-1">Staff ID</label>
+      <input id="emp_id" placeholder="Enter staff ID"
         class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
     </div>
 
@@ -48,7 +48,39 @@
 
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
-      <input id="dept" placeholder="Enter department"
+      <select id="dept" onchange="toggleOtherDepartment()"
+        class="w-full mt-1 p-3 border rounded-lg bg-white">
+        <option value="">-- Select department category --</option>
+        <option value="Administration (ADM)">Administration (ADM)</option>
+        <option value="Internal Audit (AUD)">Internal Audit (AUD)</option>
+        <option value="Building (BLG)">Building (BLG)</option>
+        <option value="Community Development & Services (CDS)">Community Development & Services (CDS)</option>
+        <option value="Contract and Procurement (COP)">Contract and Procurement (COP)</option>
+        <option value="Committee Secretariat (CTS)">Committee Secretariat (CTS)</option>
+        <option value="Engineering Project (ENG)">Engineering Project (ENG)</option>
+        <option value="Enforcement and Security (ENS)">Enforcement and Security (ENS)</option>
+        <option value="Health and Environment (ENV)">Health and Environment (ENV)</option>
+        <option value="Finance (FIN)">Finance (FIN)</option>
+        <option value="Geoinformation and Property Management (GPM)">Geoinformation and Property Management (GPM)</option>
+        <option value="Human Resource Management (HRM)">Human Resource Management (HRM)</option>
+        <option value="Information and Communication Technology (ICT)">Information and Communication Technology (ICT)</option>
+        <option value="Infrastructure Maintenance (IMT)">Infrastructure Maintenance (IMT)</option>
+        <option value="Information Resource (IRD)">Information Resource (IRD)</option>
+        <option value="Legal Affairs (LAW)">Legal Affairs (LAW)</option>
+        <option value="Licensing (LES)">Licensing (LES)</option>
+        <option value="Landscape and Planning (LNP)">Landscape and Planning (LNP)</option>
+        <option value="Mechanical and Electrical (MNE)">Mechanical and Electrical (MNE)</option>
+        <option value="Public Relations (PRD)">Public Relations (PRD)</option>
+        <option value="Special Project & Public Facility (SPF)">Special Project & Public Facility (SPF)</option>
+        <option value="Transformation and Innovation (TRI)">Transformation and Innovation (TRI)</option>
+        <option value="Valuation and Taxation (VAL)">Valuation and Taxation (VAL)</option>
+        <option value="Others">Others</option>
+      </select>
+    </div>
+
+    <div id="otherDeptWrapper" class="hidden">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Please Specify Department</label>
+      <input id="other_dept" placeholder="Enter custom department"
         class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
     </div>
 
@@ -130,21 +162,53 @@ function scanMyKad() {
   document.getElementById('name').value = "Ali bin Abu";
   document.getElementById('emp_id').value = "DBKU999";
   document.getElementById('email').value = "ali@dbku.gov.my";
-  document.getElementById('dept').value = "HR";
+  document.getElementById('dept').value = "pengurusan sumber manusia (HRM)";
+  document.getElementById('other_dept').value = "";
+  document.getElementById('otherDeptWrapper').classList.add("hidden");
 
   setMessage("MyKad scanned successfully", "success");
+}
+
+function toggleOtherDepartment() {
+  const dept = document.getElementById('dept').value;
+  const wrapper = document.getElementById('otherDeptWrapper');
+  const otherInput = document.getElementById('other_dept');
+
+  if (dept === "Others") {
+    wrapper.classList.remove("hidden");
+  } else {
+    wrapper.classList.add("hidden");
+    otherInput.value = "";
+  }
+}
+
+function getDepartmentValue() {
+  const selectedDept = document.getElementById('dept').value.trim();
+  const otherDept = document.getElementById('other_dept').value.trim();
+
+  if (selectedDept === "Others") {
+    return otherDept;
+  }
+
+  return selectedDept;
 }
 
 function validateForm() {
   const fullName = document.getElementById('name').value.trim();
   const employeeId = document.getElementById('emp_id').value.trim();
   const email = document.getElementById('email').value.trim();
-  const department = document.getElementById('dept').value.trim();
+  const selectedDept = document.getElementById('dept').value.trim();
+  const otherDept = document.getElementById('other_dept').value.trim();
   const password = document.getElementById('password').value;
   const confirmPassword = document.getElementById('confirm_password').value;
 
-  if (!fullName || !employeeId || !email || !department || !password || !confirmPassword) {
+  if (!fullName || !employeeId || !email || !selectedDept || !password || !confirmPassword) {
     setMessage("Please fill in all fields", "error");
+    return false;
+  }
+
+  if (selectedDept === "Others" && !otherDept) {
+    setMessage("Please enter your department", "error");
     return false;
   }
 
@@ -184,7 +248,7 @@ function submitForm() {
       full_name: document.getElementById('name').value.trim(),
       employee_id: document.getElementById('emp_id').value.trim(),
       email: document.getElementById('email').value.trim(),
-      department: document.getElementById('dept').value.trim(),
+      department: getDepartmentValue(),
       password: document.getElementById('password').value,
       confirm_password: document.getElementById('confirm_password').value,
       registration_method: method

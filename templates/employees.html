@@ -2,97 +2,158 @@
 
 {% block content %}
 
-<h1 class="text-2xl font-bold mb-6">Employee Management</h1>
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-800">Staff Management</h1>
+  <p class="text-sm text-gray-500 mt-1">
+    Manage staff records, registration methods, and access roles.
+  </p>
+</div>
 
-<form method="GET" class="mb-4 flex gap-2">
-  <input type="text" name="name" placeholder="Search Name"
-    value="{{ request.GET.name }}"
-    class="p-2 border rounded w-full">
+<form method="GET" class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 mb-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+    <input
+      type="text"
+      name="name"
+      placeholder="Search staff name"
+      value="{{ request.GET.name }}"
+      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+    >
 
-  <input type="text" name="department" placeholder="Department"
-    value="{{ request.GET.department }}"
-    class="p-2 border rounded w-full">
+    <input
+      type="text"
+      name="department"
+      placeholder="Search department"
+      value="{{ request.GET.department }}"
+      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+    >
 
-  <button class="bg-blue-500 text-white px-4 rounded">Filter</button>
+    <div class="grid grid-cols-2 gap-2">
+      <button
+        class="bg-blue-500 text-white px-4 py-3 rounded-xl hover:bg-blue-600 transition font-medium">
+        Filter
+      </button>
+      <a
+        href="/employees/"
+        class="bg-gray-200 text-gray-700 px-4 py-3 rounded-xl text-center hover:bg-gray-300 transition font-medium">
+        Reset
+      </a>
+    </div>
+  </div>
 </form>
 
-<div class="bg-white rounded-xl shadow overflow-hidden border border-gray-200">
-
-  <div class="flex justify-between items-center p-4 border-b border-gray-200">
-    <h2 class="font-semibold">Employees List</h2>
+<div class="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden">
+  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 border-b border-gray-200">
+    <div>
+      <h2 class="font-semibold text-gray-800">Staffs List</h2>
+      <p class="text-sm text-gray-500 mt-1">All staff members registered in the system</p>
+    </div>
 
     {% if is_admin %}
-    <button onclick="openModal()" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
-      + Add Employee
+    <button
+      onclick="openModal()"
+      class="bg-green-500 text-white px-4 py-2.5 rounded-xl hover:bg-green-600 transition font-medium w-full sm:w-auto">
+      + Add Staff
     </button>
     {% endif %}
   </div>
 
   <div class="overflow-x-auto">
-    <table class="w-full text-sm border-collapse">
+    <table class="min-w-[1100px] w-full text-sm border-collapse">
       <thead class="bg-gray-50">
-        <tr class="border-b border-gray-200">
-          <th class="p-3 text-left border-r border-gray-200">Name</th>
-          <th class="p-3 text-left border-r border-gray-200">Employee ID</th>
-          <th class="p-3 text-left border-r border-gray-200">Email</th>
-          <th class="p-3 text-left border-r border-gray-200">Department</th>
-          <th class="p-3 text-left border-r border-gray-200">Method</th>
-          <th class="p-3 text-left {% if is_admin %}border-r border-gray-200{% endif %}">Role</th>
+        <tr class="border-b border-gray-200 text-gray-700">
+          <th class="p-4 text-left border-r border-gray-200 font-semibold">Name</th>
+          <th class="p-4 text-left border-r border-gray-200 font-semibold">Staff ID</th>
+          <th class="p-4 text-left border-r border-gray-200 font-semibold">Email</th>
+          <th class="p-4 text-left border-r border-gray-200 font-semibold">Department</th>
+          <th class="p-4 text-left border-r border-gray-200 font-semibold">Method</th>
+          <th class="p-4 text-left {% if is_admin %}border-r border-gray-200{% endif %} font-semibold">Role</th>
+
           {% if is_admin %}
-          <th class="p-3 text-left">Actions</th>
+          <th class="p-4 text-left font-semibold">Actions</th>
           {% endif %}
         </tr>
       </thead>
 
       <tbody>
         {% for emp in employees %}
-        <tr class="border-b border-gray-200 hover:bg-gray-50">
-          <td class="p-3 border-r border-gray-200">{{ emp.full_name }}</td>
-          <td class="p-3 border-r border-gray-200">{{ emp.employee_id }}</td>
-          <td class="p-3 border-r border-gray-200">{{ emp.email }}</td>
-          <td class="p-3 border-r border-gray-200">{{ emp.department }}</td>
+        <tr class="border-b border-gray-200 hover:bg-gray-50 align-top">
+          <td class="p-4 border-r border-gray-200 font-medium text-gray-800">
+            {{ emp.full_name }}
+          </td>
 
-          <td class="p-3 border-r border-gray-200">
+          <td class="p-4 border-r border-gray-200 text-gray-700 whitespace-nowrap">
+            {{ emp.employee_id }}
+          </td>
+
+          <td class="p-4 border-r border-gray-200 text-gray-700 break-all">
+            {{ emp.email }}
+          </td>
+
+          <td class="p-4 border-r border-gray-200 text-gray-700">
+            <div class="max-w-[220px] break-words">
+              {{ emp.department }}
+            </div>
+          </td>
+
+          <td class="p-4 border-r border-gray-200">
             {% if emp.registration_method == "mykad" %}
-              <span class="bg-green-100 text-green-600 px-2 py-1 rounded text-xs">MyKad</span>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">
+                MyKad
+              </span>
             {% else %}
-              <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded text-xs">Manual</span>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-100 text-blue-700">
+                Manual
+              </span>
             {% endif %}
           </td>
 
-          <td class="p-3 {% if is_admin %}border-r border-gray-200{% endif %}">
+          <td class="p-4 {% if is_admin %}border-r border-gray-200{% endif %}">
             {% if emp.role == "admin" %}
-              <span class="bg-red-100 text-red-600 px-2 py-1 rounded text-xs">Admin</span>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-700">
+                Admin
+              </span>
             {% elif emp.role == "editor" %}
-              <span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs">Editor</span>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-yellow-100 text-yellow-700">
+                Editor
+              </span>
             {% else %}
-              <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">Viewer</span>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">
+                Viewer
+              </span>
             {% endif %}
           </td>
 
           {% if is_admin %}
-          <td class="p-3">
-            <button class="edit-btn text-blue-500 hover:underline"
-              data-id="{{ emp.id }}"
-              data-name="{{ emp.full_name }}"
-              data-empid="{{ emp.employee_id }}"
-              data-email="{{ emp.email }}"
-              data-dept="{{ emp.department }}"
-              data-method="{{ emp.registration_method }}"
-              data-role="{{ emp.role }}">
-              Edit
-            </button>
+          <td class="p-4">
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                class="edit-btn inline-flex min-w-[95px] items-center justify-center gap-2 px-3 py-2 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition font-medium shadow-sm"
+                data-id="{{ emp.id }}"
+                data-name="{{ emp.full_name }}"
+                data-empid="{{ emp.employee_id }}"
+                data-email="{{ emp.email }}"
+                data-dept="{{ emp.department }}"
+                data-method="{{ emp.registration_method }}"
+                data-role="{{ emp.role }}">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+                <span>Edit</span>
+              </button>
 
-            <button class="delete-btn text-red-500 ml-2 hover:underline"
-              data-id="{{ emp.id }}">
-              Delete
-            </button>
+              <button
+                type="button"
+                class="delete-btn inline-flex min-w-[95px] items-center justify-center gap-2 px-3 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition font-medium shadow-sm"
+                data-id="{{ emp.id }}">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                <span>Delete</span>
+              </button>
+            </div>
           </td>
           {% endif %}
         </tr>
         {% empty %}
         <tr>
-          <td colspan="{% if is_admin %}7{% else %}6{% endif %}" class="p-4 text-center text-gray-500">
+          <td colspan="{% if is_admin %}7{% else %}6{% endif %}" class="p-8 text-center text-gray-500">
             No employees found
           </td>
         </tr>
@@ -100,71 +161,239 @@
       </tbody>
     </table>
   </div>
-
 </div>
 
 {% if is_admin %}
-<div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-  <div class="bg-white p-6 rounded shadow w-96">
+<div
+  id="modal"
+  class="hidden fixed inset-0 z-50 bg-black/40 px-4 py-6 sm:px-6 overflow-y-auto"
+  onclick="handleBackdropClick(event)"
+>
+  <div class="min-h-full flex items-center justify-center">
+    <div
+      class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-gray-200"
+      onclick="event.stopPropagation()"
+    >
+      <div class="flex items-center justify-between p-5 border-b border-gray-200">
+        <div>
+          <h2 id="modalTitle" class="text-xl font-bold text-gray-800">Add Employee</h2>
+          <p class="text-sm text-gray-500 mt-1">Fill in the staff details below</p>
+        </div>
 
-    <h2 class="text-lg font-bold mb-4">Employee Form</h2>
+        <button
+          type="button"
+          onclick="closeModal()"
+          class="w-10 h-10 rounded-full hover:bg-gray-100 text-gray-500 text-xl">
+          ×
+        </button>
+      </div>
 
-    <input id="m_name" placeholder="Name" class="w-full mb-2 p-2 border rounded">
-    <input id="m_id" placeholder="Employee ID" class="w-full mb-2 p-2 border rounded">
-    <input id="m_email" placeholder="Email" class="w-full mb-2 p-2 border rounded">
-    <input id="m_dept" placeholder="Department" class="w-full mb-2 p-2 border rounded">
+      <div class="p-5 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <input
+              id="m_name"
+              placeholder="Enter full name"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+          </div>
 
-    <select id="m_method" class="w-full mb-2 p-2 border rounded">
-      <option value="manual">Manual</option>
-      <option value="mykad">MyKad</option>
-    </select>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Staff ID</label>
+            <input
+              id="m_id"
+              placeholder="Enter Staff ID"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+          </div>
 
-    <select id="m_role" class="w-full mb-4 p-2 border rounded">
-      <option value="viewer">Viewer</option>
-      <option value="editor">Editor</option>
-      <option value="admin">Admin</option>
-    </select>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              id="m_email"
+              placeholder="Enter email"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+          </div>
 
-    <div class="flex justify-end gap-2">
-      <button onclick="closeModal()" class="px-3 py-1 bg-gray-300 rounded">Cancel</button>
-      <button onclick="saveEmployee()" class="px-3 py-1 bg-blue-500 text-white rounded">Save</button>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+            <select
+              id="m_dept"
+              onchange="toggleOtherDeptModal()"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="">-- Select department category --</option>
+              <option value="Administration (ADM)">Administration (ADM)</option>
+              <option value="Internal Audit (AUD)">Internal Audit (AUD)</option>
+              <option value="Building (BLG)">Building (BLG)</option>
+              <option value="Community Development & Services (CDS)">Community Development & Services (CDS)</option>
+              <option value="Contract and Procurement (COP)">Contract and Procurement (COP)</option>
+              <option value="Committee Secretariat (CTS)">Committee Secretariat (CTS)</option>
+              <option value="Engineering Project (ENG)">Engineering Project (ENG)</option>
+              <option value="Enforcement and Security (ENS)">Enforcement and Security (ENS)</option>
+              <option value="Health and Environment (ENV)">Health and Environment (ENV)</option>
+              <option value="Finance (FIN)">Finance (FIN)</option>
+              <option value="Geoinformation and Property Management (GPM)">Geoinformation and Property Management (GPM)</option>
+              <option value="Human Resource Management (HRM)">Human Resource Management (HRM)</option>
+              <option value="Information and Communication Technology (ICT)">Information and Communication Technology (ICT)</option>
+              <option value="Infrastructure Maintenance (IMT)">Infrastructure Maintenance (IMT)</option>
+              <option value="Information Resource (IRD)">Information Resource (IRD)</option>
+              <option value="Legal Affairs (LAW)">Legal Affairs (LAW)</option>
+              <option value="Licensing (LES)">Licensing (LES)</option>
+              <option value="Landscape and Planning (LNP)">Landscape and Planning (LNP)</option>
+              <option value="Mechanical and Electrical (MNE)">Mechanical and Electrical (MNE)</option>
+              <option value="Public Relations (PRD)">Public Relations (PRD)</option>
+              <option value="Special Project & Public Facility (SPF)">Special Project & Public Facility (SPF)</option>
+              <option value="Transformation and Innovation (TRI)">Transformation and Innovation (TRI)</option>
+              <option value="Valuation and Taxation (VAL)">Valuation and Taxation (VAL)</option>
+              <option value="Others">Others</option>
+            </select>
+          </div>
+
+          <div id="m_otherDeptWrapper" class="hidden md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Custom Department</label>
+            <input
+              id="m_other_dept"
+              placeholder="Enter custom department"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Registration Method</label>
+            <select
+              id="m_method"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="manual">Manual</option>
+              <option value="mykad">MyKad</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <select
+              id="m_role"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="viewer">Viewer</option>
+              <option value="editor">Editor</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 p-5 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+        <button
+          type="button"
+          onclick="closeModal()"
+          class="w-full sm:w-auto px-4 py-3 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 transition font-medium">
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          onclick="saveEmployee()"
+          id="saveBtn"
+          class="w-full sm:w-auto px-4 py-3 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition font-medium">
+          Save Employee
+        </button>
+      </div>
     </div>
-
   </div>
 </div>
 
 <script>
 let editId = null;
 
-function openModal() {
-  editId = null;
+function toggleOtherDeptModal() {
+  const dept = document.getElementById('m_dept').value;
+  const wrapper = document.getElementById('m_otherDeptWrapper');
+  const otherInput = document.getElementById('m_other_dept');
 
+  if (dept === 'Others') {
+    wrapper.classList.remove('hidden');
+  } else {
+    wrapper.classList.add('hidden');
+    otherInput.value = '';
+  }
+}
+
+function getModalDepartmentValue() {
+  const selected = document.getElementById('m_dept').value.trim();
+  const other = document.getElementById('m_other_dept').value.trim();
+
+  if (selected === 'Others') {
+    return other;
+  }
+
+  return selected;
+}
+
+function resetModalFields() {
   document.getElementById('m_name').value = '';
   document.getElementById('m_id').value = '';
   document.getElementById('m_email').value = '';
   document.getElementById('m_dept').value = '';
+  document.getElementById('m_other_dept').value = '';
+  document.getElementById('m_otherDeptWrapper').classList.add('hidden');
   document.getElementById('m_method').value = 'manual';
   document.getElementById('m_role').value = 'viewer';
+}
 
+function openModal() {
+  editId = null;
+  document.getElementById('modalTitle').innerText = 'Add Employee';
+  document.getElementById('saveBtn').innerText = 'Save Employee';
+  resetModalFields();
   document.getElementById('modal').classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
 }
 
 function closeModal() {
   document.getElementById('modal').classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
+}
+
+function handleBackdropClick(event) {
+  if (event.target.id === 'modal') {
+    closeModal();
+  }
 }
 
 function saveEmployee() {
+  const saveBtn = document.getElementById('saveBtn');
+  const departmentValue = getModalDepartmentValue();
+
+  if (
+    !document.getElementById('m_name').value.trim() ||
+    !document.getElementById('m_id').value.trim() ||
+    !document.getElementById('m_email').value.trim() ||
+    !departmentValue
+  ) {
+    alert('Please fill all fields');
+    return;
+  }
+
   const data = {
-    full_name: document.getElementById('m_name').value,
-    employee_id: document.getElementById('m_id').value,
-    email: document.getElementById('m_email').value,
-    department: document.getElementById('m_dept').value,
+    full_name: document.getElementById('m_name').value.trim(),
+    employee_id: document.getElementById('m_id').value.trim(),
+    email: document.getElementById('m_email').value.trim(),
+    department: departmentValue,
     registration_method: document.getElementById('m_method').value,
     role: document.getElementById('m_role').value
   };
 
+  saveBtn.disabled = true;
+  saveBtn.innerText = editId ? 'Updating...' : 'Saving...';
+
   let url = '/api/employees/add/';
-  if (editId) url = '/api/employees/update/' + editId + '/';
+  if (editId) {
+    url = '/api/employees/update/' + editId + '/';
+  }
 
   fetch(url, {
     method: 'POST',
@@ -180,6 +409,10 @@ function saveEmployee() {
   })
   .catch(() => {
     alert('Error saving employee');
+  })
+  .finally(() => {
+    saveBtn.disabled = false;
+    saveBtn.innerText = editId ? 'Update Employee' : 'Save Employee';
   });
 }
 
@@ -187,20 +420,38 @@ document.querySelectorAll('.edit-btn').forEach(btn => {
   btn.addEventListener('click', function() {
     editId = this.dataset.id;
 
+    document.getElementById('modalTitle').innerText = 'Edit Staff';
+    document.getElementById('saveBtn').innerText = 'Update Staff';
+
     document.getElementById('m_name').value = this.dataset.name || '';
     document.getElementById('m_id').value = this.dataset.empid || '';
     document.getElementById('m_email').value = this.dataset.email || '';
-    document.getElementById('m_dept').value = this.dataset.dept || '';
     document.getElementById('m_method').value = this.dataset.method || 'manual';
     document.getElementById('m_role').value = this.dataset.role || 'viewer';
 
+    const dept = this.dataset.dept || '';
+    const select = document.getElementById('m_dept');
+    const availableOptions = Array.from(select.options).map(option => option.value);
+
+    if (availableOptions.includes(dept)) {
+      select.value = dept;
+      document.getElementById('m_otherDeptWrapper').classList.add('hidden');
+      document.getElementById('m_other_dept').value = '';
+    } else {
+      select.value = 'Others';
+      document.getElementById('m_otherDeptWrapper').classList.remove('hidden');
+      document.getElementById('m_other_dept').value = dept;
+    }
+
     document.getElementById('modal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
   });
 });
 
 document.querySelectorAll('.delete-btn').forEach(btn => {
   btn.addEventListener('click', function() {
     const id = this.dataset.id;
+
     if (!confirm('Delete this employee?')) return;
 
     fetch('/api/employees/delete/' + id + '/', {
@@ -217,6 +468,12 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
       alert('Error deleting employee');
     });
   });
+});
+
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeModal();
+  }
 });
 </script>
 {% endif %}
