@@ -1,5 +1,6 @@
 import datetime
-
+import uuid
+import threading
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import authenticate, login, logout
@@ -40,6 +41,8 @@ PADDLE_OCR = PaddleOCR(
     use_textline_orientation=False,
     lang='en'
 )
+
+PADDLE_OCR_LOCK = threading.Lock()
 
 # Keep this map for display only
 COUNTRY_CODE_MAP = {
@@ -177,6 +180,7 @@ def fix_common_ocr_errors(text, mode="general"):
         text = text.replace("P<MYSMA", "P<MYSMA")
         text = text.replace("P<JPNNA", "P<JPNNA")
         text = text.replace("O<", "0<")
+        text = text.replace("<K<", "<<")
 
         return text
 
@@ -1425,12 +1429,39 @@ def parse_two_line_passport_mrz(line1, line2, rescue_mode=False):
         issuing_country = line1[2:5]
         names_part = line1[5:]
 
+        surname_part = ""
+        given_part = ""
+
         if "<<" in names_part:
             surname_part, given_part = names_part.split("<<", 1)
         else:
-            surname_part, given_part = names_part, ""
+            repaired_names = names_part
 
-        full_name = f"{normalize_mrz_name(surname_part)} {normalize_mrz_name(given_part)}".strip()
+            # OCR sometimes breaks the separator between surname and given name
+            # example: NAKAMOTO<K<SATOSHI
+            repaired_names = repaired_names.replace("<K<", "<<")
+
+            # fallback: if still no proper separator, convert first single separator only
+            if "<<" not in repaired_names and "<" in repaired_names:
+                repaired_names = repaired_names.replace("<", "<<", 1)
+
+            if "<<" in repaired_names:
+                surname_part, given_part = repaired_names.split("<<", 1)
+            else:
+                surname_part, given_part = repaired_names, ""
+
+        surname_clean = normalize_mrz_name(surname_part)
+        given_clean = normalize_mrz_name(given_part)
+
+        # extra fallback: if given name still blank but surname has multiple tokens,
+        # split first token as surname and the rest as given name
+        if surname_clean and not given_clean:
+            parts = surname_clean.split()
+            if len(parts) >= 2:
+                surname_clean = parts[0]
+                given_clean = " ".join(parts[1:])
+
+        full_name = f"{surname_clean} {given_clean}".strip()
 
         passport_raw = line2[0:9]
         passport_check = line2[9]
@@ -1479,8 +1510,8 @@ def parse_two_line_passport_mrz(line1, line2, rescue_mode=False):
 
         return {
             "type": "P",
-            "surname": normalize_mrz_name(surname_part),
-            "given_name": normalize_mrz_name(given_part),
+            "surname": surname_clean,
+            "given_name": given_clean,
             "full_name": full_name,
             "passport_number": passport_number,
             "country": country_code_to_name(country_code),
@@ -1712,9 +1743,10 @@ def score_extraction_result(result):
 
 def run_paddleocr_retry_variants(input_img):
     results = []
+    unique = uuid.uuid4().hex
 
     # Full passport OCR for visual fields
-    full_lines = paddleocr_lines_from_image(input_img, "full_passport.jpg")
+    full_lines = paddleocr_lines_from_image(input_img, f"full_passport_{unique}.jpg")
     full_text = "\n".join([x["text"] for x in full_lines])
     full_avg = sum([x["score"] for x in full_lines]) / len(full_lines) if full_lines else 0
 
@@ -1754,7 +1786,6 @@ def run_paddleocr_retry_variants(input_img):
     best_score = score_extraction_result(best_result)
     return best_result, best_score
 
-
 def process_passport_ocr(image_path, processed_path):
     image_quality_note = None
 
@@ -1789,11 +1820,14 @@ def process_passport_ocr(image_path, processed_path):
 
     return best_result
 
-def paddleocr_lines_from_image(image, temp_name="temp_ocr_input.jpg"):
+def paddleocr_lines_from_image(image, temp_name=None):
     lines = []
 
     try:
         ensure_media_dirs()
+
+        if not temp_name:
+            temp_name = f"temp_{uuid.uuid4().hex}.jpg"
 
         temp_path = os.path.join(settings.MEDIA_ROOT, "passport_processed", temp_name)
 
@@ -1805,7 +1839,8 @@ def paddleocr_lines_from_image(image, temp_name="temp_ocr_input.jpg"):
 
         # TRY 1: predict()
         try:
-            result = PADDLE_OCR.predict(input=predict_input)
+            with PADDLE_OCR_LOCK:
+                result = PADDLE_OCR.predict(input=predict_input)
 
             for item in result:
                 item_json = None
@@ -1841,7 +1876,8 @@ def paddleocr_lines_from_image(image, temp_name="temp_ocr_input.jpg"):
         # TRY 2: ocr() fallback
         if not lines:
             try:
-                ocr_result = PADDLE_OCR.ocr(predict_input, cls=False)
+                with PADDLE_OCR_LOCK:
+                    ocr_result = PADDLE_OCR.ocr(predict_input, cls=False)
 
                 if isinstance(ocr_result, list):
                     for block in ocr_result:
@@ -1917,25 +1953,25 @@ def crop_mrz_region(image):
 
 def get_mrz_variants(image):
     mrz = crop_mrz_region(image)
+    unique = uuid.uuid4().hex
 
     variants = []
 
-    variants.append(("mrz_raw.jpg", mrz))
+    variants.append((f"mrz_raw_{unique}.jpg", mrz))
 
     gray = cv2.cvtColor(mrz, cv2.COLOR_BGR2GRAY) if len(mrz.shape) == 3 else mrz
-    variants.append(("mrz_gray.jpg", gray))
+    variants.append((f"mrz_gray_{unique}.jpg", gray))
 
     big = cv2.resize(gray, None, fx=3.0, fy=3.0, interpolation=cv2.INTER_CUBIC)
-    variants.append(("mrz_big.jpg", big))
+    variants.append((f"mrz_big_{unique}.jpg", big))
 
     _, thresh = cv2.threshold(big, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    variants.append(("mrz_thresh.jpg", thresh))
+    variants.append((f"mrz_thresh_{unique}.jpg", thresh))
 
     inv = cv2.bitwise_not(thresh)
-    variants.append(("mrz_inv.jpg", inv))
+    variants.append((f"mrz_inv_{unique}.jpg", inv))
 
     return variants
-
 
 def passport_attendance_page(request, event_id):
     event = get_object_or_404(Event, id=event_id)
@@ -1957,8 +1993,13 @@ def upload_passport(request):
         ensure_media_dirs()
 
         image = request.FILES['image']
-        original_path = os.path.join(settings.MEDIA_ROOT, 'passport_images', image.name)
-        processed_filename = f"processed_{image.name}"
+        ext = os.path.splitext(image.name)[1].lower() or ".jpg"
+        unique_id = uuid.uuid4().hex
+
+        original_filename = f"passport_{unique_id}{ext}"
+        processed_filename = f"processed_{unique_id}.jpg"
+
+        original_path = os.path.join(settings.MEDIA_ROOT, 'passport_images', original_filename)
         processed_path = os.path.join(settings.MEDIA_ROOT, 'passport_processed', processed_filename)
 
         with open(original_path, 'wb+') as f:
@@ -1966,35 +2007,38 @@ def upload_passport(request):
                 f.write(chunk)
 
         extracted = process_passport_ocr(original_path, processed_path)
-        universal = build_universal_passport_fields(extracted)
-        print("EXTRACTED DATA:", extracted)
-        print("ORIGINAL PATH:", original_path)
-        print("PROCESSED PATH:", processed_path)
+        ui_result = build_universal_passport_fields(extracted)
 
         status = extracted.get('status', 'pending verification')
-        if not extracted.get('full_name') or not extracted.get('passport_number'):
+        if not extracted.get('passport_number'):
             status = 'pending verification'
 
         return JsonResponse({
             'message': 'Passport scanned successfully',
-            'type': universal.get('type', ''),
-            'country_code': universal.get('country_code', ''),
-            'passport_number': universal.get('passport_number', ''),
-            'surname': universal.get('surname', ''),
-            'given_name': universal.get('given_name', ''),
-            'nationality': universal.get('nationality', ''),
-            'date_of_birth': universal.get('date_of_birth', ''),
-            'sex': universal.get('sex', ''),
-            'date_of_issue': universal.get('date_of_issue', ''),
-            'date_of_expiry': universal.get('date_of_expiry', ''),
-            'dynamic_fields': universal.get('dynamic_fields', []),
+            'type': ui_result.get('type', 'P'),
+            'country_code': ui_result.get('country_code', ''),
+            'passport_number': ui_result.get('passport_number', ''),
+            'nationality': ui_result.get('nationality', ''),
+            'surname': ui_result.get('surname', ''),
+            'given_name': ui_result.get('given_name', ''),
+            'date_of_birth': ui_result.get('date_of_birth', ''),
+            'sex': ui_result.get('sex', ''),
+            'date_of_issue': ui_result.get('date_of_issue', ''),
+            'date_of_expiry': ui_result.get('date_of_expiry', ''),
+            'dynamic_fields': ui_result.get('dynamic_fields', []),
+
+            'full_name': extracted.get('full_name', ''),
+            'country': extracted.get('country', ''),
+            'gender': extracted.get('gender', extracted.get('sex', '')),
+            'expiry_date': extracted.get('expiry_date', ''),
             'raw_text': extracted.get('raw_text', ''),
             'image_quality_note': extracted.get('image_quality_note', ''),
             'status': status,
             'confidence_score': extracted.get('confidence_score', 0),
-            'original_image_name': image.name,
+
+            'original_image_name': original_filename,
             'processed_image_name': processed_filename,
-            'original_image_url': f"{settings.MEDIA_URL}passport_images/{image.name}",
+            'original_image_url': f"{settings.MEDIA_URL}passport_images/{original_filename}",
             'processed_image_url': f"{settings.MEDIA_URL}passport_processed/{processed_filename}",
         })
 
@@ -2004,7 +2048,6 @@ def upload_passport(request):
             'status': 'pending verification'
         }, status=500)
 
-
 @csrf_exempt
 def submit_passport_attendance(request, event_id):
     try:
@@ -2013,46 +2056,36 @@ def submit_passport_attendance(request, event_id):
 
         data = json.loads(request.body)
 
-        type_value = data.get('type', '').strip()
-        country_code = data.get('country_code', '').strip().upper()
-        passport_number = data.get('passport_number', '').strip().upper()
-        surname = data.get('surname', '').strip()
-        given_name = data.get('given_name', '').strip()
-        nationality = data.get('nationality', '').strip()
-        date_of_birth = data.get('date_of_birth', '').strip()
-        sex = data.get('sex', '').strip()
-        date_of_issue = data.get('date_of_issue', '').strip()
-        date_of_expiry = data.get('date_of_expiry', '').strip()
-        dynamic_fields = data.get('dynamic_fields', [])
+        passport_type = (data.get('type') or 'P').strip()
+        country_code = (data.get('country_code') or '').strip().upper()
+        passport_number = fix_common_ocr_errors(data.get('passport_number', ''), mode="passport")
+        nationality = (data.get('nationality') or '').strip()
+        surname = (data.get('surname') or '').strip()
+        given_name = (data.get('given_name') or '').strip()
+        full_name = f"{surname} {given_name}".strip()
+        date_of_birth = (data.get('date_of_birth') or '').strip()
+        sex = (data.get('sex') or data.get('gender') or '').strip()
+        date_of_issue = (data.get('date_of_issue') or '').strip()
+        date_of_expiry = (data.get('date_of_expiry') or data.get('expiry_date') or '').strip()
+        raw_text = (data.get('raw_text') or '').strip()
+        status = (data.get('status') or 'pending verification').strip()
 
-        raw_text = data.get('raw_text', '').strip()
-        original_image_name = data.get('original_image_name', '').strip()
-        processed_image_name = data.get('processed_image_name', '').strip()
+        original_image_name = (data.get('original_image_name') or '').strip()
+        processed_image_name = (data.get('processed_image_name') or '').strip()
+
         latitude = data.get('latitude')
         longitude = data.get('longitude')
-        status = data.get('status', 'pending verification').strip()
 
-        full_name = f"{surname} {given_name}".strip()
-        country = nationality or country_code
-        gender = sex
-        expiry_date = date_of_expiry
-
-        # validation
-        if not surname or not given_name:
-            return JsonResponse({'error': 'Surname and given name are required'}, status=400)
+        dynamic_fields = data.get('dynamic_fields', [])
+        if not isinstance(dynamic_fields, list):
+            dynamic_fields = []
 
         if not passport_number:
             return JsonResponse({'error': 'Passport number cannot be empty'}, status=400)
 
-        is_valid_format, format_message = validate_passport_number_by_country(
-            passport_number,
-            country_code or nationality
-        )
-        if not is_valid_format:
-            return JsonResponse({'error': format_message}, status=400)
-
-        if date_of_expiry and not is_expiry_valid(date_of_expiry):
-            return JsonResponse({'error': 'Passport expiry date is no longer valid'}, status=400)
+        valid, passport_error = validate_passport_number_by_country(passport_number, country_code or nationality)
+        if not valid:
+            return JsonResponse({'error': passport_error}, status=400)
 
         if latitude in [None, ''] or longitude in [None, '']:
             return JsonResponse({'error': 'Please enable GPS/location first'}, status=400)
@@ -2060,7 +2093,7 @@ def submit_passport_attendance(request, event_id):
         event = get_object_or_404(Event, id=event_id)
 
         if event.latitude is None or event.longitude is None:
-            return JsonResponse({'error': 'Event location not set'}, status=400)
+            return JsonResponse({'error': 'Event location not configured by admin'}, status=400)
 
         distance = calculate_distance_meters(latitude, longitude, event.latitude, event.longitude)
 
@@ -2069,43 +2102,65 @@ def submit_passport_attendance(request, event_id):
                 'error': f'Attendance rejected. Outside allowed area ({round(distance, 2)}m)'
             }, status=400)
 
-        final_status = status
-        if status not in ['auto-extracted', 'manually-corrected', 'pending verification']:
-            final_status = 'pending verification'
-
         visitor, created = PassportVisitor.objects.get_or_create(
             passport_number=passport_number,
             defaults={
-                'full_name': full_name,
-                'country': country,
+                'full_name': full_name or passport_number,
+                'country': nationality or country_code_to_name(country_code),
                 'date_of_birth': date_of_birth,
-                'expiry_date': expiry_date,
-                'gender': gender,
+                'expiry_date': date_of_expiry,
+                'gender': sex,
                 'ocr_raw_text': raw_text,
-                'status': final_status,
-                'extra_data': {item['key']: item['value'] for item in dynamic_fields},
+                'status': status or 'pending verification',
+                'extra_data': {
+                    'type': passport_type,
+                    'country_code': country_code,
+                    'nationality': nationality,
+                    'surname': surname,
+                    'given_name': given_name,
+                    'date_of_issue': date_of_issue,
+                }
             }
         )
 
         if not created:
-            if (
-                visitor.full_name != full_name or
-                visitor.country != country or
-                visitor.date_of_birth != date_of_birth or
-                visitor.expiry_date != expiry_date or
-                visitor.gender != gender
-            ):
-                visitor.full_name = full_name
-                visitor.country = country
-                visitor.date_of_birth = date_of_birth
-                visitor.expiry_date = expiry_date
-                visitor.gender = gender
-                visitor.ocr_raw_text = raw_text
-                visitor.status = 'manually-corrected'
-                visitor.extra_data = {item['key']: item['value'] for item in dynamic_fields}
-                visitor.save()
+            visitor.full_name = full_name or visitor.full_name
+            visitor.country = nationality or country_code_to_name(country_code) or visitor.country
+            visitor.date_of_birth = date_of_birth or visitor.date_of_birth
+            visitor.expiry_date = date_of_expiry or visitor.expiry_date
+            visitor.gender = sex or visitor.gender
+            visitor.ocr_raw_text = raw_text or visitor.ocr_raw_text
 
-        # save image references if available
+            if status:
+                visitor.status = status
+
+            merged_extra = visitor.extra_data or {}
+            merged_extra.update({
+                'type': passport_type,
+                'country_code': country_code,
+                'nationality': nationality,
+                'surname': surname,
+                'given_name': given_name,
+                'date_of_issue': date_of_issue,
+            })
+
+            for item in dynamic_fields:
+                key = (item.get('key') or '').strip()
+                value = item.get('value')
+                if key:
+                    merged_extra[key] = value
+
+            visitor.extra_data = merged_extra
+
+        else:
+            extra_data = visitor.extra_data or {}
+            for item in dynamic_fields:
+                key = (item.get('key') or '').strip()
+                value = item.get('value')
+                if key:
+                    extra_data[key] = value
+            visitor.extra_data = extra_data
+
         if original_image_name and not visitor.image:
             original_path = os.path.join(settings.MEDIA_ROOT, 'passport_images', original_image_name)
             if os.path.exists(original_path):
@@ -2135,7 +2190,8 @@ def submit_passport_attendance(request, event_id):
         return JsonResponse({
             'message': 'Successfully Registered',
             'distance_meter': round(distance, 2),
-            'event': event.name
+            'event': event.name,
+            'status': visitor.status
         })
 
     except Exception as e:

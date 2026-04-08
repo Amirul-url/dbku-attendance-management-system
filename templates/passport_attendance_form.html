@@ -27,7 +27,6 @@
 
   <div class="space-y-5">
 
-    <!-- STEP 1 -->
     <div>
       <label class="font-semibold block mb-2">1. Upload Passport Image / Camera</label>
 
@@ -57,7 +56,6 @@
       </div>
     </div>
 
-    <!-- ACTIONS -->
     <div class="flex flex-wrap gap-3">
       <button id="scanBtn" type="button" onclick="uploadOCR()"
         class="bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700">
@@ -71,12 +69,12 @@
     </div>
 
     <div id="qualityNote" class="hidden p-3 rounded bg-yellow-100 text-yellow-800 text-sm"></div>
+    <div id="confidenceNote" class="hidden p-3 rounded bg-blue-100 text-blue-800 text-sm"></div>
 
     <p class="text-xs text-gray-500">
       Please review extracted information before submitting.
     </p>
 
-    <!-- PREVIEW -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="bg-gray-50 p-4 rounded-xl border md:col-span-2">
         <p class="font-semibold mb-3">Passport Image Preview</p>
@@ -126,7 +124,6 @@
           <option value="">-- Select Sex --</option>
           <option value="Male">Male</option>
           <option value="Female">Female</option>
-          <option value="X">Other / X</option>
         </select>
       </div>
 
@@ -147,6 +144,11 @@
     </div>
 
     <div class="mt-4">
+      <label class="font-semibold block mb-1">OCR Raw Text</label>
+      <textarea id="raw_text" rows="8" class="w-full p-3 border rounded-lg bg-gray-50"></textarea>
+    </div>
+
+    <div class="mt-4">
       <label class="font-semibold block mb-1">Status</label>
       <input id="status" readonly class="w-full p-3 border rounded-lg bg-gray-100" value="pending verification">
     </div>
@@ -161,7 +163,6 @@
   </div>
 </div>
 
-<!-- POPUP LOADING -->
 <div id="scanOverlay" class="hidden fixed inset-0 bg-black/40 z-50 items-center justify-center px-4">
   <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm text-center">
     <div class="mx-auto w-14 h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -176,6 +177,16 @@
 let originalImageName = "";
 let processedImageName = "";
 let autoExtractedSnapshot = {};
+
+document.getElementById("passport_img").addEventListener("change", function () {
+  const file = this.files && this.files[0];
+  document.getElementById("selectedFileName").innerText = file ? file.name : "No file selected";
+
+  if (file) {
+    const previewUrl = URL.createObjectURL(file);
+    showPreview(previewUrl);
+  }
+});
 
 function openCamera() {
   const input = document.getElementById("passport_img");
@@ -214,6 +225,20 @@ function hideOverlay() {
   overlay.classList.remove("flex");
 }
 
+function showPreview(originalUrl) {
+  const preview = document.getElementById("passportPreview");
+  const noPreviewText = document.getElementById("noPreviewText");
+
+  preview.src = originalUrl || "";
+  if (preview.src) {
+    preview.classList.remove("hidden");
+    noPreviewText.classList.add("hidden");
+  } else {
+    preview.classList.add("hidden");
+    noPreviewText.classList.remove("hidden");
+  }
+}
+
 function renderDynamicFields(fields = []) {
   const container = document.getElementById("dynamicFields");
   container.innerHTML = "";
@@ -229,35 +254,15 @@ function renderDynamicFields(fields = []) {
     if (field.type === "date") {
       input = document.createElement("input");
       input.type = "date";
-    } else if (field.type === "select") {
-      input = document.createElement("select");
-      input.className = "w-full p-3 border rounded-lg bg-white";
-
-      const defaultOption = document.createElement("option");
-      defaultOption.value = "";
-      defaultOption.text = "-- Select --";
-      input.appendChild(defaultOption);
-
-      (field.options || []).forEach(opt => {
-        const option = document.createElement("option");
-        option.value = opt;
-        option.text = opt;
-        if (field.value === opt) option.selected = true;
-        input.appendChild(option);
-      });
     } else {
       input = document.createElement("input");
       input.type = "text";
-      input.value = field.value || "";
     }
 
-    input.id = `dynamic_${field.key}`;
-    input.dataset.key = field.key;
-    input.className = input.className || "w-full p-3 border rounded-lg";
-
-    if (field.type !== "select" && field.value) {
-      input.value = field.value;
-    }
+    input.className = "w-full p-3 border rounded-lg";
+    input.value = field.value || "";
+    input.setAttribute("data-key", field.key || "");
+    input.setAttribute("data-type", field.type || "text");
 
     wrapper.appendChild(label);
     wrapper.appendChild(input);
@@ -265,51 +270,47 @@ function renderDynamicFields(fields = []) {
   });
 }
 
-function collectDynamicFields() {
-  const fields = [];
-  document.querySelectorAll("#dynamicFields [data-key]").forEach((el) => {
-    fields.push({
-      key: el.dataset.key,
-      value: el.value.trim()
+function getDynamicFieldsPayload() {
+  const inputs = document.querySelectorAll("#dynamicFields [data-key]");
+  const items = [];
+
+  inputs.forEach((input) => {
+    items.push({
+      key: input.getAttribute("data-key") || "",
+      type: input.getAttribute("data-type") || "text",
+      value: input.value || ""
     });
   });
-  return fields;
+
+  return items;
 }
-
-document.getElementById("passport_img").addEventListener("change", function (e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  document.getElementById("selectedFileName").innerText = file.name;
-
-  const previewUrl = URL.createObjectURL(file);
-  const passportPreview = document.getElementById("passportPreview");
-  const noPreviewText = document.getElementById("noPreviewText");
-
-  passportPreview.src = previewUrl;
-  passportPreview.classList.remove("hidden");
-  noPreviewText.classList.add("hidden");
-
-  setMessage("Image selected. You can now scan the passport.", "info");
-});
 
 function enableManualMode() {
   document.getElementById("status").value = "pending verification";
   setMessage("Manual mode enabled. You can fill in the fields manually.", "info");
 }
 
-function showPreview(imageUrl) {
-  const passportPreview = document.getElementById("passportPreview");
-  const noPreviewText = document.getElementById("noPreviewText");
+async function parseJsonResponseSafely(res) {
+  const rawText = await res.text();
 
-  if (imageUrl) {
-    passportPreview.src = imageUrl;
-    passportPreview.classList.remove("hidden");
-    noPreviewText.classList.add("hidden");
+  let data = {};
+  try {
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch (e) {
+    if (!res.ok) {
+      throw new Error("Server returned a non-JSON response. Please check Django error log.");
+    }
+    throw new Error("Invalid JSON response from server.");
   }
+
+  if (!res.ok) {
+    throw new Error(data.error || "Request failed");
+  }
+
+  return data;
 }
 
-function uploadOCR() {
+async function uploadOCR() {
   const fileInput = document.getElementById("passport_img");
   const scanBtn = document.getElementById("scanBtn");
   const file = fileInput.files[0];
@@ -324,48 +325,44 @@ function uploadOCR() {
 
   scanBtn.disabled = true;
   scanBtn.innerText = "Scanning...";
-  showOverlay();
   setMessage("Scanning passport image...", "info");
+  showOverlay();
 
-  fetch("/api/employees/passport/upload/", {
-    method: "POST",
-    body: formData
-  })
-  .then(async (res) => {
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to scan passport");
-    }
-    return data;
-  })
-  .then((data) => {
+  try {
+    const res = await fetch("/api/employees/passport/upload/", {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await parseJsonResponseSafely(res);
+
     originalImageName = data.original_image_name || "";
     processedImageName = data.processed_image_name || "";
 
-    document.getElementById("passport_type").value = data.type || "";
+    document.getElementById("passport_type").value = data.type || "P";
     document.getElementById("country_code").value = data.country_code || "";
     document.getElementById("passport_number").value = data.passport_number || "";
+    document.getElementById("nationality").value = data.nationality || data.country || "";
     document.getElementById("surname").value = data.surname || "";
     document.getElementById("given_name").value = data.given_name || "";
-    document.getElementById("nationality").value = data.nationality || "";
     document.getElementById("date_of_birth").value = data.date_of_birth || "";
-    document.getElementById("sex").value = data.sex || "";
+    document.getElementById("sex").value = data.sex || data.gender || "";
     document.getElementById("date_of_issue").value = data.date_of_issue || "";
-    document.getElementById("date_of_expiry").value = data.date_of_expiry || "";
+    document.getElementById("date_of_expiry").value = data.date_of_expiry || data.expiry_date || "";
+    document.getElementById("raw_text").value = data.raw_text || "";
     document.getElementById("status").value = data.status || "pending verification";
 
     autoExtractedSnapshot = {
-      type: data.type || "",
+      type: data.type || "P",
       country_code: data.country_code || "",
       passport_number: data.passport_number || "",
+      nationality: data.nationality || data.country || "",
       surname: data.surname || "",
       given_name: data.given_name || "",
-      nationality: data.nationality || "",
       date_of_birth: data.date_of_birth || "",
-      sex: data.sex || "",
+      sex: data.sex || data.gender || "",
       date_of_issue: data.date_of_issue || "",
-      date_of_expiry: data.date_of_expiry || "",
-      dynamic_fields: data.dynamic_fields || []
+      date_of_expiry: data.date_of_expiry || data.expiry_date || ""
     };
 
     renderDynamicFields(data.dynamic_fields || []);
@@ -379,18 +376,20 @@ function uploadOCR() {
       qualityNote.innerText = "";
     }
 
+    const confidenceNote = document.getElementById("confidenceNote");
+    confidenceNote.classList.remove("hidden");
+    confidenceNote.innerText = "OCR confidence score: " + (data.confidence_score || 0);
+
     showPreview(data.original_image_url);
     setMessage(data.message || "Passport scanned successfully", "success");
-  })
-  .catch((err) => {
+  } catch (err) {
     document.getElementById("status").value = "pending verification";
     setMessage(err.message + " You can still continue with manual entry.", "error");
-  })
-  .finally(() => {
+  } finally {
     hideOverlay();
     scanBtn.disabled = false;
     scanBtn.innerText = "Scan Passport";
-  });
+  }
 }
 
 function resolveStatusBeforeSubmit() {
@@ -398,21 +397,17 @@ function resolveStatusBeforeSubmit() {
     type: document.getElementById("passport_type").value.trim(),
     country_code: document.getElementById("country_code").value.trim(),
     passport_number: document.getElementById("passport_number").value.trim(),
+    nationality: document.getElementById("nationality").value.trim(),
     surname: document.getElementById("surname").value.trim(),
     given_name: document.getElementById("given_name").value.trim(),
-    nationality: document.getElementById("nationality").value.trim(),
     date_of_birth: document.getElementById("date_of_birth").value.trim(),
     sex: document.getElementById("sex").value.trim(),
     date_of_issue: document.getElementById("date_of_issue").value.trim(),
-    date_of_expiry: document.getElementById("date_of_expiry").value.trim(),
-    dynamic_fields: collectDynamicFields()
+    date_of_expiry: document.getElementById("date_of_expiry").value.trim()
   };
 
-  const hadAutoData =
-    Object.keys(autoExtractedSnapshot).length > 0 &&
-    Object.values(autoExtractedSnapshot).some(v =>
-      Array.isArray(v) ? v.length > 0 : !!v
-    );
+  const hadAutoData = Object.keys(autoExtractedSnapshot).length > 0 &&
+    Object.values(autoExtractedSnapshot).some(v => v);
 
   if (!hadAutoData) {
     return "pending verification";
@@ -422,34 +417,38 @@ function resolveStatusBeforeSubmit() {
     current.type !== (autoExtractedSnapshot.type || "") ||
     current.country_code !== (autoExtractedSnapshot.country_code || "") ||
     current.passport_number !== (autoExtractedSnapshot.passport_number || "") ||
+    current.nationality !== (autoExtractedSnapshot.nationality || "") ||
     current.surname !== (autoExtractedSnapshot.surname || "") ||
     current.given_name !== (autoExtractedSnapshot.given_name || "") ||
-    current.nationality !== (autoExtractedSnapshot.nationality || "") ||
     current.date_of_birth !== (autoExtractedSnapshot.date_of_birth || "") ||
     current.sex !== (autoExtractedSnapshot.sex || "") ||
     current.date_of_issue !== (autoExtractedSnapshot.date_of_issue || "") ||
     current.date_of_expiry !== (autoExtractedSnapshot.date_of_expiry || "");
 
-  return changed ? "manually-corrected" : "auto-extracted";
+  if (changed) {
+    return "manually-corrected";
+  }
+
+  return "auto-extracted";
 }
 
 function submitForm() {
   const submitBtn = document.getElementById("submitBtn");
 
-  const type = document.getElementById("passport_type").value.trim();
-  const country_code = document.getElementById("country_code").value.trim().toUpperCase();
-  const passport_number = document.getElementById("passport_number").value.trim().toUpperCase();
+  const passport_type = document.getElementById("passport_type").value.trim();
+  const country_code = document.getElementById("country_code").value.trim();
+  const passport_number = document.getElementById("passport_number").value.trim();
+  const nationality = document.getElementById("nationality").value.trim();
   const surname = document.getElementById("surname").value.trim();
   const given_name = document.getElementById("given_name").value.trim();
-  const nationality = document.getElementById("nationality").value.trim();
   const date_of_birth = document.getElementById("date_of_birth").value.trim();
   const sex = document.getElementById("sex").value.trim();
   const date_of_issue = document.getElementById("date_of_issue").value.trim();
   const date_of_expiry = document.getElementById("date_of_expiry").value.trim();
-  const dynamic_fields = collectDynamicFields();
+  const raw_text = document.getElementById("raw_text").value.trim();
 
-  if (!passport_number || !surname || !given_name || !date_of_birth || !date_of_expiry) {
-    setMessage("Please complete all required passport details", "error");
+  if (!passport_number) {
+    setMessage("Passport number cannot be empty", "error");
     return;
   }
 
@@ -466,54 +465,50 @@ function submitForm() {
   setMessage("Getting your location...", "info");
 
   navigator.geolocation.getCurrentPosition(
-    function(position) {
-      fetch("/api/employees/passport-attendance/submit/{{ event.id }}/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type,
-          country_code,
-          passport_number,
-          surname,
-          given_name,
-          nationality,
-          date_of_birth,
-          sex,
-          date_of_issue,
-          date_of_expiry,
-          dynamic_fields,
-          status: finalStatus,
-          original_image_name: originalImageName,
-          processed_image_name: processedImageName,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        })
-      })
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to submit attendance");
-        return data;
-      })
-      .then((data) => {
-        setMessage(
-          (data.message || "Attendance submitted successfully") +
-          " (Distance: " + data.distance_meter + "m)",
-          "success"
-        );
-      })
-      .catch((err) => {
-        setMessage(err.message, "error");
-      })
-      .finally(() => {
+    async function(pos) {
+      try {
+        const res = await fetch(window.location.pathname.replace("passport-attendance", "passport/submit"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            type: passport_type,
+            country_code: country_code,
+            passport_number: passport_number,
+            nationality: nationality,
+            surname: surname,
+            given_name: given_name,
+            date_of_birth: date_of_birth,
+            sex: sex,
+            date_of_issue: date_of_issue,
+            date_of_expiry: date_of_expiry,
+            raw_text: raw_text,
+            status: finalStatus,
+            original_image_name: originalImageName,
+            processed_image_name: processedImageName,
+            dynamic_fields: getDynamicFieldsPayload(),
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude
+          })
+        });
+
+        const data = await parseJsonResponseSafely(res);
+
+        document.getElementById("status").value = data.status || finalStatus;
+        setMessage(data.message || "Successfully registered", "success");
+      } catch (err) {
+        setMessage(err.message || "Failed to submit attendance", "error");
+      } finally {
         submitBtn.disabled = false;
         submitBtn.innerText = "Submit Attendance";
-      });
+      }
     },
     function(error) {
-      let msg = "Location error";
-      if (error.code === 1) msg = "Permission denied. Please allow GPS.";
-      else if (error.code === 2) msg = "Location unavailable.";
-      else if (error.code === 3) msg = "Location timeout.";
+      let msg = "Unable to get your location.";
+      if (error.code === 1) msg = "Location permission denied.";
+      if (error.code === 2) msg = "Location unavailable.";
+      if (error.code === 3) msg = "Location request timed out.";
 
       setMessage(msg, "error");
       submitBtn.disabled = false;
@@ -521,8 +516,8 @@ function submitForm() {
     },
     {
       enableHighAccuracy: true,
-      timeout: 8000,
-      maximumAge: 60000
+      timeout: 15000,
+      maximumAge: 0
     }
   );
 }
