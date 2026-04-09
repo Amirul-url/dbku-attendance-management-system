@@ -26,7 +26,13 @@ class Employee(models.Model):
 class Event(models.Model):
     name = models.CharField(max_length=255)
     location = models.CharField(max_length=255)
-    date = models.DateField()
+
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+
     description = models.TextField(null=True, blank=True)
 
     visitor_qr_code = models.ImageField(upload_to='qr_codes/', null=True, blank=True)
@@ -41,7 +47,6 @@ class Event(models.Model):
 
     def __str__(self):
         return self.name
-
 
 class Attendance(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)

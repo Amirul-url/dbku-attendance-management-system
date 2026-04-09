@@ -444,7 +444,7 @@ def dashboard(request):
     total_employees = Employee.objects.count()
     total_visitors = Visitor.objects.count()
     total_events = Event.objects.count()
-    active_events = Event.objects.filter(date__gte=today).count()
+    active_events = Event.objects.filter(start_date__lte=today, end_date__gte=today).count()
     total_staff_attendance = Attendance.objects.count()
     total_visitor_attendance = VisitorAttendance.objects.count()
     total_attendance = total_staff_attendance + total_visitor_attendance
@@ -473,16 +473,16 @@ def analytics_page(request):
     event_year = request.GET.get('year', '').strip()
     event_location = request.GET.get('location', '').strip()
 
-    events = Event.objects.all().order_by('-date', '-id')
+    events = Event.objects.all().order_by('-start_date', '-id')
 
     if event_name:
         events = events.filter(name__icontains=event_name)
 
     if event_month:
-        events = events.filter(date__month=event_month)
+        events = events.filter(start_date__month=event_month)
 
     if event_year:
-        events = events.filter(date__year=event_year)
+        events = events.filter(start_date__year=event_year)
 
     if event_location:
         events = events.filter(location__icontains=event_location)
@@ -705,8 +705,28 @@ def create_event(request):
         try:
             data = json.loads(request.body)
 
-            if not data.get('name') or not data.get('location') or not data.get('date'):
-                return JsonResponse({'error': 'Name, location and date are required'}, status=400)
+            name = (data.get('name') or '').strip()
+            location = (data.get('location') or '').strip()
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+            start_time = data.get('start_time') or None
+            end_time = data.get('end_time') or None
+
+            if not name or not location or not start_date or not end_date:
+                return JsonResponse({'error': 'Name, location, start date and end date are required'}, status=400)
+
+            start_date_obj = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_date_obj = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
+
+            if end_date_obj < start_date_obj:
+                return JsonResponse({'error': 'End date cannot be earlier than start date'}, status=400)
+
+            if start_date == end_date and start_time and end_time:
+                start_time_obj = datetime.datetime.strptime(start_time, "%H:%M").time()
+                end_time_obj = datetime.datetime.strptime(end_time, "%H:%M").time()
+
+                if end_time_obj <= start_time_obj:
+                    return JsonResponse({'error': 'End time must be later than start time'}, status=400)
 
             radius = data.get('radius_meter')
 
@@ -718,9 +738,12 @@ def create_event(request):
                 radius = 100
 
             event = Event.objects.create(
-                name=data.get('name'),
-                location=data.get('location'),
-                date=data.get('date'),
+                name=name,
+                location=location,
+                start_date=start_date,
+                end_date=end_date,
+                start_time=start_time,
+                end_time=end_time,
                 description=data.get('description'),
                 latitude=data.get('latitude') if data.get('latitude') not in ['', None] else None,
                 longitude=data.get('longitude') if data.get('longitude') not in ['', None] else None,
@@ -748,21 +771,17 @@ def create_event(request):
                 File(staff_buffer),
                 save=True
             )
-            
-            # 🔥 PASSPORT QR (NEW)
+
             passport_qr_data = f"{NGROK_BASE_URL}/api/employees/passport-attendance/{event.id}/"
-
             passport_qr = qrcode.make(passport_qr_data)
-
             passport_buffer = BytesIO()
             passport_qr.save(passport_buffer, format='PNG')
             passport_buffer.seek(0)
-
             event.passport_qr_code.save(
                 f'passport_event_{event.id}.png',
                 File(passport_buffer),
                 save=True
-            )            
+            )
 
             return JsonResponse({
                 'message': 'Event created successfully',
@@ -770,6 +789,8 @@ def create_event(request):
                 'staff_qr_url': event.staff_qr_code.url if event.staff_qr_code else ''
             })
 
+        except ValueError:
+            return JsonResponse({'error': 'Invalid date or time format'}, status=400)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
@@ -781,7 +802,7 @@ def events_page(request):
     if login_check:
         return login_check
 
-    events = Event.objects.all().order_by('-date', '-id')
+    events = Event.objects.all().order_by('-start_date', '-id')
 
     search_name = request.GET.get('name')
     search_location = request.GET.get('location')
@@ -794,7 +815,7 @@ def events_page(request):
         events = events.filter(location__icontains=search_location)
 
     if search_date:
-        events = events.filter(date=search_date)
+        events = events.filter(start_date__lte=search_date, end_date__gte=search_date)
 
     context = {
         'events': events,
@@ -815,9 +836,30 @@ def update_event(request, id):
 
             event = Event.objects.get(id=id)
 
+            new_start_date = data.get('start_date') or str(event.start_date)
+            new_end_date = data.get('end_date') or str(event.end_date)
+            new_start_time = data.get('start_time') if 'start_time' in data else (event.start_time.strftime("%H:%M") if event.start_time else None)
+            new_end_time = data.get('end_time') if 'end_time' in data else (event.end_time.strftime("%H:%M") if event.end_time else None)
+
+            start_date_obj = datetime.datetime.strptime(new_start_date, "%Y-%m-%d").date()
+            end_date_obj = datetime.datetime.strptime(new_end_date, "%Y-%m-%d").date()
+
+            if end_date_obj < start_date_obj:
+                return JsonResponse({'error': 'End date cannot be earlier than start date'}, status=400)
+
+            if new_start_date == new_end_date and new_start_time and new_end_time:
+                start_time_obj = datetime.datetime.strptime(new_start_time, "%H:%M").time()
+                end_time_obj = datetime.datetime.strptime(new_end_time, "%H:%M").time()
+
+                if end_time_obj <= start_time_obj:
+                    return JsonResponse({'error': 'End time must be later than start time'}, status=400)
+
             event.name = data.get('name') or event.name
             event.location = data.get('location') or event.location
-            event.date = data.get('date') or event.date
+            event.start_date = new_start_date
+            event.end_date = new_end_date
+            event.start_time = new_start_time or None
+            event.end_time = new_end_time or None
             event.description = data.get('description') if data.get('description') is not None else event.description
 
             if 'latitude' in data:
@@ -835,6 +877,8 @@ def update_event(request, id):
 
         except Event.DoesNotExist:
             return JsonResponse({'error': 'Event not found'}, status=404)
+        except ValueError:
+            return JsonResponse({'error': 'Invalid date or time format'}, status=400)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
@@ -1358,7 +1402,10 @@ def export_event_summary_csv(request, id):
 
     writer.writerow(['EVENT SUMMARY'])
     writer.writerow(['Event Name', event.name])
-    writer.writerow(['Date', event.date.strftime("%d/%m/%Y")])
+    writer.writerow(['Start Date', event.start_date.strftime("%d/%m/%Y")])
+    writer.writerow(['End Date', event.end_date.strftime("%d/%m/%Y")])
+    writer.writerow(['Start Time', event.start_time.strftime("%H:%M") if event.start_time else '-'])
+    writer.writerow(['End Time', event.end_time.strftime("%H:%M") if event.end_time else '-'])
     writer.writerow(['Location', event.location])
     writer.writerow(['Description', event.description if event.description else '-'])
     writer.writerow(['Latitude', event.latitude if event.latitude is not None else '-'])
