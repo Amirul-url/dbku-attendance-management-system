@@ -6,6 +6,7 @@ import os
 import re
 import threading
 import uuid
+import ipaddress
 from io import BytesIO
 
 os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
@@ -919,14 +920,56 @@ def calculate_distance_meters(lat1, lon1, lat2, lon2):
 
     return r * c
 
-def get_client_ip(request):
+def normalize_ip_value(raw_ip):
+    if not raw_ip:
+        return None
+
+    raw_ip = raw_ip.strip()
+
+    # contoh: [2001:db8::1]:443
+    if raw_ip.startswith('[') and ']' in raw_ip:
+        raw_ip = raw_ip[1:raw_ip.index(']')]
+
+    # contoh: 192.168.0.10:8000
+    elif raw_ip.count(':') == 1 and '.' in raw_ip.split(':')[0]:
+        raw_ip = raw_ip.split(':')[0]
+
+    # buang scope id kalau ada, contoh fe80::1%eth0
+    raw_ip = raw_ip.split('%')[0]
+
+    try:
+        return str(ipaddress.ip_address(raw_ip))
+    except ValueError:
+        return None
+
+
+def get_client_ips(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
 
+    candidates = []
     if x_forwarded_for:
-        # ambil IP pertama sebab itu usually client asal
-        return x_forwarded_for.split(',')[0].strip()
+        candidates = [ip.strip() for ip in x_forwarded_for.split(',') if ip.strip()]
+    else:
+        remote_addr = request.META.get('REMOTE_ADDR')
+        if remote_addr:
+            candidates = [remote_addr]
 
-    return request.META.get('REMOTE_ADDR')
+    ipv4_address = None
+    ipv6_address = None
+
+    for raw_ip in candidates:
+        clean_ip = normalize_ip_value(raw_ip)
+        if not clean_ip:
+            continue
+
+        parsed_ip = ipaddress.ip_address(clean_ip)
+
+        if parsed_ip.version == 4 and not ipv4_address:
+            ipv4_address = clean_ip
+        elif parsed_ip.version == 6 and not ipv6_address:
+            ipv6_address = clean_ip
+
+    return ipv4_address, ipv6_address
 
 def visitor_attendance_page(request, event_id):
     event = get_object_or_404(Event, id=event_id)
@@ -1026,7 +1069,23 @@ def submit_staff_attendance(request, event_id):
         department = (data.get('department') or '').strip()
         latitude = data.get('latitude')
         longitude = data.get('longitude')
-        client_ip = get_client_ip(request)
+        ipv4_address, ipv6_address = get_client_ips(request)
+        submitted_ipv4 = (data.get('ipv4_address') or '').strip()
+
+        # fallback: guna IPv4 dari browser kalau header tak ada
+        if not ipv4_address and submitted_ipv4:
+            try:
+                parsed = ipaddress.ip_address(submitted_ipv4)
+                if parsed.version == 4:
+                    ipv4_address = str(parsed)
+            except ValueError:
+                pass        
+        
+        print("=== STAFF ATTENDANCE IP DEBUG ===")
+        print("HTTP_X_FORWARDED_FOR:", request.META.get('HTTP_X_FORWARDED_FOR'))
+        print("REMOTE_ADDR:", request.META.get('REMOTE_ADDR'))
+        print("IPv4 detected:", ipv4_address)
+        print("IPv6 detected:", ipv6_address)
 
         if not all([full_name, employee_id, phone, email, department]):
             return JsonResponse({'error': 'All fields are required'}, status=400)
@@ -1074,7 +1133,8 @@ def submit_staff_attendance(request, event_id):
                 'phone_number': phone,
                 'email': employee.email,
                 'department': employee.department,
-                'ip_address': client_ip,
+                'ipv4_address': ipv4_address,
+                'ipv6_address': ipv6_address,
                 'latitude': latitude,
                 'longitude': longitude
             }
@@ -1345,7 +1405,7 @@ def export_attendance_csv(request, id):
     writer = csv.writer(response)
 
     writer.writerow(['EMPLOYEE ATTENDANCE'])
-    writer.writerow(['Name', 'Employee ID', 'Phone', 'Email', 'Department', 'IP Address', 'Date', 'Time', 'Latitude', 'Longitude'])
+    writer.writerow(['Name', 'Employee ID', 'Phone', 'Email', 'Department', 'IPv4', 'IPv6', 'Date', 'Time', 'Latitude', 'Longitude'])
 
     for att in employee_attendances:
         writer.writerow([
@@ -1354,7 +1414,8 @@ def export_attendance_csv(request, id):
             f"'{att.phone_number}",
             att.email,
             att.department,
-            att.ip_address or '-',
+            att.ipv4_address or '-',
+            att.ipv6_address or '-',
             att.date.strftime("%d/%m/%Y"),
             att.time.strftime("%H:%M:%S"),
             att.latitude,

@@ -150,6 +150,26 @@ function toggleOtherDepartment() {
   }
 }
 
+let detectedIPv4 = "";
+
+async function getIPv4() {
+  try {
+    const res = await fetch("https://api.ipify.org?format=json");
+    const data = await res.json();
+
+    if (data && data.ip) {
+      detectedIPv4 = data.ip;
+      console.log("IPv4 detected:", detectedIPv4);
+    }
+  } catch (err) {
+    console.log("IPv4 fetch failed:", err);
+    detectedIPv4 = "";
+  }
+}
+
+// auto run bila page load
+getIPv4();
+
 function submitForm() {
   const btn = document.getElementById("submitBtn");
 
@@ -207,7 +227,8 @@ function submitForm() {
           email,
           department,
           latitude: position.coords.latitude,
-          longitude: position.coords.longitude
+          longitude: position.coords.longitude,
+          ipv4_address: detectedIPv4   // 🔥 TAMBAH INI
         })
       })
       .then(res => res.json())

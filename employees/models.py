@@ -56,7 +56,9 @@ class Attendance(models.Model):
     phone_number = models.CharField(max_length=20)
     email = models.EmailField()
     department = models.CharField(max_length=100)
-    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    ipv4_address = models.GenericIPAddressField(null=True, blank=True, protocol='IPv4')
+    ipv6_address = models.GenericIPAddressField(null=True, blank=True, protocol='IPv6')
 
     date = models.DateField(auto_now_add=True)
     time = models.TimeField(auto_now_add=True)
@@ -69,8 +71,6 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f"{self.full_name} - {self.event}"
-
-
 class Visitor(models.Model):
     full_name = models.CharField(max_length=150)
     phone_number = models.CharField(max_length=20)
