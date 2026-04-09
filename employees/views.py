@@ -797,12 +797,11 @@ def events_page(request):
         events = events.filter(date=search_date)
 
     context = {
-        'events': events
+        'events': events,
     }
     context.update(role_context(request))
 
     return render(request, 'events.html', context)
-
 
 @csrf_exempt
 def update_event(request, id):
