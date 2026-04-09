@@ -174,100 +174,122 @@
 </div>
 
 <div id="cameraOverlay" class="hidden fixed inset-0 z-50 overflow-hidden">
-  <!-- live camera -->
   <video
     id="cameraPreview"
     autoplay
     playsinline
-    class="absolute inset-0 w-full h-full object-cover bg-black"
+    class="absolute inset-0 w-full h-full object-contain bg-black"
   ></video>
 
-  <!-- content -->
-<div class="absolute inset-0 flex flex-col items-center justify-center px-0 pt-10 pb-24 z-20">
+  <div class="absolute inset-0 flex flex-col items-center justify-center px-0 pt-10 pb-24 z-20">
+    <div class="mb-14 text-center z-30">
+      <p class="text-white text-5xl sm:text-5xl font-bold tracking-wide drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
+        Align passport inside the frame
+      </p>
+    </div>
 
-  <!-- instruction -->
-  <div class="mb-14 text-center z-30">
-    <p class="text-white text-5xl sm:text-5xl font-bold tracking-wide drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
-      Align passport inside the frame
-    </p>
-  </div>
-
-  <!-- passport frame (FULL WIDTH) -->
-  <div
-    id="passportFrame"
-    class="relative w-full max-w-none aspect-[1.42/1] z-20"
-  >
-    <!-- TOP mask -->
-    <div class="absolute left-0 bottom-full w-full h-[100vh] bg-black/65"></div>
-
-    <!-- BOTTOM mask -->
-    <div class="absolute left-0 top-full w-full h-[100vh] bg-black/65"></div>
-
-    <!-- MAIN BORDER -->
-    <div class="absolute inset-0 border-[8px] border-white rounded-2xl"></div>
-
-    <!-- CORNER STYLE -->
-    <div class="absolute top-0 left-0 w-12 h-12 border-t-[8px] border-l-[8px] border-white"></div>
-    <div class="absolute top-0 right-0 w-12 h-12 border-t-[8px] border-r-[8px] border-white"></div>
-    <div class="absolute bottom-0 left-0 w-12 h-12 border-b-[8px] border-l-[8px] border-white"></div>
-    <div class="absolute bottom-0 right-0 w-12 h-12 border-b-[8px] border-r-[8px] border-white"></div>
-  </div>
-</div>
-
-  <!-- bottom buttons -->
-<div class="absolute bottom-20 left-1/2 -translate-x-1/2 w-full px-6 z-40">
-
-  <div class="flex items-center justify-center gap-4">
-
-    <!-- CANCEL -->
-    <button
-      type="button"
-      onclick="closeCameraOverlay()"
-      class="flex-1 py-10 rounded-full bg-white/20 text-white border border-white/50 text-4xl font-bold tracking-wide backdrop-blur-md"
+    <div
+      id="passportFrame"
+      class="relative w-full max-w-none aspect-[1.42/1] z-20"
     >
-      Cancel
-    </button>
+      <div class="absolute left-0 bottom-full w-full h-[100vh] bg-black/65"></div>
+      <div class="absolute left-0 top-full w-full h-[100vh] bg-black/65"></div>
 
-    <!-- CAPTURE -->
-    <button
-      type="button"
-      onclick="captureImage()"
-      class="flex-1 py-10 rounded-full bg-white text-gray-900 text-4xl font-bold tracking-wide shadow-2xl"
-    >
-      Capture
-    </button>
+      <div class="absolute inset-0 border-[8px] border-white rounded-2xl"></div>
 
+      <div class="absolute top-0 left-0 w-12 h-12 border-t-[8px] border-l-[8px] border-white"></div>
+      <div class="absolute top-0 right-0 w-12 h-12 border-t-[8px] border-r-[8px] border-white"></div>
+      <div class="absolute bottom-0 left-0 w-12 h-12 border-b-[8px] border-l-[8px] border-white"></div>
+      <div class="absolute bottom-0 right-0 w-12 h-12 border-b-[8px] border-r-[8px] border-white"></div>
+    </div>
   </div>
 
+  <div class="absolute bottom-20 left-1/2 -translate-x-1/2 w-full px-6 z-40">
+    <div class="flex items-center justify-center gap-4">
+      <button
+        type="button"
+        onclick="closeCameraOverlay()"
+        class="flex-1 py-10 rounded-full bg-white/20 text-white border border-white/50 text-4xl font-bold tracking-wide backdrop-blur-md"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        onclick="captureImage()"
+        class="flex-1 py-10 rounded-full bg-white text-gray-900 text-4xl font-bold tracking-wide shadow-2xl"
+      >
+        Capture
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
 let originalImageName = "";
 let processedImageName = "";
 let autoExtractedSnapshot = {};
-
-
 let cameraStream = null;
 
 async function openCamera() {
   const overlay = document.getElementById("cameraOverlay");
   const video = document.getElementById("cameraPreview");
 
-  overlay.classList.remove("hidden");
-
   try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert("Camera is not supported on this browser.");
+      return;
+    }
+
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream = null;
+    }
+
+    overlay.classList.remove("hidden");
+    document.body.classList.add("overflow-hidden");
+
     cameraStream = await navigator.mediaDevices.getUserMedia({
       video: {
-        facingMode: { ideal: "environment" } // guna back camera
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
       },
       audio: false
     });
 
     video.srcObject = cameraStream;
+    await video.play();
 
+    const track = cameraStream.getVideoTracks()[0];
+    if (track && track.getCapabilities) {
+      const caps = track.getCapabilities();
+      const advanced = [];
+
+      if (caps.focusMode && Array.isArray(caps.focusMode) && caps.focusMode.includes("continuous")) {
+        advanced.push({ focusMode: "continuous" });
+      }
+
+      if (caps.sharpness && typeof caps.sharpness.max !== "undefined") {
+        advanced.push({ sharpness: caps.sharpness.max });
+      }
+
+      if (caps.zoom && typeof caps.zoom.min !== "undefined") {
+        advanced.push({ zoom: caps.zoom.min });
+      }
+
+      if (advanced.length) {
+        try {
+          await track.applyConstraints({ advanced });
+        } catch (e) {
+          console.log("Advanced camera constraints not supported:", e);
+        }
+      }
+    }
   } catch (err) {
-    alert("Cannot access camera");
-    console.error(err);
+    console.error("openCamera error:", err);
+    closeCameraOverlay();
+    alert("Cannot access camera. Please allow permission and try again.");
   }
 }
 
@@ -276,17 +298,20 @@ function closeCameraOverlay() {
   const video = document.getElementById("cameraPreview");
 
   overlay.classList.add("hidden");
+  document.body.classList.remove("overflow-hidden");
 
-  // STOP camera (VERY IMPORTANT)
+  if (video) {
+    video.pause();
+    video.srcObject = null;
+  }
+
   if (cameraStream) {
     cameraStream.getTracks().forEach(track => track.stop());
     cameraStream = null;
   }
-
-  video.srcObject = null;
 }
 
-function captureImage() {
+async function captureImage() {
   const video = document.getElementById("cameraPreview");
   const frame = document.getElementById("passportFrame");
   const fileInput = document.getElementById("passport_img");
@@ -304,88 +329,98 @@ function captureImage() {
     return;
   }
 
-  const videoRect = video.getBoundingClientRect();
-  const frameRect = frame.getBoundingClientRect();
+  try {
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-  const sourceVideoWidth = video.videoWidth;
-  const sourceVideoHeight = video.videoHeight;
+    const videoRect = video.getBoundingClientRect();
+    const frameRect = frame.getBoundingClientRect();
 
-  const containerWidth = videoRect.width;
-  const containerHeight = videoRect.height;
+    const sourceVideoWidth = video.videoWidth;
+    const sourceVideoHeight = video.videoHeight;
 
-  const videoAspect = sourceVideoWidth / sourceVideoHeight;
-  const containerAspect = containerWidth / containerHeight;
+    const containerWidth = videoRect.width;
+    const containerHeight = videoRect.height;
 
-  let renderedWidth, renderedHeight, offsetX, offsetY;
+    const videoAspect = sourceVideoWidth / sourceVideoHeight;
+    const containerAspect = containerWidth / containerHeight;
 
-  if (videoAspect > containerAspect) {
-    renderedHeight = containerHeight;
-    renderedWidth = renderedHeight * videoAspect;
-    offsetX = (renderedWidth - containerWidth) / 2;
-    offsetY = 0;
-  } else {
-    renderedWidth = containerWidth;
-    renderedHeight = renderedWidth / videoAspect;
-    offsetX = 0;
-    offsetY = (renderedHeight - containerHeight) / 2;
-  }
+    let renderedWidth, renderedHeight, offsetX, offsetY;
 
-  const scaleX = sourceVideoWidth / renderedWidth;
-  const scaleY = sourceVideoHeight / renderedHeight;
-
-  const cropX = ((frameRect.left - videoRect.left) + offsetX) * scaleX;
-  const cropY = ((frameRect.top - videoRect.top) + offsetY) * scaleY;
-  const cropWidth = frameRect.width * scaleX;
-  const cropHeight = frameRect.height * scaleY;
-
-  const safeCropX = Math.max(0, cropX);
-  const safeCropY = Math.max(0, cropY);
-  const safeCropWidth = Math.min(sourceVideoWidth - safeCropX, cropWidth);
-  const safeCropHeight = Math.min(sourceVideoHeight - safeCropY, cropHeight);
-
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-
-  canvas.width = Math.round(safeCropWidth);
-  canvas.height = Math.round(safeCropHeight);
-
-  context.drawImage(
-    video,
-    safeCropX,
-    safeCropY,
-    safeCropWidth,
-    safeCropHeight,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-  canvas.toBlob(function(blob) {
-    if (!blob) {
-      alert("Failed to capture image.");
-      return;
+    if (videoAspect > containerAspect) {
+      renderedHeight = containerHeight;
+      renderedWidth = renderedHeight * videoAspect;
+      offsetX = (renderedWidth - containerWidth) / 2;
+      offsetY = 0;
+    } else {
+      renderedWidth = containerWidth;
+      renderedHeight = renderedWidth / videoAspect;
+      offsetX = 0;
+      offsetY = (renderedHeight - containerHeight) / 2;
     }
 
-    const capturedFile = new File([blob], "passport_camera_capture.jpg", {
-      type: "image/jpeg"
-    });
+    const scaleX = sourceVideoWidth / renderedWidth;
+    const scaleY = sourceVideoHeight / renderedHeight;
 
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(capturedFile);
-    fileInput.files = dataTransfer.files;
+    const cropX = ((frameRect.left - videoRect.left) + offsetX) * scaleX;
+    const cropY = ((frameRect.top - videoRect.top) + offsetY) * scaleY;
+    const cropWidth = frameRect.width * scaleX;
+    const cropHeight = frameRect.height * scaleY;
 
-    const previewUrl = URL.createObjectURL(capturedFile);
-    preview.src = previewUrl;
-    preview.classList.remove("hidden");
-    noPreviewText.classList.add("hidden");
-    selectedFileName.textContent = capturedFile.name;
+    const safeCropX = Math.max(0, cropX);
+    const safeCropY = Math.max(0, cropY);
+    const safeCropWidth = Math.min(sourceVideoWidth - safeCropX, cropWidth);
+    const safeCropHeight = Math.min(sourceVideoHeight - safeCropY, cropHeight);
 
-    originalImageName = capturedFile.name;
-    processedImageName = "";
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
 
-    closeCameraOverlay();
-  }, "image/jpeg", 0.95);
+    canvas.width = Math.round(safeCropWidth);
+    canvas.height = Math.round(safeCropHeight);
+
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+
+    context.drawImage(
+      video,
+      safeCropX,
+      safeCropY,
+      safeCropWidth,
+      safeCropHeight,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    canvas.toBlob(function(blob) {
+      if (!blob) {
+        alert("Failed to capture image.");
+        return;
+      }
+
+      const capturedFile = new File([blob], `passport_camera_${Date.now()}.jpg`, {
+        type: "image/jpeg"
+      });
+
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(capturedFile);
+      fileInput.files = dataTransfer.files;
+
+      const previewUrl = URL.createObjectURL(capturedFile);
+      preview.src = previewUrl;
+      preview.classList.remove("hidden");
+      noPreviewText.classList.add("hidden");
+      selectedFileName.textContent = capturedFile.name;
+
+      originalImageName = capturedFile.name;
+      processedImageName = "";
+
+      closeCameraOverlay();
+    }, "image/jpeg", 0.98);
+  } catch (err) {
+    console.error("captureImage error:", err);
+    alert("Failed to capture image.");
+  }
 }
 
 document.getElementById("passport_img").addEventListener("change", function(event) {
@@ -536,11 +571,16 @@ async function prepareImageForOCR(file) {
     const objectUrl = URL.createObjectURL(file);
 
     img.onload = () => {
-      const maxWidth = 1600;
-      const maxHeight = 1100;
+      const maxWidth = 1800;
+      const maxHeight = 1200;
 
-      let targetWidth = img.width;
-      let targetHeight = img.height;
+      let sourceWidth = img.width;
+      let sourceHeight = img.height;
+
+      const shouldRotate = sourceHeight > sourceWidth;
+
+      let targetWidth = shouldRotate ? sourceHeight : sourceWidth;
+      let targetHeight = shouldRotate ? sourceWidth : sourceHeight;
 
       const widthRatio = maxWidth / targetWidth;
       const heightRatio = maxHeight / targetHeight;
@@ -555,7 +595,19 @@ async function prepareImageForOCR(file) {
       canvas.width = targetWidth;
       canvas.height = targetHeight;
 
-      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+      if (shouldRotate) {
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.drawImage(
+          img,
+          -sourceWidth * scale / 2,
+          -sourceHeight * scale / 2,
+          sourceWidth * scale,
+          sourceHeight * scale
+        );
+      } else {
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+      }
 
       canvas.toBlob((blob) => {
         URL.revokeObjectURL(objectUrl);
@@ -572,7 +624,7 @@ async function prepareImageForOCR(file) {
         );
 
         resolve(preparedFile);
-      }, "image/jpeg", 0.92);
+      }, "image/jpeg", 0.96);
     };
 
     img.onerror = () => {
@@ -612,11 +664,7 @@ async function uploadOCR() {
       body: formData
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to scan passport");
-    }
+    const data = await parseJsonResponseSafely(res);
 
     originalImageName = data.original_image_name || "";
     processedImageName = data.processed_image_name || "";
@@ -634,9 +682,7 @@ async function uploadOCR() {
     document.getElementById("raw_text").value = data.raw_text || "";
     document.getElementById("status").value = data.status || "pending verification";
 
-    if (typeof renderDynamicFields === "function") {
-      renderDynamicFields(data.extra_fields || []);
-    }
+    renderDynamicFields(data.extra_fields || []);
 
     if (data.image_quality_note) {
       const qualityNote = document.getElementById("qualityNote");
