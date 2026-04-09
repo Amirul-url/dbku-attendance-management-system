@@ -173,26 +173,241 @@
   </div>
 </div>
 
+<div id="cameraOverlay" class="hidden fixed inset-0 z-50 overflow-hidden">
+  <!-- live camera -->
+  <video
+    id="cameraPreview"
+    autoplay
+    playsinline
+    class="absolute inset-0 w-full h-full object-cover bg-black"
+  ></video>
+
+  <!-- content -->
+<div class="absolute inset-0 flex flex-col items-center justify-center px-0 pt-10 pb-24 z-20">
+
+  <!-- instruction -->
+  <div class="mb-14 text-center z-30">
+    <p class="text-white text-5xl sm:text-5xl font-bold tracking-wide drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
+      Align passport inside the frame
+    </p>
+  </div>
+
+  <!-- passport frame (FULL WIDTH) -->
+  <div
+    id="passportFrame"
+    class="relative w-full max-w-none aspect-[1.42/1] z-20"
+  >
+    <!-- TOP mask -->
+    <div class="absolute left-0 bottom-full w-full h-[100vh] bg-black/65"></div>
+
+    <!-- BOTTOM mask -->
+    <div class="absolute left-0 top-full w-full h-[100vh] bg-black/65"></div>
+
+    <!-- MAIN BORDER -->
+    <div class="absolute inset-0 border-[8px] border-white rounded-2xl"></div>
+
+    <!-- CORNER STYLE -->
+    <div class="absolute top-0 left-0 w-12 h-12 border-t-[8px] border-l-[8px] border-white"></div>
+    <div class="absolute top-0 right-0 w-12 h-12 border-t-[8px] border-r-[8px] border-white"></div>
+    <div class="absolute bottom-0 left-0 w-12 h-12 border-b-[8px] border-l-[8px] border-white"></div>
+    <div class="absolute bottom-0 right-0 w-12 h-12 border-b-[8px] border-r-[8px] border-white"></div>
+  </div>
+</div>
+
+  <!-- bottom buttons -->
+<div class="absolute bottom-20 left-1/2 -translate-x-1/2 w-full px-6 z-40">
+
+  <div class="flex items-center justify-center gap-4">
+
+    <!-- CANCEL -->
+    <button
+      type="button"
+      onclick="closeCameraOverlay()"
+      class="flex-1 py-10 rounded-full bg-white/20 text-white border border-white/50 text-4xl font-bold tracking-wide backdrop-blur-md"
+    >
+      Cancel
+    </button>
+
+    <!-- CAPTURE -->
+    <button
+      type="button"
+      onclick="captureImage()"
+      class="flex-1 py-10 rounded-full bg-white text-gray-900 text-4xl font-bold tracking-wide shadow-2xl"
+    >
+      Capture
+    </button>
+
+  </div>
+
+</div>
+
 <script>
 let originalImageName = "";
 let processedImageName = "";
 let autoExtractedSnapshot = {};
 
-document.getElementById("passport_img").addEventListener("change", function () {
-  const file = this.files && this.files[0];
-  document.getElementById("selectedFileName").innerText = file ? file.name : "No file selected";
 
-  if (file) {
-    const previewUrl = URL.createObjectURL(file);
-    showPreview(previewUrl);
+let cameraStream = null;
+
+async function openCamera() {
+  const overlay = document.getElementById("cameraOverlay");
+  const video = document.getElementById("cameraPreview");
+
+  overlay.classList.remove("hidden");
+
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" } // guna back camera
+      },
+      audio: false
+    });
+
+    video.srcObject = cameraStream;
+
+  } catch (err) {
+    alert("Cannot access camera");
+    console.error(err);
   }
-});
-
-function openCamera() {
-  const input = document.getElementById("passport_img");
-  input.setAttribute("capture", "environment");
-  input.click();
 }
+
+function closeCameraOverlay() {
+  const overlay = document.getElementById("cameraOverlay");
+  const video = document.getElementById("cameraPreview");
+
+  overlay.classList.add("hidden");
+
+  // STOP camera (VERY IMPORTANT)
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+
+  video.srcObject = null;
+}
+
+function captureImage() {
+  const video = document.getElementById("cameraPreview");
+  const frame = document.getElementById("passportFrame");
+  const fileInput = document.getElementById("passport_img");
+  const preview = document.getElementById("passportPreview");
+  const noPreviewText = document.getElementById("noPreviewText");
+  const selectedFileName = document.getElementById("selectedFileName");
+
+  if (!video.videoWidth || !video.videoHeight) {
+    alert("Camera is not ready yet. Please try again.");
+    return;
+  }
+
+  if (!frame) {
+    alert("Passport frame not found.");
+    return;
+  }
+
+  const videoRect = video.getBoundingClientRect();
+  const frameRect = frame.getBoundingClientRect();
+
+  const sourceVideoWidth = video.videoWidth;
+  const sourceVideoHeight = video.videoHeight;
+
+  const containerWidth = videoRect.width;
+  const containerHeight = videoRect.height;
+
+  const videoAspect = sourceVideoWidth / sourceVideoHeight;
+  const containerAspect = containerWidth / containerHeight;
+
+  let renderedWidth, renderedHeight, offsetX, offsetY;
+
+  if (videoAspect > containerAspect) {
+    renderedHeight = containerHeight;
+    renderedWidth = renderedHeight * videoAspect;
+    offsetX = (renderedWidth - containerWidth) / 2;
+    offsetY = 0;
+  } else {
+    renderedWidth = containerWidth;
+    renderedHeight = renderedWidth / videoAspect;
+    offsetX = 0;
+    offsetY = (renderedHeight - containerHeight) / 2;
+  }
+
+  const scaleX = sourceVideoWidth / renderedWidth;
+  const scaleY = sourceVideoHeight / renderedHeight;
+
+  const cropX = ((frameRect.left - videoRect.left) + offsetX) * scaleX;
+  const cropY = ((frameRect.top - videoRect.top) + offsetY) * scaleY;
+  const cropWidth = frameRect.width * scaleX;
+  const cropHeight = frameRect.height * scaleY;
+
+  const safeCropX = Math.max(0, cropX);
+  const safeCropY = Math.max(0, cropY);
+  const safeCropWidth = Math.min(sourceVideoWidth - safeCropX, cropWidth);
+  const safeCropHeight = Math.min(sourceVideoHeight - safeCropY, cropHeight);
+
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+
+  canvas.width = Math.round(safeCropWidth);
+  canvas.height = Math.round(safeCropHeight);
+
+  context.drawImage(
+    video,
+    safeCropX,
+    safeCropY,
+    safeCropWidth,
+    safeCropHeight,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  canvas.toBlob(function(blob) {
+    if (!blob) {
+      alert("Failed to capture image.");
+      return;
+    }
+
+    const capturedFile = new File([blob], "passport_camera_capture.jpg", {
+      type: "image/jpeg"
+    });
+
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(capturedFile);
+    fileInput.files = dataTransfer.files;
+
+    const previewUrl = URL.createObjectURL(capturedFile);
+    preview.src = previewUrl;
+    preview.classList.remove("hidden");
+    noPreviewText.classList.add("hidden");
+    selectedFileName.textContent = capturedFile.name;
+
+    originalImageName = capturedFile.name;
+    processedImageName = "";
+
+    closeCameraOverlay();
+  }, "image/jpeg", 0.95);
+}
+
+document.getElementById("passport_img").addEventListener("change", function(event) {
+  const file = event.target.files[0];
+  const preview = document.getElementById("passportPreview");
+  const noPreviewText = document.getElementById("noPreviewText");
+  const selectedFileName = document.getElementById("selectedFileName");
+
+  if (!file) {
+    return;
+  }
+
+  const previewUrl = URL.createObjectURL(file);
+  preview.src = previewUrl;
+  preview.classList.remove("hidden");
+  noPreviewText.classList.add("hidden");
+
+  selectedFileName.textContent = file.name;
+
+  originalImageName = file.name;
+  processedImageName = "";
+});
 
 function openFilePicker() {
   const input = document.getElementById("passport_img");
@@ -310,81 +525,153 @@ async function parseJsonResponseSafely(res) {
   return data;
 }
 
+async function prepareImageForOCR(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) {
+      reject(new Error("No image file found."));
+      return;
+    }
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      const maxWidth = 1600;
+      const maxHeight = 1100;
+
+      let targetWidth = img.width;
+      let targetHeight = img.height;
+
+      const widthRatio = maxWidth / targetWidth;
+      const heightRatio = maxHeight / targetHeight;
+      const scale = Math.min(widthRatio, heightRatio, 1);
+
+      targetWidth = Math.round(targetWidth * scale);
+      targetHeight = Math.round(targetHeight * scale);
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(objectUrl);
+
+        if (!blob) {
+          reject(new Error("Failed to prepare image for OCR."));
+          return;
+        }
+
+        const preparedFile = new File(
+          [blob],
+          file.name || "passport_prepared.jpg",
+          { type: "image/jpeg" }
+        );
+
+        resolve(preparedFile);
+      }, "image/jpeg", 0.92);
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Failed to load image."));
+    };
+
+    img.src = objectUrl;
+  });
+}
+
 async function uploadOCR() {
   const fileInput = document.getElementById("passport_img");
   const scanBtn = document.getElementById("scanBtn");
-  const file = fileInput.files[0];
+  const originalFile = fileInput.files[0];
 
-  if (!file) {
+  if (!originalFile) {
     setMessage("Please choose a passport image first", "error");
     return;
   }
 
-  const formData = new FormData();
-  formData.append("image", file);
-
   scanBtn.disabled = true;
   scanBtn.innerText = "Scanning...";
-  setMessage("Scanning passport image...", "info");
   showOverlay();
+  setMessage("Preparing passport image for OCR...", "info");
 
   try {
+    const preparedFile = await prepareImageForOCR(originalFile);
+
+    const formData = new FormData();
+    formData.append("image", preparedFile);
+
+    setMessage("Scanning passport image...", "info");
+
     const res = await fetch("/api/employees/passport/upload/", {
       method: "POST",
       body: formData
     });
 
-    const data = await parseJsonResponseSafely(res);
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to scan passport");
+    }
 
     originalImageName = data.original_image_name || "";
     processedImageName = data.processed_image_name || "";
 
-    document.getElementById("passport_type").value = data.type || "P";
+    document.getElementById("passport_type").value = data.type || "";
     document.getElementById("country_code").value = data.country_code || "";
     document.getElementById("passport_number").value = data.passport_number || "";
-    document.getElementById("nationality").value = data.nationality || data.country || "";
     document.getElementById("surname").value = data.surname || "";
     document.getElementById("given_name").value = data.given_name || "";
+    document.getElementById("nationality").value = data.nationality || "";
     document.getElementById("date_of_birth").value = data.date_of_birth || "";
-    document.getElementById("sex").value = data.sex || data.gender || "";
+    document.getElementById("sex").value = data.sex || "";
     document.getElementById("date_of_issue").value = data.date_of_issue || "";
-    document.getElementById("date_of_expiry").value = data.date_of_expiry || data.expiry_date || "";
+    document.getElementById("date_of_expiry").value = data.expiry_date || "";
     document.getElementById("raw_text").value = data.raw_text || "";
     document.getElementById("status").value = data.status || "pending verification";
 
-    autoExtractedSnapshot = {
-      type: data.type || "P",
-      country_code: data.country_code || "",
-      passport_number: data.passport_number || "",
-      nationality: data.nationality || data.country || "",
-      surname: data.surname || "",
-      given_name: data.given_name || "",
-      date_of_birth: data.date_of_birth || "",
-      sex: data.sex || data.gender || "",
-      date_of_issue: data.date_of_issue || "",
-      date_of_expiry: data.date_of_expiry || data.expiry_date || ""
-    };
-
-    renderDynamicFields(data.dynamic_fields || []);
-
-    const qualityNote = document.getElementById("qualityNote");
-    if (data.image_quality_note) {
-      qualityNote.classList.remove("hidden");
-      qualityNote.innerText = data.image_quality_note;
-    } else {
-      qualityNote.classList.add("hidden");
-      qualityNote.innerText = "";
+    if (typeof renderDynamicFields === "function") {
+      renderDynamicFields(data.extra_fields || []);
     }
 
-    const confidenceNote = document.getElementById("confidenceNote");
-    confidenceNote.classList.remove("hidden");
-    confidenceNote.innerText = "OCR confidence score: " + (data.confidence_score || 0);
+    if (data.image_quality_note) {
+      const qualityNote = document.getElementById("qualityNote");
+      qualityNote.innerText = data.image_quality_note;
+      qualityNote.classList.remove("hidden");
+    } else {
+      document.getElementById("qualityNote").classList.add("hidden");
+    }
 
-    showPreview(data.original_image_url);
-    setMessage(data.message || "Passport scanned successfully", "success");
+    if (data.confidence_score !== undefined && data.confidence_score !== null) {
+      const confidenceNote = document.getElementById("confidenceNote");
+      confidenceNote.innerText = `Confidence score: ${data.confidence_score}`;
+      confidenceNote.classList.remove("hidden");
+    } else {
+      document.getElementById("confidenceNote").classList.add("hidden");
+    }
+
+    autoExtractedSnapshot = {
+      passport_type: data.type || "",
+      country_code: data.country_code || "",
+      passport_number: data.passport_number || "",
+      surname: data.surname || "",
+      given_name: data.given_name || "",
+      nationality: data.nationality || "",
+      date_of_birth: data.date_of_birth || "",
+      sex: data.sex || "",
+      date_of_issue: data.date_of_issue || "",
+      date_of_expiry: data.expiry_date || "",
+      raw_text: data.raw_text || "",
+      status: data.status || "pending verification"
+    };
+
+    setMessage("Passport scanned successfully. Please review the details.", "success");
   } catch (err) {
-    document.getElementById("status").value = "pending verification";
-    setMessage(err.message + " You can still continue with manual entry.", "error");
+    setMessage(err.message || "Failed to scan passport", "error");
   } finally {
     hideOverlay();
     scanBtn.disabled = false;
