@@ -56,6 +56,7 @@ class Attendance(models.Model):
     phone_number = models.CharField(max_length=20)
     email = models.EmailField()
     department = models.CharField(max_length=100)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
 
     date = models.DateField(auto_now_add=True)
     time = models.TimeField(auto_now_add=True)

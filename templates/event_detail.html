@@ -172,6 +172,7 @@
           <th class="p-3 text-left border-r border-gray-200">Email</th>
           <th class="p-3 text-left border-r border-gray-200">Phone</th>
           <th class="p-3 text-left border-r border-gray-200">Department</th>
+          <th class="p-3 text-left border-r border-gray-200">IP Address</th>
           <th class="p-3 text-left border-r border-gray-200">Date</th>
           <th class="p-3 text-left border-r border-gray-200">Time</th>
           <th class="p-3 text-left border-r border-gray-200">Latitude</th>
@@ -190,6 +191,7 @@
           <td class="p-3 border-r border-gray-200">{{ att.email|default:"-" }}</td>
           <td class="p-3 border-r border-gray-200">{{ att.phone_number|default:"-" }}</td>
           <td class="p-3 border-r border-gray-200">{{ att.department|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.ip_address|default:"-" }}</td>
           <td class="p-3 border-r border-gray-200">{{ att.date|date:"d/m/Y" }}</td>
           <td class="p-3 border-r border-gray-200">{{ att.time }}</td>
           <td class="p-3 border-r border-gray-200">{{ att.latitude|default:"-" }}</td>
@@ -217,7 +219,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="{% if can_manage %}10{% else %}9{% endif %}" class="text-center p-4 text-gray-500">
+          <td colspan="{% if can_manage %}11{% else %}10{% endif %}" class="text-center p-4 text-gray-500">
             No employee attendance
           </td>
         </tr>

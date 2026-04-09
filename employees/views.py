@@ -919,6 +919,14 @@ def calculate_distance_meters(lat1, lon1, lat2, lon2):
 
     return r * c
 
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+
+    if x_forwarded_for:
+        # ambil IP pertama sebab itu usually client asal
+        return x_forwarded_for.split(',')[0].strip()
+
+    return request.META.get('REMOTE_ADDR')
 
 def visitor_attendance_page(request, event_id):
     event = get_object_or_404(Event, id=event_id)
@@ -1018,6 +1026,7 @@ def submit_staff_attendance(request, event_id):
         department = (data.get('department') or '').strip()
         latitude = data.get('latitude')
         longitude = data.get('longitude')
+        client_ip = get_client_ip(request)
 
         if not all([full_name, employee_id, phone, email, department]):
             return JsonResponse({'error': 'All fields are required'}, status=400)
@@ -1065,6 +1074,7 @@ def submit_staff_attendance(request, event_id):
                 'phone_number': phone,
                 'email': employee.email,
                 'department': employee.department,
+                'ip_address': client_ip,
                 'latitude': latitude,
                 'longitude': longitude
             }
@@ -1335,7 +1345,7 @@ def export_attendance_csv(request, id):
     writer = csv.writer(response)
 
     writer.writerow(['EMPLOYEE ATTENDANCE'])
-    writer.writerow(['Name', 'Employee ID', 'Phone', 'Email', 'Department', 'Date', 'Time', 'Latitude', 'Longitude'])
+    writer.writerow(['Name', 'Employee ID', 'Phone', 'Email', 'Department', 'IP Address', 'Date', 'Time', 'Latitude', 'Longitude'])
 
     for att in employee_attendances:
         writer.writerow([
@@ -1344,6 +1354,7 @@ def export_attendance_csv(request, id):
             f"'{att.phone_number}",
             att.email,
             att.department,
+            att.ip_address or '-',
             att.date.strftime("%d/%m/%Y"),
             att.time.strftime("%H:%M:%S"),
             att.latitude,
