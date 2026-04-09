@@ -1,37 +1,44 @@
-import datetime
-import uuid
-import threading
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponse
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.models import User
-from django.views.decorators.csrf import csrf_exempt
-from django.core.paginator import Paginator
-from django.db.models import Count
-from .models import (
-    Employee,
-    Event,
-    Attendance,
-    Visitor,
-    VisitorAttendance,
-    PassportVisitor,
-    PassportAttendance,
-)
-import json
-import qrcode
-from django.core.files import File
-from io import BytesIO
-import re
 import csv
+import datetime
+import json
 import math
-import pytesseract
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-from PIL import Image
+import os
+import re
+import threading
+import uuid
+from io import BytesIO
+
+os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
+
 import cv2
 import numpy as np
-import os
-from django.conf import settings
+import pytesseract
+import qrcode
+from PIL import Image
 from paddleocr import PaddleOCR
+
+from django.conf import settings
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
+from django.core.files import File
+from django.core.paginator import Paginator
+from django.db.models import Count
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.csrf import csrf_exempt
+
+from .models import (
+    Attendance,
+    Employee,
+    Event,
+    PassportAttendance,
+    PassportVisitor,
+    Visitor,
+    VisitorAttendance,
+)
+
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
 
 NGROK_BASE_URL = "https://exospherical-kimberlie-unrefulgent.ngrok-free.dev"
 
@@ -1126,6 +1133,9 @@ def event_detail(request, id):
 
     event = get_object_or_404(Event, id=id)
 
+    # =========================
+    # STAFF ATTENDANCE
+    # =========================
     staff_search = request.GET.get('staff_search', '').strip()
     staff_department = request.GET.get('staff_department', '').strip()
     staff_sort = request.GET.get('staff_sort', 'date')
@@ -1158,6 +1168,9 @@ def event_detail(request, id):
     staff_paginator = Paginator(staff_qs, 5)
     staff_page_obj = staff_paginator.get_page(staff_page_num)
 
+    # =========================
+    # VISITOR (MALAYSIAN)
+    # =========================
     visitor_search = request.GET.get('visitor_search', '').strip()
     visitor_organization = request.GET.get('visitor_organization', '').strip()
     visitor_sort = request.GET.get('visitor_sort', 'date')
@@ -1191,7 +1204,50 @@ def event_detail(request, id):
     visitor_paginator = Paginator(visitor_qs, 5)
     visitor_page_obj = visitor_paginator.get_page(visitor_page_num)
 
-    total_attendance = Attendance.objects.filter(event=event).count() + VisitorAttendance.objects.filter(event=event).count()
+    # =========================
+    # VISITOR (NON-MALAYSIAN)
+    # =========================
+    passport_search = request.GET.get('passport_search', '').strip()
+    passport_country = request.GET.get('passport_country', '').strip()
+    passport_sort = request.GET.get('passport_sort', 'date')
+    passport_page_num = request.GET.get('passport_page', 1)
+
+    passport_qs = PassportAttendance.objects.filter(event=event).select_related('passport_visitor')
+
+    if passport_search:
+        passport_qs = passport_qs.filter(passport_visitor__full_name__icontains=passport_search)
+
+    if passport_country:
+        passport_qs = passport_qs.filter(passport_visitor__country__iexact=passport_country)
+
+    if passport_sort == 'name':
+        passport_qs = passport_qs.order_by('passport_visitor__full_name')
+    elif passport_sort == 'time':
+        passport_qs = passport_qs.order_by('time')
+    else:
+        passport_qs = passport_qs.order_by('date', 'time')
+
+    passport_countries = (
+        PassportAttendance.objects.filter(event=event)
+        .select_related('passport_visitor')
+        .exclude(passport_visitor__country__isnull=True)
+        .exclude(passport_visitor__country__exact='')
+        .values_list('passport_visitor__country', flat=True)
+        .distinct()
+        .order_by('passport_visitor__country')
+    )
+
+    passport_paginator = Paginator(passport_qs, 5)
+    passport_page_obj = passport_paginator.get_page(passport_page_num)
+
+    # =========================
+    # TOTAL
+    # =========================
+    total_attendance = (
+        Attendance.objects.filter(event=event).count()
+        + VisitorAttendance.objects.filter(event=event).count()
+        + PassportAttendance.objects.filter(event=event).count()
+    )
 
     context = {
         'event': event,
@@ -1210,12 +1266,17 @@ def event_detail(request, id):
         'visitor_search': visitor_search,
         'visitor_organization': visitor_organization,
         'visitor_sort': visitor_sort,
+
+        'passport_attendances': passport_page_obj.object_list,
+        'passport_page_obj': passport_page_obj,
+        'passport_countries': passport_countries,
+        'passport_search': passport_search,
+        'passport_country': passport_country,
+        'passport_sort': passport_sort,
     }
     context.update(role_context(request))
 
     return render(request, 'event_detail.html', context)
-
-
 def export_attendance_csv(request, id):
     manage_check = require_manage_page(request)
     if manage_check:
@@ -1247,7 +1308,7 @@ def export_attendance_csv(request, id):
         ])
 
     writer.writerow([])
-    writer.writerow(['VISITOR ATTENDANCE'])
+    writer.writerow(['VISITOR ATTENDANCE (MALAYSIAN)'])
     writer.writerow(['Name', 'Phone', 'Email', 'Organization', 'Date', 'Time', 'Latitude', 'Longitude'])
 
     for att in visitor_attendances:

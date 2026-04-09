@@ -55,14 +55,14 @@
   <div class="bg-gray-50 rounded-xl p-4 text-center border">
     <div class="flex items-center justify-center gap-2 mb-3 text-gray-800 font-semibold">
       <i data-lucide="qr-code" class="w-4 h-4"></i>
-      Visitor QR
+      Visitor QR (Malaysian)
     </div>
 
     {% if event.visitor_qr_code %}
       <img
         src="{{ event.visitor_qr_code.url }}"
         class="w-40 h-40 object-contain mx-auto bg-white border border-gray-300 p-2 rounded-xl"
-        alt="Visitor QR"
+        alt="Visitor QR (Malaysian)"
       >
     {% else %}
       <p class="text-gray-400">No QR</p>
@@ -89,16 +89,16 @@
   <div class="bg-gray-50 rounded-xl p-4 text-center border">
     <div class="flex items-center justify-center gap-2 mb-3 text-gray-800 font-semibold">
       <i data-lucide="qr-code" class="w-4 h-4"></i>
-      Passport QR
+      Visitor QR (Non-Malaysian)
     </div>
 
     {% if event.passport_qr_code %}
       <img
         src="{{ event.passport_qr_code.url }}"
         class="w-40 h-40 object-contain mx-auto bg-white border border-gray-300 p-2 rounded-xl"
-        alt="Passport QR"
+        alt="Visitor QR (Non-Malaysian)"
       >
-      <p class="text-xs text-gray-500 mt-2">Non-Malaysian Visitor</p>
+      <p class="text-xs text-gray-500 mt-2">For Visitor (Non-Malaysian)</p>
     {% else %}
       <p class="text-gray-400">No QR</p>
     {% endif %}
@@ -247,7 +247,7 @@
   {% endif %}
 </div>
 
-<h3 class="text-lg font-semibold mb-3">Visitor Attendance</h3>
+<h3 class="text-lg font-semibold mb-3">Visitor Attendance (Malaysian)</h3>
 <form method="GET" class="bg-white border border-gray-200 rounded-xl shadow p-4 mb-4">
   <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
     <input type="text" name="visitor_search" placeholder="Search visitor name"
@@ -355,6 +355,111 @@
   {% if visitor_page_obj.has_next %}
     <a href="?visitor_page={{ visitor_page_obj.next_page_number }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&staff_page={{ staff_page_obj.number }}"
        class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
+      Next
+    </a>
+  {% endif %}
+</div>
+
+<h3 class="text-lg font-semibold mb-3 mt-8">Visitor Attendance (Non-Malaysian)</h3>
+
+<form method="GET" class="bg-white border border-gray-200 rounded-xl shadow p-4 mb-4">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+    <input
+      type="text"
+      name="passport_search"
+      placeholder="Search visitor name"
+      value="{{ passport_search }}"
+      class="p-2 border border-gray-300 rounded"
+    >
+
+    <select name="passport_country" class="p-2 border border-gray-300 rounded bg-white">
+      <option value="">All Countries</option>
+      {% for country in passport_countries %}
+        <option value="{{ country }}" {% if passport_country == country %}selected{% endif %}>
+          {{ country }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <select name="passport_sort" class="p-2 border border-gray-300 rounded bg-white">
+      <option value="date" {% if passport_sort == 'date' %}selected{% endif %}>Sort by Date</option>
+      <option value="time" {% if passport_sort == 'time' %}selected{% endif %}>Sort by Time</option>
+      <option value="name" {% if passport_sort == 'name' %}selected{% endif %}>Sort by Name</option>
+    </select>
+
+    <div class="flex gap-2">
+      <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-full">
+        Search
+      </button>
+      <a href="/events/{{ event.id }}/" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 w-full text-center">
+        Reset
+      </a>
+    </div>
+  </div>
+</form>
+
+<div class="bg-white rounded-xl shadow overflow-hidden mb-3 border border-gray-200">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm border-collapse">
+      <thead class="bg-gray-50">
+        <tr class="border-b border-gray-200">
+          <th class="p-3 text-left border-r border-gray-200">Name</th>
+          <th class="p-3 text-left border-r border-gray-200">Passport No</th>
+          <th class="p-3 text-left border-r border-gray-200">Country</th>
+          <th class="p-3 text-left border-r border-gray-200">Date</th>
+          <th class="p-3 text-left border-r border-gray-200">Time</th>
+          <th class="p-3 text-left border-r border-gray-200">Latitude</th>
+          <th class="p-3 text-left {% if can_manage %}border-r border-gray-200{% endif %}">Longitude</th>
+          {% if can_manage %}
+          <th class="p-3 text-left">Action</th>
+          {% endif %}
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for att in passport_attendances %}
+        <tr class="border-b border-gray-200 hover:bg-gray-50">
+          <td class="p-3 border-r border-gray-200">{{ att.passport_visitor.full_name|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.passport_visitor.passport_number|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.passport_visitor.country|default:"-" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.date|date:"d/m/Y" }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.time }}</td>
+          <td class="p-3 border-r border-gray-200">{{ att.latitude|default:"-" }}</td>
+          <td class="p-3 {% if can_manage %}border-r border-gray-200{% endif %}">{{ att.longitude|default:"-" }}</td>
+
+          {% if can_manage %}
+          <td class="p-3">
+            <span class="text-gray-400 text-sm">-</span>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if can_manage %}8{% else %}7{% endif %}" class="text-center p-4 text-gray-500">
+            No non-Malaysian visitor attendance
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="flex justify-end gap-2 mb-8">
+  {% if passport_page_obj.has_previous %}
+    <a href="?passport_page={{ passport_page_obj.previous_page_number }}&passport_search={{ passport_search }}&passport_country={{ passport_country }}&passport_sort={{ passport_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}"
+       class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">
+      Previous
+    </a>
+  {% endif %}
+
+  <span class="px-3 py-2 bg-gray-100 rounded">
+    Page {{ passport_page_obj.number }} of {{ passport_page_obj.paginator.num_pages }}
+  </span>
+
+  {% if passport_page_obj.has_next %}
+    <a href="?passport_page={{ passport_page_obj.next_page_number }}&passport_search={{ passport_search }}&passport_country={{ passport_country }}&passport_sort={{ passport_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}"
+       class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">
       Next
     </a>
   {% endif %}
