@@ -4,17 +4,17 @@
 
 <div id="dashboard-data"
      data-total-staff="{{ total_staff_attendance|default:0 }}"
-     data-total-visitor="{{ total_visitor_attendance|default:0 }}">
+     data-total-visitor="{{ total_visitor_attendance|default:0 }}"
+     data-total-passport="{{ total_passport_attendance|default:0 }}">
 </div>
 
-<div class="mb-6">
-  <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
-  <p class="text-gray-500 mt-1">
-    Welcome,
-    <span class="font-semibold">
-      {{ current_employee.full_name|default:request.user.username }}
-    </span>
-    {% if current_employee %}
+<div class="mb-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
+    <p class="text-gray-500 mt-1">
+      Welcome,
+      <span class="font-semibold">{{ current_employee.full_name|default:request.user.username }}</span>
+      {% if current_employee %}
       <span class="inline-block ml-2 px-2 py-1 rounded text-xs
         {% if current_employee.role == 'admin' %}
           bg-red-100 text-red-600
@@ -26,43 +26,42 @@
       ">
         {{ current_employee.role|title }}
       </span>
+      {% endif %}
+    </p>
+  </div>
+
+  <div class="flex flex-wrap gap-2">
+    {% if is_admin %}
+    <a href="/employees/" class="inline-flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 transition">
+      <i data-lucide="user-plus" class="w-4 h-4"></i>
+      Add Staff
+    </a>
     {% endif %}
-  </p>
+
+    {% if can_manage %}
+    <a href="/events/" class="inline-flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-xl hover:bg-green-600 transition">
+      <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+      Manage Events
+    </a>
+    {% endif %}
+
+    <a href="/analytics/" class="inline-flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-xl hover:bg-gray-900 transition">
+      <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+      View Analytics
+    </a>
+  </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
   <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
     <div class="flex items-start justify-between">
       <div>
-        <p class="text-gray-500 text-sm">Total Staffs</p>
-        <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_employees }}</h2>
+        <p class="text-gray-500 text-sm">Today Attendance</p>
+        <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ today_total_attendance }}</h2>
+        <p class="text-xs text-gray-500 mt-2">{{ today_date|date:"d/m/Y" }}</p>
       </div>
       <div class="w-11 h-11 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-        <i data-lucide="users" class="w-5 h-5"></i>
-      </div>
-    </div>
-  </div>
-
-  <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
-    <div class="flex items-start justify-between">
-      <div>
-        <p class="text-gray-500 text-sm">Total Visitors (Malaysian)</p>
-        <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_visitors }}</h2>
-      </div>
-      <div class="w-11 h-11 rounded-xl bg-green-100 text-green-600 flex items-center justify-center">
-        <i data-lucide="user-round" class="w-5 h-5"></i>
-      </div>
-    </div>
-  </div>
-
-  <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
-    <div class="flex items-start justify-between">
-      <div>
-        <p class="text-gray-500 text-sm">Total Events</p>
-        <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_events }}</h2>
-      </div>
-      <div class="w-11 h-11 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
-        <i data-lucide="calendar-days" class="w-5 h-5"></i>
+        <i data-lucide="activity" class="w-5 h-5"></i>
       </div>
     </div>
   </div>
@@ -72,6 +71,7 @@
       <div>
         <p class="text-gray-500 text-sm">Active Events</p>
         <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ active_events }}</h2>
+        <p class="text-xs text-gray-500 mt-2">Ongoing today</p>
       </div>
       <div class="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
         <i data-lucide="calendar-check-2" class="w-5 h-5"></i>
@@ -82,7 +82,35 @@
   <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
     <div class="flex items-start justify-between">
       <div>
-        <p class="text-gray-500 text-sm">Total Staff Attendance</p>
+        <p class="text-gray-500 text-sm">Total Staffs</p>
+        <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_employees }}</h2>
+        <p class="text-xs text-gray-500 mt-2">Registered users</p>
+      </div>
+      <div class="w-11 h-11 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
+        <i data-lucide="users" class="w-5 h-5"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-gray-500 text-sm">Total Events</p>
+        <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_events }}</h2>
+        <p class="text-xs text-gray-500 mt-2">All created events</p>
+      </div>
+      <div class="w-11 h-11 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center">
+        <i data-lucide="calendar-days" class="w-5 h-5"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-gray-500 text-sm">Staff Attendance</p>
         <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_staff_attendance }}</h2>
       </div>
       <div class="w-11 h-11 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
@@ -94,17 +122,41 @@
   <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
     <div class="flex items-start justify-between">
       <div>
-        <p class="text-gray-500 text-sm">Total Visitor Attendance (Malaysian)</p>
+        <p class="text-gray-500 text-sm">Visitor Attendance (Malaysian)</p>
         <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_visitor_attendance }}</h2>
       </div>
-      <div class="w-11 h-11 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center">
+      <div class="w-11 h-11 rounded-xl bg-green-100 text-green-600 flex items-center justify-center">
+        <i data-lucide="user-round" class="w-5 h-5"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-gray-500 text-sm">Visitor Attendance (Non-Malaysian)</p>
+        <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_passport_attendance }}</h2>
+      </div>
+      <div class="w-11 h-11 rounded-xl bg-cyan-100 text-cyan-600 flex items-center justify-center">
+        <i data-lucide="globe-2" class="w-5 h-5"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-gray-500 text-sm">Total Attendance</p>
+        <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_attendance }}</h2>
+      </div>
+      <div class="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
         <i data-lucide="clipboard-check" class="w-5 h-5"></i>
       </div>
     </div>
   </div>
 </div>
 
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
   <div class="xl:col-span-2 bg-white p-5 rounded-2xl shadow border border-gray-200">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
       <div>
@@ -115,7 +167,7 @@
           <h3 class="font-semibold text-lg text-gray-800">Attendance Overview</h3>
         </div>
         <p class="text-sm text-gray-500">
-          Comparison between staff attendance and visitor attendance
+          Comparison between staff, Malaysian visitors, and non-Malaysian visitors
         </p>
       </div>
 
@@ -182,20 +234,124 @@
   </div>
 </div>
 
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden">
+    <div class="p-5 border-b border-gray-200">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-xl bg-green-100 text-green-600 flex items-center justify-center">
+          <i data-lucide="clock-3" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <h3 class="font-semibold text-lg text-gray-800">Recent Attendance Activity</h3>
+          <p class="text-sm text-gray-500">Latest attendance records across all categories</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="divide-y divide-gray-100">
+      {% for item in recent_activities %}
+      <div class="p-4 flex items-start justify-between gap-4">
+        <div>
+          <p class="font-semibold text-gray-800">{{ item.name }}</p>
+          <p class="text-sm text-gray-500 mt-1">{{ item.type }} • {{ item.event_name }}</p>
+        </div>
+        <div class="text-right text-sm text-gray-500 whitespace-nowrap">
+          <div>{{ item.date|date:"d/m/Y" }}</div>
+          <div>{{ item.time|time:"H:i:s" }}</div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="p-6 text-center text-gray-500">
+        No recent attendance activity yet.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden">
+    <div class="p-5 border-b border-gray-200">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
+          <i data-lucide="calendar-range" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <h3 class="font-semibold text-lg text-gray-800">Ongoing & Upcoming Events</h3>
+          <p class="text-sm text-gray-500">Useful for day-to-day operations</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-4 space-y-4">
+      <div>
+        <p class="text-xs uppercase tracking-wide text-gray-400 mb-2">Ongoing Events</p>
+        <div class="space-y-3">
+          {% for event in active_events_list %}
+          <div class="p-4 rounded-xl border border-gray-200 bg-gray-50">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="font-semibold text-gray-800">{{ event.name }}</p>
+                <p class="text-sm text-gray-500 mt-1">{{ event.location }}</p>
+                <p class="text-xs text-gray-500 mt-1">
+                  {{ event.start_date|date:"d/m/Y" }} - {{ event.end_date|date:"d/m/Y" }}
+                </p>
+              </div>
+              <span class="inline-flex px-2.5 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">
+                Active
+              </span>
+            </div>
+          </div>
+          {% empty %}
+          <div class="p-4 rounded-xl border border-dashed border-gray-300 text-sm text-gray-500">
+            No active events today.
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <p class="text-xs uppercase tracking-wide text-gray-400 mb-2">Upcoming Events</p>
+        <div class="space-y-3">
+          {% for event in upcoming_events %}
+          <div class="p-4 rounded-xl border border-gray-200 bg-gray-50">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="font-semibold text-gray-800">{{ event.name }}</p>
+                <p class="text-sm text-gray-500 mt-1">{{ event.location }}</p>
+                <p class="text-xs text-gray-500 mt-1">
+                  {{ event.start_date|date:"d/m/Y" }} - {{ event.end_date|date:"d/m/Y" }}
+                </p>
+              </div>
+              <span class="inline-flex px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-100 text-blue-700">
+                Upcoming
+              </span>
+            </div>
+          </div>
+          {% empty %}
+          <div class="p-4 rounded-xl border border-dashed border-gray-300 text-sm text-gray-500">
+            No upcoming events scheduled yet.
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const dashboardData = document.getElementById('dashboard-data');
   const totalStaff = Number(dashboardData.dataset.totalStaff || 0);
   const totalVisitor = Number(dashboardData.dataset.totalVisitor || 0);
+  const totalPassport = Number(dashboardData.dataset.totalPassport || 0);
 
   const overviewCanvas = document.getElementById('overviewChart');
   if (overviewCanvas) {
     new Chart(overviewCanvas, {
-      type: 'pie',
+      type: 'doughnut',
       data: {
-        labels: ['Staff', 'Visitor'],
+        labels: ['Staff', 'Visitor (Malaysian)', 'Visitor (Non-Malaysian)'],
         datasets: [{
-          data: [totalStaff, totalVisitor],
+          data: [totalStaff, totalVisitor, totalPassport],
           borderWidth: 1
         }]
       },

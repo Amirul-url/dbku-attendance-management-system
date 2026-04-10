@@ -510,20 +510,81 @@ def dashboard(request):
 
     total_employees = Employee.objects.count()
     total_visitors = Visitor.objects.count()
+    total_passport_visitors = PassportVisitor.objects.count()
     total_events = Event.objects.count()
-    active_events = Event.objects.filter(start_date__lte=today, end_date__gte=today).count()
+
+    active_events_qs = Event.objects.filter(start_date__lte=today, end_date__gte=today).order_by('start_date', 'start_time', 'id')
+    upcoming_events_qs = Event.objects.filter(start_date__gt=today).order_by('start_date', 'start_time', 'id')[:5]
+
+    active_events = active_events_qs.count()
+
     total_staff_attendance = Attendance.objects.count()
     total_visitor_attendance = VisitorAttendance.objects.count()
-    total_attendance = total_staff_attendance + total_visitor_attendance
+    total_passport_attendance = PassportAttendance.objects.count()
+    total_attendance = total_staff_attendance + total_visitor_attendance + total_passport_attendance
+
+    today_staff_attendance = Attendance.objects.filter(date=today).count()
+    today_visitor_attendance = VisitorAttendance.objects.filter(date=today).count()
+    today_passport_attendance = PassportAttendance.objects.filter(date=today).count()
+    today_total_attendance = today_staff_attendance + today_visitor_attendance + today_passport_attendance
+
+    recent_staff = [
+        {
+            'name': att.full_name,
+            'type': 'Staff',
+            'event_name': att.event.name,
+            'time': att.time,
+            'date': att.date,
+        }
+        for att in Attendance.objects.select_related('event').order_by('-date', '-time')[:5]
+    ]
+
+    recent_visitors = [
+        {
+            'name': att.visitor.full_name,
+            'type': 'Visitor (Malaysian)',
+            'event_name': att.event.name,
+            'time': att.time,
+            'date': att.date,
+        }
+        for att in VisitorAttendance.objects.select_related('event', 'visitor').order_by('-date', '-time')[:5]
+    ]
+
+    recent_passports = [
+        {
+            'name': att.passport_visitor.full_name,
+            'type': 'Visitor (Non-Malaysian)',
+            'event_name': att.event.name,
+            'time': att.time,
+            'date': att.date,
+        }
+        for att in PassportAttendance.objects.select_related('event', 'passport_visitor').order_by('-date', '-time')[:5]
+    ]
+
+    recent_activities = sorted(
+        recent_staff + recent_visitors + recent_passports,
+        key=lambda x: (x['date'], x['time']),
+        reverse=True
+    )[:8]
 
     context = {
+        'today_date': today,
         'total_employees': total_employees,
         'total_visitors': total_visitors,
+        'total_passport_visitors': total_passport_visitors,
         'total_events': total_events,
         'active_events': active_events,
         'total_staff_attendance': total_staff_attendance,
         'total_visitor_attendance': total_visitor_attendance,
+        'total_passport_attendance': total_passport_attendance,
         'total_attendance': total_attendance,
+        'today_staff_attendance': today_staff_attendance,
+        'today_visitor_attendance': today_visitor_attendance,
+        'today_passport_attendance': today_passport_attendance,
+        'today_total_attendance': today_total_attendance,
+        'active_events_list': active_events_qs[:5],
+        'upcoming_events': upcoming_events_qs,
+        'recent_activities': recent_activities,
     }
     context.update(role_context(request))
 
@@ -556,6 +617,20 @@ def analytics_page(request):
 
     event_analytics = []
 
+    total_filtered_events = events.count()
+    total_filtered_staff = 0
+    total_filtered_visitors = 0
+    total_filtered_passport = 0
+
+    department_totals = {}
+    organization_totals = {}
+    country_totals = {}
+
+    monthly_map = {
+        'Jan': 0, 'Feb': 0, 'Mar': 0, 'Apr': 0, 'May': 0, 'Jun': 0,
+        'Jul': 0, 'Aug': 0, 'Sep': 0, 'Oct': 0, 'Nov': 0, 'Dec': 0
+    }
+
     for event in events:
         staff_group = (
             Attendance.objects.filter(event=event)
@@ -576,11 +651,50 @@ def analytics_page(request):
             .order_by('-total', 'visitor__organization')
         )
 
+        passport_group = (
+            PassportAttendance.objects.filter(event=event)
+            .select_related('passport_visitor')
+            .exclude(passport_visitor__country__isnull=True)
+            .exclude(passport_visitor__country__exact='')
+            .values('passport_visitor__country')
+            .annotate(total=Count('id'))
+            .order_by('-total', 'passport_visitor__country')
+        )
+
         staff_labels = [item['department'] for item in staff_group]
         staff_data = [item['total'] for item in staff_group]
 
         visitor_labels = [item['visitor__organization'] for item in visitor_group]
         visitor_data = [item['total'] for item in visitor_group]
+
+        passport_labels = [item['passport_visitor__country'] for item in passport_group]
+        passport_data = [item['total'] for item in passport_group]
+
+        staff_total = sum(staff_data)
+        visitor_total = sum(visitor_data)
+        passport_total = sum(passport_data)
+        grand_total = staff_total + visitor_total + passport_total
+
+        total_filtered_staff += staff_total
+        total_filtered_visitors += visitor_total
+        total_filtered_passport += passport_total
+
+        if event.start_date:
+            month_key = event.start_date.strftime('%b')
+            if month_key in monthly_map:
+                monthly_map[month_key] += grand_total
+
+        for item in staff_group:
+            dept = item['department']
+            department_totals[dept] = department_totals.get(dept, 0) + item['total']
+
+        for item in visitor_group:
+            org = item['visitor__organization']
+            organization_totals[org] = organization_totals.get(org, 0) + item['total']
+
+        for item in passport_group:
+            country = item['passport_visitor__country']
+            country_totals[country] = country_totals.get(country, 0) + item['total']
 
         event_analytics.append({
             'event': event,
@@ -588,9 +702,24 @@ def analytics_page(request):
             'staff_data_json': json.dumps(staff_data),
             'visitor_labels_json': json.dumps(visitor_labels),
             'visitor_data_json': json.dumps(visitor_data),
-            'staff_total': sum(staff_data),
-            'visitor_total': sum(visitor_data),
+            'passport_labels_json': json.dumps(passport_labels),
+            'passport_data_json': json.dumps(passport_data),
+            'staff_total': staff_total,
+            'visitor_total': visitor_total,
+            'passport_total': passport_total,
+            'grand_total': grand_total,
         })
+
+    top_departments = sorted(department_totals.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_organizations = sorted(organization_totals.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_countries = sorted(country_totals.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_events = sorted(event_analytics, key=lambda x: x['grand_total'], reverse=True)[:5]
+
+    overview_labels = ['Staff', 'Visitor (Malaysian)', 'Visitor (Non-Malaysian)']
+    overview_values = [total_filtered_staff, total_filtered_visitors, total_filtered_passport]
+
+    monthly_labels = list(monthly_map.keys())
+    monthly_values = list(monthly_map.values())
 
     context = {
         'event_analytics': event_analytics,
@@ -598,6 +727,18 @@ def analytics_page(request):
         'filter_month': event_month,
         'filter_year': event_year,
         'filter_location': event_location,
+        'total_filtered_events': total_filtered_events,
+        'total_filtered_staff': total_filtered_staff,
+        'total_filtered_visitors': total_filtered_visitors,
+        'total_filtered_passport': total_filtered_passport,
+        'overview_labels_json': json.dumps(overview_labels),
+        'overview_values_json': json.dumps(overview_values),
+        'monthly_labels_json': json.dumps(monthly_labels),
+        'monthly_values_json': json.dumps(monthly_values),
+        'top_departments': top_departments,
+        'top_organizations': top_organizations,
+        'top_countries': top_countries,
+        'top_events': top_events,
     }
     context.update(role_context(request))
 
