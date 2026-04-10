@@ -20,7 +20,7 @@
       <div>
         <h2 class="text-xl font-bold text-gray-800">{{ event.name }}</h2>
         <p class="text-sm text-gray-500 mt-1">
-          {{ event.location }} • {{ event.date|date:"d/m/Y" }}
+          {{ event.location }} • {{ event.start_date|date:"d/m/Y" }}
         </p>
       </div>
 
@@ -32,79 +32,82 @@
     </div>
   </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 p-5">
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 p-5">
 
-  <div class="bg-gray-50 rounded-xl p-4 border">
-    <div class="flex items-center gap-2 mb-3 text-gray-800 font-semibold">
-      <i data-lucide="info" class="w-4 h-4"></i>
-      Event Info
+    <div class="bg-gray-50 rounded-xl p-4 border">
+      <div class="flex items-center gap-2 mb-3 text-gray-800 font-semibold">
+        <i data-lucide="info" class="w-4 h-4"></i>
+        Event Info
+      </div>
+
+      <div class="space-y-2 text-sm text-gray-700">
+        <p><span class="font-semibold">Start Date:</span> {{ event.start_date|date:"d/m/Y" }}</p>
+        <p><span class="font-semibold">End Date:</span> {{ event.end_date|date:"d/m/Y" }}</p>
+        <p><span class="font-semibold">Start Time:</span> {{ event.start_time|time:"H:i"|default:"-" }}</p>
+        <p><span class="font-semibold">End Time:</span> {{ event.end_time|time:"H:i"|default:"-" }}</p>
+        <p><span class="font-semibold">Location:</span> {{ event.location }}</p>
+        <p><span class="font-semibold">Latitude:</span> {{ event.latitude|default:"-" }}</p>
+        <p><span class="font-semibold">Longitude:</span> {{ event.longitude|default:"-" }}</p>
+        <p>
+          <span class="font-semibold">Description:</span><br>
+          {{ event.description|default:"-" }}
+        </p>
+      </div>
     </div>
 
-    <div class="space-y-2 text-sm text-gray-700">
-      <p><span class="font-semibold">Date:</span> {{ event.date|date:"d/m/Y" }}</p>
-      <p><span class="font-semibold">Location:</span> {{ event.location }}</p>
-      <p><span class="font-semibold">Latitude:</span> {{ event.latitude|default:"-" }}</p>
-      <p><span class="font-semibold">Longitude:</span> {{ event.longitude|default:"-" }}</p>
-      <p>
-        <span class="font-semibold">Description:</span><br>
-        {{ event.description|default:"-" }}
-      </p>
+    <div class="bg-gray-50 rounded-xl p-4 text-center border">
+      <div class="flex items-center justify-center gap-2 mb-3 text-gray-800 font-semibold">
+        <i data-lucide="qr-code" class="w-4 h-4"></i>
+        Visitor QR (Malaysian)
+      </div>
+
+      {% if event.visitor_qr_code %}
+        <img
+          src="{{ event.visitor_qr_code.url }}"
+          class="w-40 h-40 object-contain mx-auto bg-white border border-gray-300 p-2 rounded-xl"
+          alt="Visitor QR (Malaysian)"
+        >
+      {% else %}
+        <p class="text-gray-400">No QR</p>
+      {% endif %}
     </div>
+
+    <div class="bg-gray-50 rounded-xl p-4 text-center border">
+      <div class="flex items-center justify-center gap-2 mb-3 text-gray-800 font-semibold">
+        <i data-lucide="qr-code" class="w-4 h-4"></i>
+        Staff QR
+      </div>
+
+      {% if event.staff_qr_code %}
+        <img
+          src="{{ event.staff_qr_code.url }}"
+          class="w-40 h-40 object-contain mx-auto bg-white border border-gray-300 p-2 rounded-xl"
+          alt="Staff QR"
+        >
+      {% else %}
+        <p class="text-gray-400">No QR</p>
+      {% endif %}
+    </div>
+
+    <div class="bg-gray-50 rounded-xl p-4 text-center border">
+      <div class="flex items-center justify-center gap-2 mb-3 text-gray-800 font-semibold">
+        <i data-lucide="qr-code" class="w-4 h-4"></i>
+        Visitor QR (Non-Malaysian)
+      </div>
+
+      {% if event.passport_qr_code %}
+        <img
+          src="{{ event.passport_qr_code.url }}"
+          class="w-40 h-40 object-contain mx-auto bg-white border border-gray-300 p-2 rounded-xl"
+          alt="Visitor QR (Non-Malaysian)"
+        >
+        <p class="text-xs text-gray-500 mt-2">For Visitor (Non-Malaysian)</p>
+      {% else %}
+        <p class="text-gray-400">No QR</p>
+      {% endif %}
+    </div>
+
   </div>
-
-  <div class="bg-gray-50 rounded-xl p-4 text-center border">
-    <div class="flex items-center justify-center gap-2 mb-3 text-gray-800 font-semibold">
-      <i data-lucide="qr-code" class="w-4 h-4"></i>
-      Visitor QR (Malaysian)
-    </div>
-
-    {% if event.visitor_qr_code %}
-      <img
-        src="{{ event.visitor_qr_code.url }}"
-        class="w-40 h-40 object-contain mx-auto bg-white border border-gray-300 p-2 rounded-xl"
-        alt="Visitor QR (Malaysian)"
-      >
-    {% else %}
-      <p class="text-gray-400">No QR</p>
-    {% endif %}
-  </div>
-
-  <div class="bg-gray-50 rounded-xl p-4 text-center border">
-    <div class="flex items-center justify-center gap-2 mb-3 text-gray-800 font-semibold">
-      <i data-lucide="qr-code" class="w-4 h-4"></i>
-      Staff QR
-    </div>
-
-    {% if event.staff_qr_code %}
-      <img
-        src="{{ event.staff_qr_code.url }}"
-        class="w-40 h-40 object-contain mx-auto bg-white border border-gray-300 p-2 rounded-xl"
-        alt="Staff QR"
-      >
-    {% else %}
-      <p class="text-gray-400">No QR</p>
-    {% endif %}
-  </div>
-
-  <div class="bg-gray-50 rounded-xl p-4 text-center border">
-    <div class="flex items-center justify-center gap-2 mb-3 text-gray-800 font-semibold">
-      <i data-lucide="qr-code" class="w-4 h-4"></i>
-      Visitor QR (Non-Malaysian)
-    </div>
-
-    {% if event.passport_qr_code %}
-      <img
-        src="{{ event.passport_qr_code.url }}"
-        class="w-40 h-40 object-contain mx-auto bg-white border border-gray-300 p-2 rounded-xl"
-        alt="Visitor QR (Non-Malaysian)"
-      >
-      <p class="text-xs text-gray-500 mt-2">For Visitor (Non-Malaysian)</p>
-    {% else %}
-      <p class="text-gray-400">No QR</p>
-    {% endif %}
-  </div>
-
-</div>
 </div>
 
 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
@@ -201,21 +204,27 @@
 
           {% if can_manage %}
           <td class="p-3">
-            <button
-              class="text-blue-500 hover:underline staff-edit-btn"
-              data-id="{{ att.id }}"
-              data-name="{{ att.full_name }}"
-              data-employeeid="{{ att.employee_id }}"
-              data-email="{{ att.email }}"
-              data-phone="{{ att.phone_number }}"
-              data-department="{{ att.department }}">
-              Edit
-            </button>
-            <button
-              class="text-red-500 hover:underline ml-2 staff-delete-btn"
-              data-id="{{ att.id }}">
-              Delete
-            </button>
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 staff-edit-btn"
+                data-id="{{ att.id }}"
+                data-name="{{ att.full_name }}"
+                data-employeeid="{{ att.employee_id }}"
+                data-email="{{ att.email }}"
+                data-phone="{{ att.phone_number }}"
+                data-department="{{ att.department }}">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+                Edit
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 staff-delete-btn"
+                data-id="{{ att.id }}">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                Delete
+              </button>
+            </div>
           </td>
           {% endif %}
         </tr>
@@ -233,7 +242,7 @@
 
 <div class="flex justify-end gap-2 mb-8">
   {% if staff_page_obj.has_previous %}
-    <a href="?staff_page={{ staff_page_obj.previous_page_number }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&visitor_page={{ visitor_page_obj.number }}"
+    <a href="?staff_page={{ staff_page_obj.previous_page_number }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&visitor_page={{ visitor_page_obj.number }}&passport_search={{ passport_search }}&passport_country={{ passport_country }}&passport_sort={{ passport_sort }}&passport_page={{ passport_page_obj.number }}"
        class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
       Previous
     </a>
@@ -244,7 +253,7 @@
   </span>
 
   {% if staff_page_obj.has_next %}
-    <a href="?staff_page={{ staff_page_obj.next_page_number }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&visitor_page={{ visitor_page_obj.number }}"
+    <a href="?staff_page={{ staff_page_obj.next_page_number }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&visitor_page={{ visitor_page_obj.number }}&passport_search={{ passport_search }}&passport_country={{ passport_country }}&passport_sort={{ passport_sort }}&passport_page={{ passport_page_obj.number }}"
        class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
       Next
     </a>
@@ -315,20 +324,26 @@
 
           {% if can_manage %}
           <td class="p-3">
-            <button
-              class="text-blue-500 hover:underline visitor-edit-btn"
-              data-id="{{ att.id }}"
-              data-name="{{ att.visitor.full_name }}"
-              data-phone="{{ att.visitor.phone_number }}"
-              data-email="{{ att.visitor.email }}"
-              data-organization="{{ att.visitor.organization }}">
-              Edit
-            </button>
-            <button
-              class="text-red-500 hover:underline ml-2 visitor-delete-btn"
-              data-id="{{ att.id }}">
-              Delete
-            </button>
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 visitor-edit-btn"
+                data-id="{{ att.id }}"
+                data-name="{{ att.visitor.full_name }}"
+                data-phone="{{ att.visitor.phone_number }}"
+                data-email="{{ att.visitor.email }}"
+                data-organization="{{ att.visitor.organization }}">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+                Edit
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 visitor-delete-btn"
+                data-id="{{ att.id }}">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                Delete
+              </button>
+            </div>
           </td>
           {% endif %}
         </tr>
@@ -346,7 +361,7 @@
 
 <div class="flex justify-end gap-2 mb-6">
   {% if visitor_page_obj.has_previous %}
-    <a href="?visitor_page={{ visitor_page_obj.previous_page_number }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&staff_page={{ staff_page_obj.number }}"
+    <a href="?visitor_page={{ visitor_page_obj.previous_page_number }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&staff_page={{ staff_page_obj.number }}&passport_search={{ passport_search }}&passport_country={{ passport_country }}&passport_sort={{ passport_sort }}&passport_page={{ passport_page_obj.number }}"
        class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
       Previous
     </a>
@@ -357,7 +372,7 @@
   </span>
 
   {% if visitor_page_obj.has_next %}
-    <a href="?visitor_page={{ visitor_page_obj.next_page_number }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&staff_page={{ staff_page_obj.number }}"
+    <a href="?visitor_page={{ visitor_page_obj.next_page_number }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&staff_page={{ staff_page_obj.number }}&passport_search={{ passport_search }}&passport_country={{ passport_country }}&passport_sort={{ passport_sort }}&passport_page={{ passport_page_obj.number }}"
        class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
       Next
     </a>
@@ -432,9 +447,65 @@
           <td class="p-3 {% if can_manage %}border-r border-gray-200{% endif %}">{{ att.longitude|default:"-" }}</td>
 
           {% if can_manage %}
+          {% with extra=att.passport_visitor.extra_data %}
           <td class="p-3">
-            <span class="text-gray-400 text-sm">-</span>
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-500 text-white hover:bg-green-600 passport-view-btn"
+                data-id="{{ att.id }}"
+                data-originalimage="{% if att.passport_visitor.image %}{{ att.passport_visitor.image.url }}{% endif %}"
+                data-processedimage="{% if att.passport_visitor.extracted_image %}{{ att.passport_visitor.extracted_image.url }}{% endif %}"
+                data-type="{{ extra.type|default:'P' }}"
+                data-countrycode="{{ extra.country_code|default:'' }}"
+                data-passportnumber="{{ att.passport_visitor.passport_number|default:'' }}"
+                data-nationality="{{ extra.nationality|default:att.passport_visitor.country|default:'' }}"
+                data-surname="{{ extra.surname|default:'' }}"
+                data-givenname="{{ extra.given_name|default:'' }}"
+                data-dateofbirth="{{ att.passport_visitor.date_of_birth|default:'' }}"
+                data-sex="{{ att.passport_visitor.gender|default:'' }}"
+                data-dateofissue="{{ extra.date_of_issue|default:'' }}"
+                data-dateofexpiry="{{ att.passport_visitor.expiry_date|default:'' }}"
+                data-status="{{ att.passport_visitor.status|default:'' }}"
+                data-rawtext="{{ att.passport_visitor.ocr_raw_text|default:''|escapejs }}"
+                data-dynamicfields='{{ extra.dynamic_fields|default:"[]"|escapejs }}'>
+                <i data-lucide="eye" class="w-4 h-4"></i>
+                View
+              </button>
+
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 passport-edit-btn"
+                data-id="{{ att.id }}"
+                data-originalimage="{% if att.passport_visitor.image %}{{ att.passport_visitor.image.url }}{% endif %}"
+                data-processedimage="{% if att.passport_visitor.extracted_image %}{{ att.passport_visitor.extracted_image.url }}{% endif %}"
+                data-type="{{ extra.type|default:'P' }}"
+                data-countrycode="{{ extra.country_code|default:'' }}"
+                data-passportnumber="{{ att.passport_visitor.passport_number|default:'' }}"
+                data-nationality="{{ extra.nationality|default:att.passport_visitor.country|default:'' }}"
+                data-surname="{{ extra.surname|default:'' }}"
+                data-givenname="{{ extra.given_name|default:'' }}"
+                data-dateofbirth="{{ att.passport_visitor.date_of_birth|default:'' }}"
+                data-sex="{{ att.passport_visitor.gender|default:'' }}"
+                data-dateofissue="{{ extra.date_of_issue|default:'' }}"
+                data-dateofexpiry="{{ att.passport_visitor.expiry_date|default:'' }}"
+                data-status="{{ att.passport_visitor.status|default:'' }}"
+                data-rawtext="{{ att.passport_visitor.ocr_raw_text|default:''|escapejs }}"
+                data-dynamicfields='{{ extra.dynamic_fields|default:"[]"|escapejs }}'>
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+                Edit
+              </button>
+
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 passport-delete-btn"
+                data-id="{{ att.id }}">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                Delete
+              </button>
+            </div>
           </td>
+          {% endwith %}
           {% endif %}
         </tr>
         {% empty %}
@@ -451,7 +522,7 @@
 
 <div class="flex justify-end gap-2 mb-8">
   {% if passport_page_obj.has_previous %}
-    <a href="?passport_page={{ passport_page_obj.previous_page_number }}&passport_search={{ passport_search }}&passport_country={{ passport_country }}&passport_sort={{ passport_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}"
+    <a href="?passport_page={{ passport_page_obj.previous_page_number }}&passport_search={{ passport_search }}&passport_country={{ passport_country }}&passport_sort={{ passport_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&staff_page={{ staff_page_obj.number }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&visitor_page={{ visitor_page_obj.number }}"
        class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">
       Previous
     </a>
@@ -462,7 +533,7 @@
   </span>
 
   {% if passport_page_obj.has_next %}
-    <a href="?passport_page={{ passport_page_obj.next_page_number }}&passport_search={{ passport_search }}&passport_country={{ passport_country }}&passport_sort={{ passport_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}"
+    <a href="?passport_page={{ passport_page_obj.next_page_number }}&passport_search={{ passport_search }}&passport_country={{ passport_country }}&passport_sort={{ passport_sort }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&staff_page={{ staff_page_obj.number }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&visitor_page={{ visitor_page_obj.number }}"
        class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">
       Next
     </a>
@@ -470,7 +541,7 @@
 </div>
 
 {% if can_manage %}
-<div id="staffModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+<div id="staffModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 px-4">
   <div class="bg-white w-full max-w-lg p-6 rounded-xl shadow-lg">
     <h3 class="text-lg font-bold mb-4">Edit Staff Attendance</h3>
     <input type="hidden" id="staff_edit_id">
@@ -486,7 +557,7 @@
   </div>
 </div>
 
-<div id="visitorModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+<div id="visitorModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 px-4">
   <div class="bg-white w-full max-w-lg p-6 rounded-xl shadow-lg">
     <h3 class="text-lg font-bold mb-4">Edit Visitor Attendance</h3>
     <input type="hidden" id="visitor_edit_id">
@@ -497,6 +568,204 @@
     <div class="flex justify-end gap-2">
       <button onclick="closeVisitorModal()" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
       <button onclick="saveVisitorEdit()" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="passportViewModal" class="hidden fixed inset-0 bg-black/40 z-50 overflow-y-auto px-4 py-6">
+  <div class="min-h-full flex items-start justify-center">
+    <div class="bg-white w-full max-w-5xl p-6 rounded-2xl shadow-lg my-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold">View Non-Malaysian Visitor</h3>
+        <button type="button" onclick="closePassportViewModal()" class="text-2xl text-gray-500 hover:text-gray-700">&times;</button>
+      </div>
+
+      <div class="space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-gray-50 p-4 rounded-xl border md:col-span-2">
+            <p class="font-semibold mb-3">Passport Image Preview</p>
+            <img id="passportViewPreview" src="" alt="Passport Preview"
+              class="hidden w-full max-h-80 object-contain border rounded bg-white p-2">
+            <p id="passportViewNoPreview" class="text-sm text-gray-500">No passport image available.</p>
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">2. Type</label>
+            <input id="view_passport_type" class="w-full p-3 border rounded-lg bg-gray-50" readonly>
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">3. Country Code</label>
+            <input id="view_country_code" class="w-full p-3 border rounded-lg bg-gray-50" readonly>
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">4. Passport Number</label>
+            <input id="view_passport_number" class="w-full p-3 border rounded-lg bg-gray-50" readonly>
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">5. Nationality</label>
+            <input id="view_nationality" class="w-full p-3 border rounded-lg bg-gray-50" readonly>
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">6. Surname</label>
+            <input id="view_surname" class="w-full p-3 border rounded-lg bg-gray-50" readonly>
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">7. Given Name</label>
+            <input id="view_given_name" class="w-full p-3 border rounded-lg bg-gray-50" readonly>
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">8. Date of Birth</label>
+            <input id="view_date_of_birth" type="date" class="w-full p-3 border rounded-lg bg-gray-50" readonly>
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">9. Sex</label>
+            <input id="view_sex" class="w-full p-3 border rounded-lg bg-gray-50" readonly>
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">10. Date of Issue</label>
+            <input id="view_date_of_issue" type="date" class="w-full p-3 border rounded-lg bg-gray-50" readonly>
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">11. Date of Expiry</label>
+            <input id="view_date_of_expiry" type="date" class="w-full p-3 border rounded-lg bg-gray-50" readonly>
+          </div>
+        </div>
+
+        <div>
+          <label class="font-semibold block mb-1">Status</label>
+          <input id="view_status" class="w-full p-3 border rounded-lg bg-gray-50" readonly>
+        </div>
+
+        <div id="viewDynamicFieldsWrapper" class="mt-2">
+          <h3 class="text-lg font-semibold mb-3">Additional Passport Fields</h3>
+          <div id="viewDynamicFields" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+
+        <div>
+          <label class="font-semibold block mb-1">OCR Raw Text</label>
+          <textarea id="view_raw_text" rows="8" class="w-full p-3 border rounded-lg bg-gray-50" readonly></textarea>
+        </div>
+
+        <div class="flex justify-end">
+          <button type="button" onclick="closePassportViewModal()" class="bg-gray-300 px-4 py-2 rounded">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="passportEditModal" class="hidden fixed inset-0 bg-black/40 z-50 overflow-y-auto px-4 py-6">
+  <div class="min-h-full flex items-start justify-center">
+    <div class="bg-white w-full max-w-5xl p-6 rounded-2xl shadow-lg my-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold">Edit Non-Malaysian Visitor</h3>
+        <button type="button" onclick="closePassportEditModal()" class="text-2xl text-gray-500 hover:text-gray-700">&times;</button>
+      </div>
+
+      <input type="hidden" id="edit_passport_attendance_id">
+
+      <div class="space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-gray-50 p-4 rounded-xl border md:col-span-2">
+            <p class="font-semibold mb-3">Passport Image Preview</p>
+            <img id="editPassportPreview" src="" alt="Passport Preview"
+              class="hidden w-full max-h-80 object-contain border rounded bg-white p-2">
+            <p id="editPassportNoPreview" class="text-sm text-gray-500">No passport image available.</p>
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">2. Type</label>
+            <input id="edit_passport_type" class="w-full p-3 border rounded-lg">
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">3. Country Code</label>
+            <input id="edit_country_code" class="w-full p-3 border rounded-lg uppercase">
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">4. Passport Number</label>
+            <input id="edit_passport_number" class="w-full p-3 border rounded-lg">
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">5. Nationality</label>
+            <input id="edit_nationality" class="w-full p-3 border rounded-lg">
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">6. Surname</label>
+            <input id="edit_surname" class="w-full p-3 border rounded-lg">
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">7. Given Name</label>
+            <input id="edit_given_name" class="w-full p-3 border rounded-lg">
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">8. Date of Birth</label>
+            <input id="edit_date_of_birth" type="date" class="w-full p-3 border rounded-lg bg-white">
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">9. Sex</label>
+            <select id="edit_sex" class="w-full p-3 border rounded-lg bg-white">
+              <option value="">-- Select Sex --</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">10. Date of Issue</label>
+            <input id="edit_date_of_issue" type="date" class="w-full p-3 border rounded-lg bg-white">
+          </div>
+
+          <div>
+            <label class="font-semibold block mb-1">11. Date of Expiry</label>
+            <input id="edit_date_of_expiry" type="date" class="w-full p-3 border rounded-lg bg-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="font-semibold block mb-1">Status</label>
+          <select id="edit_status" class="w-full p-3 border rounded-lg bg-white">
+            <option value="auto-extracted">Auto Extracted</option>
+            <option value="manually-corrected">Manually Corrected</option>
+            <option value="pending verification">Pending Verification</option>
+          </select>
+        </div>
+
+        <div id="editDynamicFieldsWrapper" class="mt-2">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-semibold">Additional Passport Fields</h3>
+            <button type="button" onclick="addEditDynamicField()" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600">
+              + Add Field
+            </button>
+          </div>
+          <div id="editDynamicFields" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+
+        <div>
+          <label class="font-semibold block mb-1">OCR Raw Text</label>
+          <textarea id="edit_raw_text" rows="8" class="w-full p-3 border rounded-lg"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="closePassportEditModal()" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
+          <button type="button" onclick="savePassportEdit()" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -613,6 +882,294 @@ function saveVisitorEdit() {
     }
   });
 }
+
+function safeParseDynamicFields(value) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function setImagePreview(imgElId, emptyElId, imageUrl) {
+  const img = document.getElementById(imgElId);
+  const emptyText = document.getElementById(emptyElId);
+
+  if (imageUrl) {
+    img.src = imageUrl;
+    img.classList.remove('hidden');
+    emptyText.classList.add('hidden');
+  } else {
+    img.src = '';
+    img.classList.add('hidden');
+    emptyText.classList.remove('hidden');
+  }
+}
+
+function renderViewDynamicFields(fields) {
+  const wrapper = document.getElementById('viewDynamicFields');
+  wrapper.innerHTML = '';
+
+  if (!fields.length) {
+    wrapper.innerHTML = '<p class="text-sm text-gray-500 md:col-span-2">No additional passport fields.</p>';
+    return;
+  }
+
+  fields.forEach(field => {
+    const key = field.key || '';
+    const label = field.label || key || 'Field';
+    const value = field.value || '';
+
+    wrapper.innerHTML += `
+      <div>
+        <label class="font-semibold block mb-1">${label}</label>
+        <input class="w-full p-3 border rounded-lg bg-gray-50" value="${value}" readonly>
+      </div>
+    `;
+  });
+}
+
+function renderEditDynamicFields(fields) {
+  const wrapper = document.getElementById('editDynamicFields');
+  wrapper.innerHTML = '';
+
+  if (!fields.length) {
+    return;
+  }
+
+  fields.forEach(field => {
+    addEditDynamicField(field.key || '', field.label || '', field.value || '');
+  });
+}
+
+function addEditDynamicField(key = '', label = '', value = '') {
+  const wrapper = document.getElementById('editDynamicFields');
+  const row = document.createElement('div');
+  row.className = 'border rounded-xl p-4 bg-gray-50 relative';
+
+  row.innerHTML = `
+    <button type="button"
+      class="absolute top-2 right-2 text-red-500 hover:text-red-700"
+      onclick="this.parentElement.remove()">
+      ×
+    </button>
+
+    <div class="mb-3">
+      <label class="font-semibold block mb-1">Field Key</label>
+      <input class="dynamic-key w-full p-3 border rounded-lg" value="${key}">
+    </div>
+
+    <div class="mb-3">
+      <label class="font-semibold block mb-1">Field Label</label>
+      <input class="dynamic-label w-full p-3 border rounded-lg" value="${label}">
+    </div>
+
+    <div>
+      <label class="font-semibold block mb-1">Field Value</label>
+      <input class="dynamic-value w-full p-3 border rounded-lg" value="${value}">
+    </div>
+  `;
+
+  wrapper.appendChild(row);
+}
+
+function getEditDynamicFieldsPayload() {
+  const rows = document.querySelectorAll('#editDynamicFields > div');
+  const payload = [];
+
+  rows.forEach(row => {
+    const key = row.querySelector('.dynamic-key')?.value?.trim() || '';
+    const label = row.querySelector('.dynamic-label')?.value?.trim() || '';
+    const value = row.querySelector('.dynamic-value')?.value?.trim() || '';
+
+    if (key) {
+      payload.push({ key, label, value });
+    }
+  });
+
+  return payload;
+}
+
+document.querySelectorAll('.passport-view-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.getElementById('view_passport_type').value = this.dataset.type || '';
+    document.getElementById('view_country_code').value = this.dataset.countrycode || '';
+    document.getElementById('view_passport_number').value = this.dataset.passportnumber || '';
+    document.getElementById('view_nationality').value = this.dataset.nationality || '';
+    document.getElementById('view_surname').value = this.dataset.surname || '';
+    document.getElementById('view_given_name').value = this.dataset.givenname || '';
+    document.getElementById('view_sex').value = this.dataset.sex || '';
+    document.getElementById('view_date_of_birth').value = normalizeDateForInput(this.dataset.dateofbirth || '');
+    document.getElementById('view_date_of_issue').value = normalizeDateForInput(this.dataset.dateofissue || '');
+    document.getElementById('view_date_of_expiry').value = normalizeDateForInput(this.dataset.dateofexpiry || '');
+    document.getElementById('view_status').value = this.dataset.status || '';
+    document.getElementById('view_raw_text').value = this.dataset.rawtext || '';
+
+    setImagePreview('passportViewPreview', 'passportViewNoPreview', this.dataset.originalimage || this.dataset.processedimage || '');
+    renderViewDynamicFields(safeParseDynamicFields(this.dataset.dynamicfields));
+
+    document.getElementById('passportViewModal').classList.remove('hidden');
+  });
+});
+
+function closePassportViewModal() {
+  document.getElementById('passportViewModal').classList.add('hidden');
+}
+
+function hidePassportModals() {
+  document.getElementById('passportViewModal')?.classList.add('hidden');
+  document.getElementById('passportEditModal')?.classList.add('hidden');
+}
+
+document.querySelectorAll('.passport-view-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    hidePassportModals();
+
+    document.getElementById('view_passport_type').value = this.dataset.type || '';
+    document.getElementById('view_country_code').value = this.dataset.countrycode || '';
+    document.getElementById('view_passport_number').value = this.dataset.passportnumber || '';
+    document.getElementById('view_nationality').value = this.dataset.nationality || '';
+    document.getElementById('view_surname').value = this.dataset.surname || '';
+    document.getElementById('view_given_name').value = this.dataset.givenname || '';
+    document.getElementById('view_sex').value = this.dataset.sex || '';
+    document.getElementById('view_date_of_birth').value = normalizeDateForInput(this.dataset.dateofbirth || '');
+    document.getElementById('view_date_of_issue').value = normalizeDateForInput(this.dataset.dateofissue || '');
+    document.getElementById('view_date_of_expiry').value = normalizeDateForInput(this.dataset.dateofexpiry || '');
+    document.getElementById('view_status').value = this.dataset.status || '';
+    document.getElementById('view_raw_text').value = this.dataset.rawtext || '';
+
+    setImagePreview(
+      'passportViewPreview',
+      'passportViewNoPreview',
+      this.dataset.originalimage || this.dataset.processedimage || ''
+    );
+
+    renderViewDynamicFields(safeParseDynamicFields(this.dataset.dynamicfields));
+    document.getElementById('passportViewModal').classList.remove('hidden');
+  });
+});
+
+function closePassportViewModal() {
+  document.getElementById('passportViewModal').classList.add('hidden');
+}
+
+document.querySelectorAll('.passport-edit-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    hidePassportModals();
+
+    document.getElementById('edit_passport_attendance_id').value = this.dataset.id || '';
+    document.getElementById('edit_passport_type').value = this.dataset.type || '';
+    document.getElementById('edit_country_code').value = this.dataset.countrycode || '';
+    document.getElementById('edit_passport_number').value = this.dataset.passportnumber || '';
+    document.getElementById('edit_nationality').value = this.dataset.nationality || '';
+    document.getElementById('edit_surname').value = this.dataset.surname || '';
+    document.getElementById('edit_given_name').value = this.dataset.givenname || '';
+    document.getElementById('edit_sex').value = this.dataset.sex || '';
+    document.getElementById('edit_date_of_birth').value = normalizeDateForInput(this.dataset.dateofbirth || '');
+    document.getElementById('edit_date_of_issue').value = normalizeDateForInput(this.dataset.dateofissue || '');
+    document.getElementById('edit_date_of_expiry').value = normalizeDateForInput(this.dataset.dateofexpiry || '');
+    document.getElementById('edit_status').value = this.dataset.status || 'pending verification';
+    document.getElementById('edit_raw_text').value = this.dataset.rawtext || '';
+
+    setImagePreview(
+      'editPassportPreview',
+      'editPassportNoPreview',
+      this.dataset.originalimage || this.dataset.processedimage || ''
+    );
+
+    document.getElementById('editDynamicFields').innerHTML = '';
+    renderEditDynamicFields(safeParseDynamicFields(this.dataset.dynamicfields));
+
+    document.getElementById('passportEditModal').classList.remove('hidden');
+  });
+});
+
+function closePassportEditModal() {
+  document.getElementById('passportEditModal').classList.add('hidden');
+}
+
+function normalizeDateForInput(value) {
+  if (!value) return "";
+
+  let v = String(value).trim();
+  if (!v) return "";
+
+  const isoMatch = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    return v;
+  }
+
+  const dmySlash = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (dmySlash) {
+    return `${dmySlash[3]}-${dmySlash[2]}-${dmySlash[1]}`;
+  }
+
+  const dmyDash = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (dmyDash) {
+    return `${dmyDash[3]}-${dmyDash[2]}-${dmyDash[1]}`;
+  }
+
+  return "";
+}
+
+function savePassportEdit() {
+  const id = document.getElementById('edit_passport_attendance_id').value;
+
+  fetch('/api/employees/passport-attendance/update/' + id + '/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      type: document.getElementById('edit_passport_type').value,
+      country_code: document.getElementById('edit_country_code').value,
+      passport_number: document.getElementById('edit_passport_number').value,
+      nationality: document.getElementById('edit_nationality').value,
+      surname: document.getElementById('edit_surname').value,
+      given_name: document.getElementById('edit_given_name').value,
+      date_of_birth: document.getElementById('edit_date_of_birth').value,
+      sex: document.getElementById('edit_sex').value,
+      date_of_issue: document.getElementById('edit_date_of_issue').value,
+      date_of_expiry: document.getElementById('edit_date_of_expiry').value,
+      status: document.getElementById('edit_status').value,
+      raw_text: document.getElementById('edit_raw_text').value,
+      dynamic_fields: getEditDynamicFieldsPayload()
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert(data.message || data.error || 'Updated');
+    if (data.message) {
+      location.reload();
+    }
+  })
+  .catch(() => {
+    alert('Error updating passport attendance');
+  });
+}
+
+document.querySelectorAll('.passport-delete-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const id = this.dataset.id;
+    if (!confirm('Delete this non-Malaysian visitor attendance?')) return;
+
+    fetch('/api/employees/passport-attendance/delete/' + id + '/', {
+      method: 'POST'
+    })
+    .then(res => res.json())
+    .then(data => {
+      alert(data.message || data.error || 'Deleted');
+      if (data.message) {
+        location.reload();
+      }
+    })
+    .catch(() => {
+      alert('Error deleting passport attendance');
+    });
+  });
+});
 </script>
 {% endif %}
 

@@ -115,7 +115,7 @@
 
       <div>
         <label class="font-semibold block mb-1">8. Date of Birth</label>
-        <input id="date_of_birth" type="date" class="w-full p-3 border rounded-lg">
+        <input id="date_of_birth" type="date" class="w-full p-3 border rounded-lg bg-white">
       </div>
 
       <div>
@@ -127,15 +127,14 @@
         </select>
       </div>
 
-      <div>
-        <label class="font-semibold block mb-1">10. Date of Issue</label>
-        <input id="date_of_issue" type="date" class="w-full p-3 border rounded-lg">
-      </div>
+    <div>
+      <label class="font-semibold block mb-1">10. Date of Issue</label>
+      <input id="date_of_issue" type="date" class="w-full p-3 border rounded-lg bg-white">
+    </div>
 
-      <div>
-        <label class="font-semibold block mb-1">11. Date of Expiry</label>
-        <input id="date_of_expiry" type="date" class="w-full p-3 border rounded-lg">
-      </div>
+    <div>
+      <label class="font-semibold block mb-1">11. Date of Expiry</label>
+      <input id="date_of_expiry" type="date" class="w-full p-3 border rounded-lg bg-white">
     </div>
 
     <div id="dynamicFieldsWrapper" class="mt-6">
@@ -230,6 +229,103 @@ let originalImageName = "";
 let processedImageName = "";
 let autoExtractedSnapshot = {};
 let cameraStream = null;
+
+function normalizeDateForInput(value) {
+  if (!value) return "";
+
+  let v = String(value).trim();
+  if (!v) return "";
+
+  // yyyy-mm-dd
+  const isoMatch = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    return v;
+  }
+
+  // dd/mm/yyyy
+  const dmySlash = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (dmySlash) {
+    return `${dmySlash[3]}-${dmySlash[2]}-${dmySlash[1]}`;
+  }
+
+  // dd-mm-yyyy
+  const dmyDash = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (dmyDash) {
+    return `${dmyDash[3]}-${dmyDash[2]}-${dmyDash[1]}`;
+  }
+
+  return "";
+}
+
+function normalizeDisplayDate(value) {
+  if (!value) return "";
+
+  let v = String(value).trim();
+  if (!v) return "";
+
+  // yyyy-mm-dd -> dd/mm/yyyy
+  const isoMatch = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+  }
+
+  // dd-mm-yyyy -> dd/mm/yyyy
+  const dashMatch = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (dashMatch) {
+    return `${dashMatch[1]}/${dashMatch[2]}/${dashMatch[3]}`;
+  }
+
+  // mm/dd/yyyy -> dd/mm/yyyy
+  const slashUsMatch = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (slashUsMatch) {
+    const first = parseInt(slashUsMatch[1], 10);
+    const second = parseInt(slashUsMatch[2], 10);
+
+    // kalau format nampak macam US date
+    if (first <= 12 && second <= 31) {
+      return `${slashUsMatch[2]}/${slashUsMatch[1]}/${slashUsMatch[3]}`;
+    }
+  }
+
+  return v.replace(/-/g, "/");
+}
+
+function sanitizeNameValue(value) {
+  if (!value) return "";
+
+  let v = String(value)
+    .replace(/[<]+/g, " ")
+    .replace(/[^A-Za-z @'\/.-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // buang obvious OCR garbage
+  if (v.length < 2) return "";
+  if (/\b(passport|nationality|country|date|issue|expiry|sex|male|female)\b/i.test(v)) {
+    return "";
+  }
+
+  return v;
+}
+
+function setExtractedFormData(data) {
+  document.getElementById("passport_type").value = data.type || "";
+  document.getElementById("country_code").value = (data.country_code || "").toUpperCase();
+  document.getElementById("passport_number").value = data.passport_number || "";
+  document.getElementById("surname").value = sanitizeNameValue(data.surname || "");
+  document.getElementById("given_name").value = sanitizeNameValue(data.given_name || "");
+  document.getElementById("nationality").value = data.nationality || "";
+  document.getElementById("sex").value = data.sex || "";
+  document.getElementById("date_of_birth").value = normalizeDateForInput(data.date_of_birth || "");
+  document.getElementById("date_of_issue").value = normalizeDateForInput(data.date_of_issue || "");
+  document.getElementById("date_of_expiry").value = normalizeDateForInput(
+    data.date_of_expiry || data.expiry_date || ""
+  );
+  document.getElementById("raw_text").value = data.raw_text || "";
+  document.getElementById("status").value = data.status || "pending verification";
+
+  renderDynamicFields(data.dynamic_fields || []);
+}
 
 async function openCamera() {
   const overlay = document.getElementById("cameraOverlay");
@@ -500,17 +596,17 @@ function renderDynamicFields(fields = []) {
     label.className = "font-semibold block mb-1";
     label.innerText = field.label || field.key;
 
-    let input;
-    if (field.type === "date") {
-      input = document.createElement("input");
-      input.type = "date";
-    } else {
-      input = document.createElement("input");
-      input.type = "text";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "w-full p-3 border rounded-lg";
+
+    let value = field.value || "";
+    if ((field.type || "") === "date") {
+      value = normalizeDisplayDate(value);
+      input.placeholder = "dd/mm/yyyy";
     }
 
-    input.className = "w-full p-3 border rounded-lg";
-    input.value = field.value || "";
+    input.value = value;
     input.setAttribute("data-key", field.key || "");
     input.setAttribute("data-type", field.type || "text");
 
@@ -571,16 +667,11 @@ async function prepareImageForOCR(file) {
     const objectUrl = URL.createObjectURL(file);
 
     img.onload = () => {
-      const maxWidth = 1800;
-      const maxHeight = 1200;
+      const maxWidth = 1400;
+      const maxHeight = 1000;
 
-      let sourceWidth = img.width;
-      let sourceHeight = img.height;
-
-      const shouldRotate = sourceHeight > sourceWidth;
-
-      let targetWidth = shouldRotate ? sourceHeight : sourceWidth;
-      let targetHeight = shouldRotate ? sourceWidth : sourceHeight;
+      let targetWidth = img.width;
+      let targetHeight = img.height;
 
       const widthRatio = maxWidth / targetWidth;
       const heightRatio = maxHeight / targetHeight;
@@ -595,19 +686,7 @@ async function prepareImageForOCR(file) {
       canvas.width = targetWidth;
       canvas.height = targetHeight;
 
-      if (shouldRotate) {
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.drawImage(
-          img,
-          -sourceWidth * scale / 2,
-          -sourceHeight * scale / 2,
-          sourceWidth * scale,
-          sourceHeight * scale
-        );
-      } else {
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-      }
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
       canvas.toBlob((blob) => {
         URL.revokeObjectURL(objectUrl);
@@ -669,20 +748,16 @@ async function uploadOCR() {
     originalImageName = data.original_image_name || "";
     processedImageName = data.processed_image_name || "";
 
-    document.getElementById("passport_type").value = data.type || "";
-    document.getElementById("country_code").value = data.country_code || "";
-    document.getElementById("passport_number").value = data.passport_number || "";
-    document.getElementById("surname").value = data.surname || "";
-    document.getElementById("given_name").value = data.given_name || "";
-    document.getElementById("nationality").value = data.nationality || "";
-    document.getElementById("date_of_birth").value = data.date_of_birth || "";
-    document.getElementById("sex").value = data.sex || "";
-    document.getElementById("date_of_issue").value = data.date_of_issue || "";
-    document.getElementById("date_of_expiry").value = data.expiry_date || "";
-    document.getElementById("raw_text").value = data.raw_text || "";
-    document.getElementById("status").value = data.status || "pending verification";
-
-    renderDynamicFields(data.extra_fields || []);
+    if (data.original_image_url) {
+      showPreview(`${data.original_image_url}?t=${Date.now()}`);
+    }
+    const confidenceNote = document.getElementById("confidenceNote");
+    if (typeof data.detected_rotation_angle !== "undefined") {
+      confidenceNote.innerText =
+        `Best orientation detected: ${data.detected_rotation_angle}°`;
+      confidenceNote.classList.remove("hidden");
+    }
+    setExtractedFormData(data);
 
     if (data.image_quality_note) {
       const qualityNote = document.getElementById("qualityNote");
@@ -701,16 +776,16 @@ async function uploadOCR() {
     }
 
     autoExtractedSnapshot = {
-      passport_type: data.type || "",
+      type: data.type || "",
       country_code: data.country_code || "",
       passport_number: data.passport_number || "",
-      surname: data.surname || "",
-      given_name: data.given_name || "",
       nationality: data.nationality || "",
-      date_of_birth: data.date_of_birth || "",
+      surname: sanitizeNameValue(data.surname || ""),
+      given_name: sanitizeNameValue(data.given_name || ""),
+      date_of_birth: normalizeDisplayDate(data.date_of_birth || ""),
       sex: data.sex || "",
-      date_of_issue: data.date_of_issue || "",
-      date_of_expiry: data.expiry_date || "",
+      date_of_issue: normalizeDisplayDate(data.date_of_issue || ""),
+      date_of_expiry: normalizeDisplayDate(data.date_of_expiry || data.expiry_date || ""),
       raw_text: data.raw_text || "",
       status: data.status || "pending verification"
     };

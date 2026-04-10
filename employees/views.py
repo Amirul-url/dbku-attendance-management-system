@@ -217,6 +217,72 @@ def fix_common_ocr_errors(text, mode="general"):
 
     return text
 
+def normalize_display_date(value):
+    if not value:
+        return ""
+
+    value = str(value).strip()
+    if not value:
+        return ""
+
+    # yyyy-mm-dd -> dd/mm/yyyy
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", value)
+    if m:
+        return f"{m.group(3)}/{m.group(2)}/{m.group(1)}"
+
+    # dd-mm-yyyy -> dd/mm/yyyy
+    m = re.match(r"^(\d{2})-(\d{2})-(\d{4})$", value)
+    if m:
+        return f"{m.group(1)}/{m.group(2)}/{m.group(3)}"
+
+    # mm/dd/yyyy -> dd/mm/yyyy
+    m = re.match(r"^(\d{2})/(\d{2})/(\d{4})$", value)
+    if m:
+        first = int(m.group(1))
+        second = int(m.group(2))
+
+        if first <= 12 and second <= 31:
+            return f"{m.group(2)}/{m.group(1)}/{m.group(3)}"
+
+    return value.replace("-", "/")
+
+
+def is_reasonable_name(value):
+    if not value:
+        return False
+
+    value = str(value).strip()
+    if len(value) < 2:
+        return False
+
+    if re.search(r'\d', value):
+        return False
+
+    banned = [
+        'passport', 'nationality', 'country', 'date', 'issue',
+        'expiry', 'birth', 'sex', 'male', 'female', 'identity'
+    ]
+    lower_value = value.lower()
+    if any(word in lower_value for word in banned):
+        return False
+
+    cleaned = re.sub(r"[^A-Za-z\s'/-]", "", value).strip()
+    return len(cleaned) >= 2
+
+
+def clean_person_name(value):
+    if not value:
+        return ""
+
+    value = value.replace("<", " ")
+    value = re.sub(r"[^A-Za-z\s'/-]", " ", value)
+    value = re.sub(r"\s+", " ", value).strip()
+
+    if not is_reasonable_name(value):
+        return ""
+
+    return value
+
 def rescue_mrz_lines(text):
     if not text:
         return []
@@ -1238,6 +1304,130 @@ def delete_visitor_attendance(request, id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@csrf_exempt
+def update_passport_attendance(request, id):
+    permission_check = require_manage_api(request)
+    if permission_check:
+        return permission_check
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+
+        att = PassportAttendance.objects.select_related('passport_visitor').get(id=id)
+        visitor = att.passport_visitor
+
+        passport_type = (data.get('type') or 'P').strip()
+        country_code = (data.get('country_code') or '').strip().upper()
+        passport_number = fix_common_ocr_errors(data.get('passport_number', ''), mode="passport")
+        nationality = (data.get('nationality') or '').strip()
+        surname = (data.get('surname') or '').strip()
+        given_name = (data.get('given_name') or '').strip()
+        date_of_birth = (data.get('date_of_birth') or '').strip()
+        sex = (data.get('sex') or data.get('gender') or '').strip()
+        date_of_issue = (data.get('date_of_issue') or '').strip()
+        date_of_expiry = (data.get('date_of_expiry') or data.get('expiry_date') or '').strip()
+        raw_text = (data.get('raw_text') or '').strip()
+        status = (data.get('status') or 'pending verification').strip()
+
+        dynamic_fields = data.get('dynamic_fields', [])
+        if not isinstance(dynamic_fields, list):
+            dynamic_fields = []
+
+        if not passport_number:
+            return JsonResponse({'error': 'Passport number cannot be empty'}, status=400)
+
+        valid, passport_error = validate_passport_number_by_country(
+            passport_number,
+            country_code or nationality
+        )
+        if not valid:
+            return JsonResponse({'error': passport_error}, status=400)
+
+        if date_of_expiry and not is_expiry_valid(date_of_expiry):
+            return JsonResponse({'error': 'Passport expiry date is no longer valid'}, status=400)
+
+        existing_passport = PassportVisitor.objects.exclude(id=visitor.id).filter(
+            passport_number=passport_number
+        ).exists()
+        if existing_passport:
+            return JsonResponse({'error': 'Passport number already exists'}, status=400)
+
+        full_name = f"{surname} {given_name}".strip()
+        if not full_name:
+            full_name = visitor.full_name or passport_number
+
+        visitor.full_name = full_name
+        visitor.passport_number = passport_number
+        visitor.country = nationality or country_code_to_name(country_code) or visitor.country
+        visitor.date_of_birth = date_of_birth
+        visitor.expiry_date = date_of_expiry
+        visitor.gender = sex
+        visitor.ocr_raw_text = raw_text
+        visitor.status = status or 'pending verification'
+
+        extra_data = visitor.extra_data or {}
+
+        extra_data.update({
+            'type': passport_type,
+            'country_code': country_code,
+            'nationality': nationality,
+            'surname': surname,
+            'given_name': given_name,
+            'date_of_issue': date_of_issue,
+            'dynamic_fields': dynamic_fields,
+        })
+
+        for item in dynamic_fields:
+            if not isinstance(item, dict):
+                continue
+
+            key = (item.get('key') or '').strip()
+            if not key:
+                continue
+
+            extra_data[key] = item.get('value', '')
+
+        visitor.extra_data = extra_data
+        visitor.save()
+
+        return JsonResponse({
+            'message': 'Passport attendance updated successfully',
+            'status': visitor.status
+        })
+
+    except PassportAttendance.DoesNotExist:
+        return JsonResponse({'error': 'Passport attendance not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def delete_passport_attendance(request, id):
+    permission_check = require_manage_api(request)
+    if permission_check:
+        return permission_check
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        att = PassportAttendance.objects.select_related('passport_visitor').get(id=id)
+        visitor = att.passport_visitor
+
+        att.delete()
+
+        if not PassportAttendance.objects.filter(passport_visitor=visitor).exists():
+            visitor.delete()
+
+        return JsonResponse({'message': 'Passport attendance deleted successfully'})
+
+    except PassportAttendance.DoesNotExist:
+        return JsonResponse({'error': 'Passport attendance not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 def event_detail(request, id):
     login_check = require_login_page(request)
@@ -1507,7 +1697,7 @@ def get_country_choices():
     return sorted(set(COUNTRY_CODE_MAP.values()))
 
 
-def normalize_date_for_html(date_str):
+def normalize_display_date(date_str):
     if not date_str:
         return ""
     parsed = parse_passport_date(date_str)
@@ -1672,7 +1862,7 @@ def parse_two_line_passport_mrz(line1, line2, rescue_mode=False):
             else:
                 year = 1900 + yy
 
-            return f"{dd}-{mm}-{year}"
+            return f"{dd}/{mm}/{year}"
 
         dob = yyMMdd_to_ddmmyyyy(dob_raw)
         expiry = yyMMdd_to_ddmmyyyy(expiry_raw)
@@ -1723,9 +1913,37 @@ def correct_image_rotation(image):
 
     return image
 
+def fix_upside_down(image):
+    try:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
+        # split top & bottom
+        h = gray.shape[0]
+        top = gray[:h//2, :]
+        bottom = gray[h//2:, :]
+
+        # calculate brightness
+        top_mean = np.mean(top)
+        bottom_mean = np.mean(bottom)
+
+        # MRZ usually darker (bottom)
+        if top_mean < bottom_mean:
+            image = cv2.rotate(image, cv2.ROTATE_180)
+
+        return image
+
+    except Exception as e:
+        print("Upside-down detection error:", e)
+        return image
+    
 def preprocess_passport_image(image_path, output_path):
     image = cv2.imread(image_path)
+
+    # 1. straighten angle
+    image = auto_rotate_passport(image)
+
+    # 2. fix upside down
+    image = fix_upside_down(image)
     if image is None:
         raise Exception("Failed to read uploaded passport image")
 
@@ -1751,9 +1969,17 @@ def preprocess_passport_image(image_path, output_path):
 
 
 def extract_passport_data_from_text(text):
+    surname = ""
+    given_name = ""
+    date_of_birth = ""
+    date_of_issue = ""
+    date_of_expiry = ""
+    nationality = ""
+    sex = ""
+    passport_number = "" 
     lines = [line.strip() for line in text.split('\n') if line.strip()]
     upper_lines = [line.upper() for line in lines]
-    full_upper = "\n".join(upper_lines)
+    full_upper = "\n".join(upper_lines) 
 
     result = {
         'type': 'P',
@@ -1789,6 +2015,21 @@ def extract_passport_data_from_text(text):
     # safer label parsing
     for i, line in enumerate(upper_lines):
         next_line = upper_lines[i + 1] if i + 1 < len(upper_lines) else ""
+
+        if ('DATE OF BIRTH' in line or 'DATE OF BIRT' in line or 'BIRTH' in line) and next_line:
+            dob_match = re.search(r'\b\d{1,2}\s+[A-Z]{3}\s+\d{4}\b', next_line)
+            if dob_match:
+                result['date_of_birth'] = dob_match.group(0)
+
+        if ('DATE OF ISSUE' in line or 'ISSUE' in line) and next_line:
+            issue_match = re.search(r'\b\d{1,2}\s+[A-Z]{3}\s+\d{4}\b', next_line)
+            if issue_match:
+                result['date_of_issue'] = issue_match.group(0)
+
+        if ('DATE OF EXPIRY' in line or 'EXPIRY' in line or 'EXPIRE' in line) and next_line:
+            exp_match = re.search(r'\b\d{1,2}\s+[A-Z]{3}\s+\d{4}\b', next_line)
+            if exp_match:
+                result['expiry_date'] = exp_match.group(0)
 
         if ('SURNAME' in line or 'S/SURNAME' in line) and next_line:
             candidate = re.sub(r'[^A-Z\s]', ' ', next_line).strip()
@@ -1828,12 +2069,30 @@ def extract_passport_data_from_text(text):
     if len(unique_dates) >= 3:
         result['expiry_date'] = unique_dates[2]
 
-    # sex visual fallback
-    if re.search(r'\bSEX\b', full_upper):
-        if re.search(r'\bF\b', full_upper):
+    surname = clean_person_name(surname)
+    given_name = clean_person_name(given_name)
+
+    date_of_birth = normalize_display_date(date_of_birth)
+    date_of_issue = normalize_display_date(date_of_issue)
+    date_of_expiry = normalize_display_date(date_of_expiry)
+
+    # only fallback from unique_dates if field still empty
+    if not date_of_birth and len(unique_dates) >= 1:
+        date_of_birth = normalize_display_date(unique_dates[0])
+
+    if not date_of_issue and len(unique_dates) >= 2:
+        date_of_issue = normalize_display_date(unique_dates[1])
+
+    if not date_of_expiry and len(unique_dates) >= 3:
+        date_of_expiry = normalize_display_date(unique_dates[2])
+
+    # sex visual fallback - stricter
+    sex_match = re.search(r'\bSEX\b[\s:]*([MF])\b', full_upper)
+    if sex_match:
+        if sex_match.group(1) == 'F':
             result['gender'] = 'Female'
             result['sex'] = 'Female'
-        elif re.search(r'\bM\b', full_upper):
+        elif sex_match.group(1) == 'M':
             result['gender'] = 'Male'
             result['sex'] = 'Male'
 
@@ -1850,35 +2109,36 @@ def merge_passport_results(mrz_result, visual_result):
     mrz_result = mrz_result or {}
     visual_result = visual_result or {}
 
-    # MRZ first for reliable fields
+    # MRZ fields = highest priority
     final_result["type"] = mrz_result.get("type") or visual_result.get("type") or "P"
     final_result["passport_number"] = mrz_result.get("passport_number") or visual_result.get("passport_number", "")
+    final_result["surname"] = mrz_result.get("surname") or visual_result.get("surname", "")
+    final_result["given_name"] = mrz_result.get("given_name") or visual_result.get("given_name", "")
+    final_result["full_name"] = mrz_result.get("full_name") or visual_result.get("full_name", "")
+
     final_result["country"] = mrz_result.get("country") or visual_result.get("country", "")
     final_result["country_code"] = mrz_result.get("country_code") or visual_result.get("country_code", "")
     final_result["nationality"] = mrz_result.get("nationality") or visual_result.get("nationality", "")
     final_result["nationality_code"] = mrz_result.get("nationality_code") or visual_result.get("nationality_code", "")
+
     final_result["date_of_birth"] = mrz_result.get("date_of_birth") or visual_result.get("date_of_birth", "")
     final_result["expiry_date"] = mrz_result.get("expiry_date") or visual_result.get("expiry_date", "")
+
     final_result["sex"] = mrz_result.get("sex") or visual_result.get("sex", "")
     final_result["gender"] = mrz_result.get("gender") or visual_result.get("gender", "")
 
-    # Name: use MRZ split if available
-    final_result["surname"] = mrz_result.get("surname") or visual_result.get("surname", "")
-    final_result["given_name"] = mrz_result.get("given_name") or visual_result.get("given_name", "")
-
-    # visual-only fields
+    # visual fallback only
     final_result["date_of_issue"] = visual_result.get("date_of_issue", "")
     final_result["registered_domicile"] = visual_result.get("registered_domicile", "")
     final_result["issuing_authority"] = visual_result.get("issuing_authority", "")
 
-    final_result["full_name"] = f"{final_result.get('surname', '')} {final_result.get('given_name', '')}".strip()
-
-    # keep raw / score info
     final_result["mrz_valid_score"] = mrz_result.get("mrz_valid_score", 0)
-    final_result["mrz_total_checks"] = mrz_result.get("mrz_total_checks", 0)
-    final_result["raw_mrz_line1"] = mrz_result.get("raw_mrz_line1", "")
-    final_result["raw_mrz_line2"] = mrz_result.get("raw_mrz_line2", "")
-    final_result["rescue_mode"] = mrz_result.get("rescue_mode", False)
+    final_result["mrz_total_checks"] = mrz_result.get("mrz_total_checks", 3)
+    final_result["raw_text"] = visual_result.get("raw_text", "")
+    final_result["avg_confidence"] = max(
+        mrz_result.get("avg_confidence", 0),
+        visual_result.get("avg_confidence", 0)
+    )
 
     return final_result
 
@@ -1920,12 +2180,13 @@ def score_extraction_result(result):
 
     return score
 
-def run_paddleocr_retry_variants(input_img):
-    results = []
-    unique = uuid.uuid4().hex
+def run_paddleocr_retry_variants(input_img, request_id=None):
+    if not request_id:
+        request_id = uuid.uuid4().hex
 
-    # Full passport OCR for visual fields
-    full_lines = paddleocr_lines_from_image(input_img, f"full_passport_{unique}.jpg")
+    results = []
+
+    full_lines = paddleocr_lines_from_image(input_img, f"full_passport_{request_id}.jpg")
     full_text = "\n".join([x["text"] for x in full_lines])
     full_avg = sum([x["score"] for x in full_lines]) / len(full_lines) if full_lines else 0
 
@@ -1933,9 +2194,9 @@ def run_paddleocr_retry_variants(input_img):
     visual_result["raw_text"] = full_text
     visual_result["avg_confidence"] = full_avg
 
-    # MRZ variants
     for filename, candidate_img in get_mrz_variants(input_img):
-        mrz_lines = paddleocr_lines_from_image(candidate_img, filename)
+        safe_filename = f"{request_id}_{filename}"
+        mrz_lines = paddleocr_lines_from_image(candidate_img, safe_filename)
         mrz_text = "\n".join([x["text"] for x in mrz_lines])
         mrz_avg = sum([x["score"] for x in mrz_lines]) / len(mrz_lines) if mrz_lines else 0
 
@@ -1946,7 +2207,6 @@ def run_paddleocr_retry_variants(input_img):
             merged["avg_confidence"] = max(mrz_avg, full_avg)
             results.append(merged)
 
-    # rescue from full text
     rescue_full = parse_mrz_rescue(full_text)
     if rescue_full:
         merged_rescue = merge_passport_results(rescue_full, visual_result)
@@ -1954,7 +2214,6 @@ def run_paddleocr_retry_variants(input_img):
         merged_rescue["avg_confidence"] = full_avg
         results.append(merged_rescue)
 
-    # visual only fallback
     visual_result["raw_text"] = full_text
     results.append(visual_result)
 
@@ -1965,23 +2224,114 @@ def run_paddleocr_retry_variants(input_img):
     best_score = score_extraction_result(best_result)
     return best_result, best_score
 
-def process_passport_ocr(image_path, processed_path):
+def rotate_image_by_angle(image, angle):
+    if image is None:
+        return None
+
+    angle = int(angle) % 360
+
+    if angle == 0:
+        return image.copy()
+    if angle == 90:
+        return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+    if angle == 180:
+        return cv2.rotate(image, cv2.ROTATE_180)
+    if angle == 270:
+        return cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+    return image.copy()
+
+
+def choose_best_orientation_by_ocr(image, request_id=None):
+    if image is None:
+        raise Exception("Image is empty for orientation detection")
+
+    if not request_id:
+        request_id = uuid.uuid4().hex
+
+    orientation_candidates = [0, 90, 180, 270]
+    best_angle = 0
+    best_score = -999999
+    best_result = None
+    best_rotated_image = image.copy()
+
+    for angle in orientation_candidates:
+        rotated_img = rotate_image_by_angle(image, angle)
+
+        try:
+            result, score = run_paddleocr_retry_variants(
+                rotated_img,
+                request_id=f"{request_id}_rot{angle}"
+            )
+        except TypeError:
+            # fallback kalau function lama tak ada request_id param
+            result, score = run_paddleocr_retry_variants(rotated_img)
+
+        # tambah sedikit bonus kalau OCR text nampak lebih "passport-like"
+        raw_text = (result or {}).get("raw_text", "") or ""
+        upper_text = raw_text.upper()
+
+        orientation_bonus = 0
+        if "PASSPORT" in upper_text:
+            orientation_bonus += 2
+        if "P<" in upper_text:
+            orientation_bonus += 3
+        if result and result.get("passport_number"):
+            orientation_bonus += 3
+        if result and result.get("surname"):
+            orientation_bonus += 2
+        if result and result.get("given_name"):
+            orientation_bonus += 2
+        if result and result.get("mrz_valid_score", 0) >= 1:
+            orientation_bonus += 5
+
+        total_score = score + orientation_bonus
+
+        print(f"[ORIENTATION CHECK] angle={angle} score={score} bonus={orientation_bonus} total={total_score}")
+
+        if total_score > best_score:
+            best_score = total_score
+            best_angle = angle
+            best_result = result
+            best_rotated_image = rotated_img
+
+    return best_rotated_image, best_result, best_score, best_angle
+
+def process_passport_ocr(image_path, processed_path, request_id=None):
+    if not request_id:
+        request_id = uuid.uuid4().hex
+
     image_quality_note = None
 
     original_img = cv2.imread(image_path)
     if original_img is None:
         raise Exception("Failed to read uploaded passport image")
 
-    original_img = correct_image_rotation(original_img)
+    # Step 1: OCR orientation check sekali sahaja pada gambar asal
+    oriented_original_img, original_result, original_score, detected_angle = choose_best_orientation_by_ocr(
+        original_img,
+        request_id=f"{request_id}_original"
+    )
 
-    best_result, best_score = run_paddleocr_retry_variants(original_img)
+    print(f"[BEST ORIGINAL ORIENTATION] angle={detected_angle} score={original_score}")
 
-    processed_img, image_quality_note = preprocess_passport_image(image_path, processed_path)
-    processed_result, processed_score = run_paddleocr_retry_variants(processed_img)
+    if oriented_original_img is None:
+        raise Exception("Failed to orient passport image")
 
-    if processed_score > best_score:
-        best_result = processed_result
-        best_score = processed_score
+    # Simpan oriented RGB image dulu
+    cv2.imwrite(processed_path, oriented_original_img)
+
+    # Step 2: preprocess hanya untuk simpan processed file / optional support
+    processed_img, image_quality_note = preprocess_passport_image(processed_path, processed_path)
+
+    # Step 3: JANGAN run 4 orientation lagi pada processed image
+    best_result = original_result
+    best_score = original_score
+    best_angle = detected_angle
+
+    # Simpan processed image dalam folder media/passport_processed
+    if processed_img is not None:
+        cv2.imwrite(processed_path, processed_img)
 
     if not best_result:
         raise Exception("OCR could not detect any text from the passport image")
@@ -1993,9 +2343,10 @@ def process_passport_ocr(image_path, processed_path):
     best_result['status'] = status
     best_result['image_quality_note'] = image_quality_note
     best_result['confidence_score'] = best_score
-    best_result['date_of_birth'] = normalize_date_for_html(best_result.get('date_of_birth'))
-    best_result['date_of_issue'] = normalize_date_for_html(best_result.get('date_of_issue'))
-    best_result['expiry_date'] = normalize_date_for_html(best_result.get('expiry_date'))
+    best_result['detected_rotation_angle'] = best_angle
+    best_result['date_of_birth'] = normalize_display_date(best_result.get('date_of_birth'))
+    best_result['date_of_issue'] = normalize_display_date(best_result.get('date_of_issue'))
+    best_result['expiry_date'] = normalize_display_date(best_result.get('expiry_date'))
 
     return best_result
 
@@ -2103,6 +2454,45 @@ def paddleocr_lines_from_image(image, temp_name=None):
 
     return lines
 
+def auto_rotate_passport(image):
+    try:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # detect edges
+        edges = cv2.Canny(gray, 50, 150)
+
+        # detect lines
+        lines = cv2.HoughLines(edges, 1, np.pi / 180, 200)
+
+        if lines is None:
+            return image
+
+        angles = []
+
+        for rho, theta in lines[:, 0]:
+            angle = (theta * 180 / np.pi) - 90
+            angles.append(angle)
+
+        if not angles:
+            return image
+
+        median_angle = np.median(angles)
+
+        # rotate image
+        (h, w) = image.shape[:2]
+        center = (w // 2, h // 2)
+
+        M = cv2.getRotationMatrix2D(center, median_angle, 1.0)
+        rotated = cv2.warpAffine(image, M, (w, h),
+                                 flags=cv2.INTER_CUBIC,
+                                 borderMode=cv2.BORDER_REPLICATE)
+
+        return rotated
+
+    except Exception as e:
+        print("Rotation error:", e)
+        return image
+
 def extract_mrz_data(text):
     text = fix_common_ocr_errors(text, mode="mrz")
     lines = [line.strip() for line in text.split('\n') if line.strip()]
@@ -2200,21 +2590,18 @@ def upload_passport(request):
             'nationality': ui_result.get('nationality', ''),
             'surname': ui_result.get('surname', ''),
             'given_name': ui_result.get('given_name', ''),
-            'date_of_birth': ui_result.get('date_of_birth', ''),
+            'date_of_birth': normalize_display_date(ui_result.get('date_of_birth', '')),
             'sex': ui_result.get('sex', ''),
-            'date_of_issue': ui_result.get('date_of_issue', ''),
-            'date_of_expiry': ui_result.get('date_of_expiry', ''),
+            'date_of_issue': normalize_display_date(ui_result.get('date_of_issue', '')),
+            'date_of_expiry': normalize_display_date(
+                ui_result.get('date_of_expiry', '') or ui_result.get('expiry_date', '')
+            ),
             'dynamic_fields': ui_result.get('dynamic_fields', []),
-
-            'full_name': extracted.get('full_name', ''),
-            'country': extracted.get('country', ''),
-            'gender': extracted.get('gender', extracted.get('sex', '')),
-            'expiry_date': extracted.get('expiry_date', ''),
-            'raw_text': extracted.get('raw_text', ''),
-            'image_quality_note': extracted.get('image_quality_note', ''),
-            'status': status,
-            'confidence_score': extracted.get('confidence_score', 0),
-
+            'raw_text': ui_result.get('raw_text', ''),
+            'status': ui_result.get('status', 'auto-extracted'),
+            'confidence_score': ui_result.get('confidence_score', 0),
+            'image_quality_note': ui_result.get('image_quality_note', ''),
+            'detected_rotation_angle': ui_result.get('detected_rotation_angle', 0),
             'original_image_name': original_filename,
             'processed_image_name': processed_filename,
             'original_image_url': f"{settings.MEDIA_URL}passport_images/{original_filename}",
@@ -2398,15 +2785,20 @@ def build_universal_passport_fields(extracted):
 
     result = {
         "type": extracted.get("type", "P"),
-        "country_code": extracted.get("country_code", extracted.get("nationality_code", "")),
-        "passport_number": extracted.get("passport_number", ""),
-        "surname": extracted.get("surname", ""),
-        "given_name": extracted.get("given_name", ""),
+        "country_code": (extracted.get("country_code") or extracted.get("nationality_code", "")).upper(),
+        "passport_number": fix_common_ocr_errors(
+            extracted.get("passport_number", ""),
+            mode="passport"
+        ),
+        "surname": clean_person_name(extracted.get("surname", "")),
+        "given_name": clean_person_name(extracted.get("given_name", "")),
         "nationality": extracted.get("nationality", extracted.get("country", "")),
-        "date_of_birth": normalize_date_for_html(extracted.get("date_of_birth")),
+        "date_of_birth": normalize_display_date(extracted.get("date_of_birth")),
         "sex": extracted.get("sex", extracted.get("gender", "")),
-        "date_of_issue": normalize_date_for_html(extracted.get("date_of_issue")),
-        "date_of_expiry": normalize_date_for_html(extracted.get("expiry_date")),
+        "date_of_issue": normalize_display_date(extracted.get("date_of_issue")),
+        "date_of_expiry": normalize_display_date(
+            extracted.get("date_of_expiry") or extracted.get("expiry_date")
+        ),
     }
 
     if extracted.get("registered_domicile"):

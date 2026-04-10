@@ -29,6 +29,8 @@ from .views import (
     delete_staff_attendance,
     update_visitor_attendance,
     delete_visitor_attendance,
+    update_passport_attendance,
+    delete_passport_attendance,
 )
 
 urlpatterns = [
@@ -69,4 +71,7 @@ urlpatterns = [
     path('passport-attendance/<int:event_id>/', passport_attendance_page),
     path('passport/upload/', upload_passport),
     path('passport/submit/<int:event_id>/', submit_passport_attendance),
+
+    path('passport-attendance/update/<int:id>/', update_passport_attendance),
+    path('passport-attendance/delete/<int:id>/', delete_passport_attendance),
 ]
