@@ -2649,7 +2649,10 @@ def submit_passport_attendance(request, event_id):
         if not passport_number:
             return JsonResponse({'error': 'Passport number cannot be empty'}, status=400)
 
-        valid, passport_error = validate_passport_number_by_country(passport_number, country_code or nationality)
+        valid, passport_error = validate_passport_number_by_country(
+            passport_number,
+            country_code or nationality
+        )
         if not valid:
             return JsonResponse({'error': passport_error}, status=400)
 
@@ -2685,6 +2688,7 @@ def submit_passport_attendance(request, event_id):
                     'surname': surname,
                     'given_name': given_name,
                     'date_of_issue': date_of_issue,
+                    'dynamic_fields': dynamic_fields,
                 }
             }
         )
@@ -2708,9 +2712,13 @@ def submit_passport_attendance(request, event_id):
                 'surname': surname,
                 'given_name': given_name,
                 'date_of_issue': date_of_issue,
+                'dynamic_fields': dynamic_fields,
             })
 
             for item in dynamic_fields:
+                if not isinstance(item, dict):
+                    continue
+
                 key = (item.get('key') or '').strip()
                 value = item.get('value')
                 if key:
@@ -2720,11 +2728,25 @@ def submit_passport_attendance(request, event_id):
 
         else:
             extra_data = visitor.extra_data or {}
+            extra_data.update({
+                'type': passport_type,
+                'country_code': country_code,
+                'nationality': nationality,
+                'surname': surname,
+                'given_name': given_name,
+                'date_of_issue': date_of_issue,
+                'dynamic_fields': dynamic_fields,
+            })
+
             for item in dynamic_fields:
+                if not isinstance(item, dict):
+                    continue
+
                 key = (item.get('key') or '').strip()
                 value = item.get('value')
                 if key:
                     extra_data[key] = value
+
             visitor.extra_data = extra_data
 
         if original_image_name and not visitor.image:
