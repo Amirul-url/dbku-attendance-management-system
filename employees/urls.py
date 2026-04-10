@@ -31,6 +31,12 @@ from .views import (
     delete_visitor_attendance,
     update_passport_attendance,
     delete_passport_attendance,
+
+    forgot_password_page,
+    send_forgot_password_otp,
+    verify_forgot_password_otp,
+    reset_password_page,
+    reset_password_submit,
 )
 
 urlpatterns = [
@@ -40,6 +46,12 @@ urlpatterns = [
     path('login/', login_user),
     path('login-page/', login_page),
     path('logout/', logout_user),
+
+    path('forgot-password/', forgot_password_page),
+    path('forgot-password/send-otp/', send_forgot_password_otp),
+    path('forgot-password/verify-otp/', verify_forgot_password_otp),
+    path('reset-password/', reset_password_page),
+    path('reset-password/submit/', reset_password_submit),
 
     path('dashboard/', dashboard),
     path('analytics/', analytics_page),

@@ -4,6 +4,8 @@ import json
 import math
 import os
 import re
+import random
+import time
 import threading
 import uuid
 import ipaddress
@@ -27,6 +29,9 @@ from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_exempt
+from django.core.mail import send_mail
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 from .models import (
     Attendance,
@@ -493,6 +498,8 @@ def login_user(request):
 
 
 def login_page(request):
+    if request.user.is_authenticated:
+        return redirect('/dashboard/')
     return render(request, 'login.html')
 
 
@@ -500,6 +507,172 @@ def logout_user(request):
     logout(request)
     return redirect('/login-page/')
 
+def clear_forgot_password_session(request):
+    keys = [
+        'forgot_password_email',
+        'forgot_password_user_id',
+        'forgot_password_otp',
+        'forgot_password_otp_expires_at',
+        'forgot_password_verified',
+    ]
+    for key in keys:
+        request.session.pop(key, None)
+
+def forgot_password_page(request):
+    if request.user.is_authenticated:
+        return redirect('/dashboard/')
+    return render(request, 'forgot_password.html')
+
+
+@csrf_exempt
+def send_forgot_password_otp(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        email = (data.get('email') or '').strip().lower()
+
+        if not email:
+            return JsonResponse({'error': 'Email is required'}, status=400)
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'No account found with this email'}, status=404)
+
+        otp = generate_otp()
+
+        request.session['forgot_password_email'] = email
+        request.session['forgot_password_user_id'] = user.id
+        request.session['forgot_password_otp'] = otp
+        request.session['forgot_password_otp_expires_at'] = int(time.time()) + 300  # 5 minit
+        request.session['forgot_password_verified'] = False
+        request.session.modified = True
+
+        send_mail(
+            subject='DBKU Attendance Password Reset OTP',
+            message=(
+                f'Your OTP code is: {otp}\n\n'
+                f'This code will expire in 5 minutes.\n'
+                f'If you did not request this, please ignore this email.'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+
+        return JsonResponse({'message': 'OTP sent successfully to your email'})
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def verify_forgot_password_otp(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        email = (data.get('email') or '').strip().lower()
+        otp = (data.get('otp') or '').strip()
+
+        saved_email = request.session.get('forgot_password_email')
+        saved_otp = request.session.get('forgot_password_otp')
+        expires_at = request.session.get('forgot_password_otp_expires_at')
+
+        if not saved_email or not saved_otp or not expires_at:
+            return JsonResponse({'error': 'Please request OTP first'}, status=400)
+
+        if email != saved_email:
+            return JsonResponse({'error': 'Email does not match the OTP request'}, status=400)
+
+        if int(time.time()) > int(expires_at):
+            clear_forgot_password_session(request)
+            return JsonResponse({'error': 'OTP expired. Please request a new OTP'}, status=400)
+
+        if otp != saved_otp:
+            return JsonResponse({'error': 'Invalid OTP code'}, status=400)
+
+        request.session['forgot_password_verified'] = True
+        request.session.modified = True
+
+        return JsonResponse({
+            'message': 'OTP verified successfully',
+            'redirect_url': '/reset-password/'
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+def reset_password_page(request):
+    if request.user.is_authenticated:
+        return redirect('/dashboard/')
+
+    verified = request.session.get('forgot_password_verified')
+    user_id = request.session.get('forgot_password_user_id')
+
+    if not verified or not user_id:
+        return redirect('/forgot-password/')
+
+    return render(request, 'reset_password.html')
+
+
+@csrf_exempt
+def reset_password_submit(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        verified = request.session.get('forgot_password_verified')
+        user_id = request.session.get('forgot_password_user_id')
+
+        if not verified or not user_id:
+            return JsonResponse({'error': 'Unauthorized password reset session'}, status=403)
+
+        data = json.loads(request.body)
+        new_password = data.get('new_password') or ''
+        confirm_password = data.get('confirm_password') or ''
+
+        if not new_password or not confirm_password:
+            return JsonResponse({'error': 'All fields are required'}, status=400)
+
+        if new_password != confirm_password:
+            return JsonResponse({'error': 'Password and confirm password do not match'}, status=400)
+
+        if len(new_password) < 8:
+            return JsonResponse({'error': 'Password must be at least 8 characters'}, status=400)
+
+        if not re.search(r'[A-Za-z]', new_password) or not re.search(r'\d', new_password):
+            return JsonResponse({'error': 'Password must contain letters and numbers'}, status=400)
+
+        user = User.objects.get(id=user_id)
+
+        try:
+            validate_password(new_password, user=user)
+        except ValidationError as e:
+            return JsonResponse({'error': ' '.join(e.messages)}, status=400)
+
+        user.set_password(new_password)
+        user.save()
+
+        clear_forgot_password_session(request)
+
+        return JsonResponse({
+            'message': 'Password reset successful',
+            'redirect_url': '/login-page/'
+        })
+
+    except User.DoesNotExist:
+        clear_forgot_password_session(request)
+        return JsonResponse({'error': 'User not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def generate_otp():
+    return str(random.randint(100000, 999999))
 
 def dashboard(request):
     login_check = require_login_page(request)

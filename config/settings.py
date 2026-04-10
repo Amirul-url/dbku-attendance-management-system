@@ -143,3 +143,14 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp-relay.brevo.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+
+EMAIL_HOST_USER = 'a7b02d001@smtp-brevo.com'
+EMAIL_HOST_PASSWORD = 'xsmtpsib-4b7b9e2cf20cee122ee332d3236f303d53004bc1aedcc1dc4ee36c4b8aa58872-qQaBEPx8VjPgYiSG'
+
+DEFAULT_FROM_EMAIL = 'muhdamirulaqmal@gmail.com'
