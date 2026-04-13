@@ -1,165 +1,254 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-  crossorigin=""
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
 <style>
-  #eventMap {
-    min-height: 360px;
-    z-index: 1;
+  :root {
+    --ocean: #003B46; --ocean-l: #004f60; --ocean-d: #002830;
+    --silver: #C0C0C0; --silver-l: #E5E4E2; --white: #FAFAFA;
+    --border: #dde8ea; --text: #1a2e35; --muted: #6b8a93; --hint: #9ab0b7;
+    --page: #F4F6F7;
   }
+  /* ── SHARED PAGE STRUCTURE ─────────────── */
+  .page-title { font-size:22px; font-weight:600; color:var(--text); }
+  .page-sub   { font-size:13px; color:var(--muted); margin-top:4px; }
+  .section-label { font-size:10.5px; font-weight:600; text-transform:uppercase;
+    letter-spacing:1px; color:var(--hint); margin:4px 0 13px; }
 
-  .leaflet-container {
-    font-family: inherit;
+  /* ── FILTER CARD ──────────────────────── */
+  .filter-card { background:#fff; border:1px solid var(--border); border-radius:14px;
+    padding:16px 20px; margin-bottom:20px; }
+  .filter-input { width:100%; padding:9px 13px; border:1px solid var(--border);
+    border-radius:9px; font-size:13px; font-family:inherit; color:var(--text);
+    background:#fff; outline:none; transition:border 0.15s; }
+  .filter-input:focus { border-color:var(--ocean); }
+  .filter-grid { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px; align-items:end; }
+
+  /* ── BUTTONS ──────────────────────────── */
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px;
+    border-radius:9px; font-size:13px; font-weight:500; cursor:pointer;
+    border:none; text-decoration:none; transition:background 0.15s; font-family:inherit; }
+  .btn [data-lucide] { width:14px; height:14px; }
+  .btn-ocean  { background:var(--ocean); color:#fff; }
+  .btn-ocean:hover { background:var(--ocean-l); }
+  .btn-green  { background:#2e7d32; color:#fff; }
+  .btn-green:hover { background:#1b5e20; }
+  .btn-blue   { background:#1565c0; color:#fff; }
+  .btn-blue:hover { background:#0d47a1; }
+  .btn-red    { background:#c62828; color:#fff; }
+  .btn-red:hover { background:#b71c1c; }
+  .btn-ghost  { background:var(--silver-l); color:var(--text); }
+  .btn-ghost:hover { background:#d4d3d1; }
+  .btn-sm     { padding:6px 12px; font-size:12px; }
+  .btn-sm [data-lucide] { width:13px; height:13px; }
+
+  /* ── TABLE CARD ───────────────────────── */
+  .table-card { background:#fff; border:1px solid var(--border);
+    border-radius:14px; overflow:hidden; margin-bottom:20px; }
+  .table-card-header { display:flex; align-items:center; justify-content:space-between;
+    padding:14px 20px; border-bottom:1px solid var(--border); flex-wrap:wrap; gap:10px; }
+  .table-card-title  { font-size:14px; font-weight:600; color:var(--text); }
+  .table-card-sub    { font-size:12px; color:var(--muted); margin-top:1px; }
+  .tbl-wrap { overflow-x:auto; }
+  table.data-table { width:100%; border-collapse:collapse; font-size:13px; min-width:1100px; }
+  table.data-table thead tr { background:#f4f7f8; border-bottom:1px solid var(--border); }
+  table.data-table thead th { padding:11px 14px; text-align:left; font-weight:600;
+    color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:0.4px;
+    border-right:1px solid var(--border); white-space:nowrap; }
+  table.data-table thead th:last-child { border-right:none; }
+  table.data-table tbody tr { border-bottom:1px solid #f0f3f4; transition:background 0.1s; }
+  table.data-table tbody tr:hover { background:#f7fafb; }
+  table.data-table tbody tr:last-child { border-bottom:none; }
+  table.data-table tbody td { padding:12px 14px; color:var(--text); vertical-align:top;
+    border-right:1px solid #f0f3f4; }
+  table.data-table tbody td:last-child { border-right:none; }
+  .td-name  { font-weight:500; }
+  .td-muted { color:var(--muted); font-size:12px; margin-top:2px; }
+  .td-empty { padding:32px; text-align:center; color:var(--hint); }
+
+  /* ── BADGES ───────────────────────────── */
+  .badge { display:inline-block; font-size:11px; padding:3px 9px;
+    border-radius:20px; font-weight:500; }
+  .badge-blue   { background:#e3f2fd; color:#0d47a1; }
+  .badge-green  { background:#e8f5e9; color:#1b5e20; }
+  .badge-orange { background:#fff3e0; color:#bf6e00; }
+  .badge-red    { background:#ffebee; color:#b71c1c; }
+  .badge-yellow { background:#fffde7; color:#f57f17; }
+  .badge-gray   { background:var(--silver-l); color:var(--muted); }
+  .badge-ocean  { background:#e0edf0; color:var(--ocean); }
+  .badge-cyan   { background:#e0f7fa; color:#006064; }
+
+  /* ── GEOFENCE ─────────────────────────── */
+  .geo-set   { font-size:12px; font-weight:500; color:var(--ocean); }
+  .geo-unset { font-size:12px; color:var(--hint); }
+
+  /* ── MODAL ────────────────────────────── */
+  .modal-overlay { display:none; position:fixed; inset:0; z-index:50;
+    background:rgba(0,0,0,0.45); overflow-y:auto; padding:24px 16px; }
+  .modal-overlay.open { display:flex; align-items:flex-start; justify-content:center; }
+  .modal-box { background:#fff; width:100%; border-radius:16px;
+    border:1px solid var(--border); overflow:hidden; }
+  .modal-header { display:flex; align-items:center; justify-content:space-between;
+    padding:16px 22px; border-bottom:1px solid var(--border); }
+  .modal-title { font-size:16px; font-weight:600; color:var(--text); }
+  .modal-sub   { font-size:12px; color:var(--muted); margin-top:2px; }
+  .modal-close { width:32px; height:32px; border-radius:50%; border:none;
+    background:var(--silver-l); color:var(--muted); font-size:18px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:background 0.15s; }
+  .modal-close:hover { background:#c8c7c5; }
+  .modal-body  { padding:20px 22px; }
+  .modal-footer { padding:14px 22px; border-top:1px solid var(--border);
+    background:#f7f9fa; display:flex; justify-content:flex-end; gap:8px;
+    border-radius:0 0 16px 16px; }
+
+  /* ── FORM FIELDS ──────────────────────── */
+  .form-label { display:block; font-size:12.5px; font-weight:500;
+    color:var(--text); margin-bottom:5px; }
+  .form-input, .form-select, .form-textarea {
+    width:100%; padding:9px 13px; border:1px solid var(--border); border-radius:9px;
+    font-size:13px; font-family:inherit; color:var(--text); background:#fff;
+    outline:none; transition:border 0.15s; box-sizing:border-box; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color:var(--ocean); }
+  .form-input[readonly], .form-input[disabled] {
+    background:#f7f9fa; color:var(--muted); }
+  .form-grid   { display:grid; gap:14px; }
+  .form-grid-2 { grid-template-columns:1fr 1fr; }
+  .form-grid-3 { grid-template-columns:1fr 1fr 1fr; }
+  .col-span-2  { grid-column:span 2; }
+  .col-span-3  { grid-column:span 3; }
+
+  /* ── SECTION DIVIDER ──────────────────── */
+  .form-section { border-top:1px solid var(--border); padding-top:16px; margin-top:4px; }
+  .form-section-title { font-size:13.5px; font-weight:600; color:var(--text); margin-bottom:4px; }
+  .form-section-sub   { font-size:12px; color:var(--muted); margin-bottom:14px; }
+
+  /* ── MAP STATUS ───────────────────────── */
+  .map-status { padding:8px 13px; border-radius:9px; font-size:12.5px;
+    display:inline-flex; align-items:center; }
+  .map-status.info    { background:#f4f7f8; color:var(--muted); }
+  .map-status.success { background:#e8f5e9; color:#1b5e20; }
+  .map-status.error   { background:#ffebee; color:#b71c1c; }
+  .map-status.warning { background:#fffde7; color:#f57f17; }
+
+  /* ── SUGGESTIONS ──────────────────────── */
+  #addressSuggestions { max-height:220px; overflow-y:auto; }
+
+  /* ── MAP ──────────────────────────────── */
+  #eventMap { min-height:340px; z-index:1; border-radius:10px; }
+  .leaflet-container { font-family:inherit; border-radius:10px; }
+
+  /* ── PAGE HEADER ──────────────────────── */
+  .page-header { display:flex; align-items:flex-end; justify-content:space-between;
+    margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+  .header-actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+  /* ── RESPONSIVE ───────────────────────── */
+  @media (max-width:900px) {
+    .filter-grid { grid-template-columns:1fr 1fr; }
+    .form-grid-2, .form-grid-3 { grid-template-columns:1fr; }
+    .col-span-2, .col-span-3  { grid-column:span 1; }
+    table.data-table { min-width:900px; }
   }
-
-  #addressSuggestions {
-    max-height: 220px;
-    overflow-y: auto;
+  @media (max-width:600px) {
+    .filter-grid { grid-template-columns:1fr; }
+    .page-header { flex-direction:column; align-items:flex-start; }
   }
 </style>
 
-<div class="mb-6">
-  <h1 class="text-2xl font-bold text-gray-800">Event Management</h1>
-  <p class="text-sm text-gray-500 mt-1">
-    Manage event information, geofence settings, and QR attendance access.
-  </p>
+<!-- ── PAGE HEADER ──────────────────────────── -->
+<div class="page-header">
+  <div>
+    <div class="page-title">Event Management</div>
+    <div class="page-sub">Manage event information, geofence settings, and QR attendance access.</div>
+  </div>
+  {% if can_manage %}
+  <div class="header-actions">
+    <button onclick="openModal()" class="btn btn-green">
+      <i data-lucide="calendar-plus"></i> Create Event
+    </button>
+  </div>
+  {% endif %}
 </div>
 
-<form method="GET" class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 mb-6">
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-    <input
-      type="text"
-      name="name"
-      placeholder="Search event name"
-      value="{{ request.GET.name }}"
-      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-    >
-
-    <input
-      type="text"
-      name="location"
-      placeholder="Search location"
-      value="{{ request.GET.location }}"
-      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-    >
-
-    <input
-      type="date"
-      name="date"
-      value="{{ request.GET.date }}"
-      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-    >
-
-    <div class="grid grid-cols-2 gap-2">
-      <button
-        class="bg-blue-500 text-white px-4 py-3 rounded-xl hover:bg-blue-600 transition font-medium">
-        Filter
+<!-- ── FILTER ───────────────────────────────── -->
+<form method="GET" class="filter-card">
+  <div class="filter-grid">
+    <input type="text" name="name" placeholder="Search event name"
+      value="{{ request.GET.name }}" class="filter-input">
+    <input type="text" name="location" placeholder="Search location"
+      value="{{ request.GET.location }}" class="filter-input">
+    <input type="date" name="date" value="{{ request.GET.date }}" class="filter-input">
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ocean" style="flex:1">
+        <i data-lucide="search"></i> Filter
       </button>
-      <a
-        href="/events/"
-        class="bg-gray-200 text-gray-700 px-4 py-3 rounded-xl text-center hover:bg-gray-300 transition font-medium">
-        Reset
-      </a>
+      <a href="/events/" class="btn btn-ghost" style="flex:1;justify-content:center">Reset</a>
     </div>
   </div>
 </form>
 
-<div class="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden">
-  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 border-b border-gray-200">
+<!-- ── EVENTS TABLE ─────────────────────────── -->
+<div class="table-card">
+  <div class="table-card-header">
     <div>
-      <h2 class="font-semibold text-gray-800">Events List</h2>
-      <p class="text-sm text-gray-500 mt-1">All available events in the system</p>
+      <div class="table-card-title">Events List</div>
+      <div class="table-card-sub">All available events in the system</div>
     </div>
-
-    {% if can_manage %}
-    <button
-      onclick="openModal()"
-      class="bg-green-500 text-white px-4 py-2.5 rounded-xl hover:bg-green-600 transition font-medium w-full sm:w-auto">
-      + Create Event
-    </button>
-    {% endif %}
   </div>
 
-  <div class="overflow-x-auto">
-    <table class="min-w-[1200px] w-full text-sm border-collapse">
-      <thead class="bg-gray-50">
-        <tr class="border-b border-gray-200 text-gray-700">
-          <th class="p-4 text-left border-r border-gray-200 font-semibold">Name</th>
-          <th class="p-4 text-left border-r border-gray-200 font-semibold">Location</th>
-          <th class="p-4 text-left border-r border-gray-200 font-semibold">Event Period</th>
-          <th class="p-4 text-left border-r border-gray-200 font-semibold">Description</th>
-          <th class="p-4 text-left border-r border-gray-200 font-semibold">Geofence</th>
-
-          {% if can_manage %}
-          <th class="p-4 text-left font-semibold">Actions</th>
-          {% else %}
-          <th class="p-4 text-left font-semibold">View</th>
-          {% endif %}
+  <div class="tbl-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Event Name</th>
+          <th>Location</th>
+          <th>Period</th>
+          <th>Description</th>
+          <th>Geofence</th>
+          <th>{% if can_manage %}Actions{% else %}View{% endif %}</th>
         </tr>
       </thead>
-
       <tbody>
         {% for event in events %}
-        <tr class="border-b border-gray-200 hover:bg-gray-50 align-top">
-          <td class="p-4 border-r border-gray-200 font-medium text-gray-800">
-            {{ event.name }}
-          </td>
-
-          <td class="p-4 border-r border-gray-200 text-gray-700">
-            <div class="max-w-[260px] break-words">
+        <tr>
+          <td class="td-name">{{ event.name }}</td>
+          <td>
+            <div style="max-width:240px;word-break:break-word;color:var(--muted);font-size:12.5px">
               {{ event.location }}
             </div>
           </td>
-
-          <td class="p-4 border-r border-gray-200 text-gray-700 whitespace-nowrap">
-            <div>{{ event.start_date|date:"d/m/Y" }} → {{ event.end_date|date:"d/m/Y" }}</div>
-            <div class="text-xs text-gray-500 mt-1">
-              {{ event.start_time|time:"H:i"|default:"-" }} - {{ event.end_time|time:"H:i"|default:"-" }}
+          <td style="white-space:nowrap">
+            <div style="font-size:12.5px">{{ event.start_date|date:"d/m/Y" }} → {{ event.end_date|date:"d/m/Y" }}</div>
+            <div style="font-size:11.5px;color:var(--hint);margin-top:2px">
+              {{ event.start_time|time:"H:i"|default:"-" }} – {{ event.end_time|time:"H:i"|default:"-" }}
             </div>
           </td>
-
-          <td class="p-4 border-r border-gray-200 text-gray-700">
-            <div class="max-w-[220px] break-words">
-              {{ event.description|default:"-" }}
+          <td>
+            <div style="max-width:200px;word-break:break-word;font-size:12.5px;color:var(--muted)">
+              {{ event.description|default:"—" }}
             </div>
           </td>
-
-          <td class="p-4 border-r border-gray-200 text-xs text-gray-700">
+          <td>
             {% if event.latitude and event.longitude %}
-              <div class="font-medium text-gray-800 break-all">
-                {{ event.latitude }}, {{ event.longitude }}
-              </div>
-              <div class="mt-1 inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">
-                Radius: {{ event.radius_meter }} m
-              </div>
-            {% else %}
-              <span class="inline-block bg-gray-100 text-gray-500 px-2 py-1 rounded-lg">
-                Not set
+              <div class="geo-set">{{ event.latitude }}, {{ event.longitude }}</div>
+              <span class="badge badge-ocean" style="margin-top:4px;display:inline-block">
+                {{ event.radius_meter }} m
               </span>
+            {% else %}
+              <span class="badge badge-gray">Not set</span>
             {% endif %}
           </td>
-
-          <td class="p-4">
-            <div class="flex flex-wrap gap-2">
-              <a
-                href="/events/{{ event.id }}/"
-                class="inline-flex min-w-[95px] items-center justify-center gap-2 px-3 py-2 rounded-xl bg-green-500 text-white hover:bg-green-600 transition font-medium shadow-sm">
-                <i data-lucide="eye" class="w-4 h-4"></i>
-                <span>View</span>
+          <td>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <a href="/events/{{ event.id }}/" class="btn btn-sm btn-green">
+                <i data-lucide="eye"></i> View
               </a>
-
               {% if can_manage %}
-              <button
-                type="button"
-                class="edit-btn inline-flex min-w-[95px] items-center justify-center gap-2 px-3 py-2 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition font-medium shadow-sm"
-                data-id="{{ event.id }}"
-                data-name="{{ event.name }}"
+              <button type="button" class="btn btn-sm btn-blue edit-btn"
+                data-id="{{ event.id }}" data-name="{{ event.name }}"
                 data-location="{{ event.location }}"
                 data-startdate="{{ event.start_date|date:'Y-m-d' }}"
                 data-enddate="{{ event.end_date|date:'Y-m-d' }}"
@@ -169,27 +258,18 @@
                 data-latitude="{{ event.latitude }}"
                 data-longitude="{{ event.longitude }}"
                 data-radius="{{ event.radius_meter }}">
-                <i data-lucide="pencil" class="w-4 h-4"></i>
-                <span>Edit</span>
+                <i data-lucide="pencil"></i> Edit
               </button>
-
-              <button
-                type="button"
-                class="delete-btn inline-flex min-w-[95px] items-center justify-center gap-2 px-3 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition font-medium shadow-sm"
+              <button type="button" class="btn btn-sm btn-red delete-btn"
                 data-id="{{ event.id }}">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                <span>Delete</span>
+                <i data-lucide="trash-2"></i> Delete
               </button>
               {% endif %}
             </div>
           </td>
         </tr>
         {% empty %}
-        <tr>
-          <td colspan="6" class="p-8 text-center text-gray-500">
-            No events found
-          </td>
-        </tr>
+        <tr><td colspan="6" class="td-empty">No events found.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -197,181 +277,97 @@
 </div>
 
 {% if can_manage %}
-<div
-  id="modal"
-  class="hidden fixed inset-0 z-50 bg-black/40 px-4 py-6 sm:px-6 overflow-y-auto"
-  onclick="handleBackdropClick(event)"
->
-  <div class="min-h-full flex items-center justify-center">
-    <div
-      class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl border border-gray-200"
-      onclick="event.stopPropagation()"
-    >
-      <div class="flex items-center justify-between p-5 border-b border-gray-200">
+<!-- ── CREATE / EDIT MODAL ──────────────────── -->
+<div id="modal" class="modal-overlay" onclick="handleBackdropClick(event)">
+  <div style="min-height:100%;display:flex;align-items:flex-start;justify-content:center;width:100%">
+    <div class="modal-box" style="max-width:860px;margin:8px 0" onclick="event.stopPropagation()">
+
+      <div class="modal-header">
         <div>
-          <h2 id="modalTitle" class="text-xl font-bold text-gray-800">Create Event</h2>
-          <p class="text-sm text-gray-500 mt-1">Fill in the event details below</p>
+          <div id="modalTitle" class="modal-title">Create Event</div>
+          <div class="modal-sub">Fill in the event details below</div>
         </div>
-
-        <button
-          type="button"
-          onclick="closeModal()"
-          class="w-10 h-10 rounded-full hover:bg-gray-100 text-gray-500 text-xl">
-          ×
-        </button>
+        <button type="button" onclick="closeModal()" class="modal-close">×</button>
       </div>
 
-      <div class="p-5 space-y-5">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Event Name</label>
-            <input
-              id="e_name"
-              placeholder="Enter event name"
-              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
+      <div class="modal-body">
+        <div class="form-grid form-grid-2">
+          <div class="col-span-2">
+            <label class="form-label">Event Name</label>
+            <input id="e_name" class="form-input" placeholder="Enter event name">
           </div>
-
-          <div class="md:col-span-2 relative">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Location / Full Address</label>
-            <input
-              id="e_location"
-              placeholder="Example: Dewan Bandaraya Kuching Utara, Jalan Semariang, Petra Jaya, 93050 Kuching, Sarawak, Malaysia"
-              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-              autocomplete="off"
-            >
-
-            <div
-              id="addressSuggestions"
-              class="hidden absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
-            ></div>
+          <div class="col-span-2" style="position:relative">
+            <label class="form-label">Location / Full Address</label>
+            <input id="e_location" class="form-input" autocomplete="off"
+              placeholder="e.g. Dewan Bandaraya Kuching Utara, Jalan Semariang, 93050 Kuching">
+            <div id="addressSuggestions"
+              class="hidden" style="position:absolute;left:0;right:0;top:calc(100% + 4px);
+              background:#fff;border:1px solid var(--border);border-radius:11px;
+              box-shadow:0 4px 16px rgba(0,59,70,0.1);z-index:100;overflow:hidden"></div>
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-            <input
-              id="e_start_date"
-              type="date"
-              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
+            <label class="form-label">Start Date</label>
+            <input id="e_start_date" type="date" class="form-input">
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-            <input
-              id="e_end_date"
-              type="date"
-              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
+            <label class="form-label">End Date</label>
+            <input id="e_end_date" type="date" class="form-input">
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-            <input
-              id="e_start_time"
-              type="time"
-              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
+            <label class="form-label">Start Time</label>
+            <input id="e_start_time" type="time" class="form-input">
           </div>
-
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-            <input
-              id="e_end_time"
-              type="time"
-              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
+            <label class="form-label">End Time</label>
+            <input id="e_end_time" type="time" class="form-input">
           </div>
-
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <input
-              id="e_desc"
-              placeholder="Enter description"
-              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
+          <div class="col-span-2">
+            <label class="form-label">Description</label>
+            <input id="e_desc" class="form-input" placeholder="Enter description">
           </div>
         </div>
 
-        <div class="border-t border-gray-200 pt-4">
-          <h3 class="font-semibold text-gray-800 mb-1">Geofence Setting</h3>
-          <p class="text-sm text-gray-500 mb-4">
-            Type full address and choose suggestion. Pinpoint, address, latitude, longitude and radius all update in real time.
-          </p>
+        <div class="form-section">
+          <div class="form-section-title">Geofence Setting</div>
+          <div class="form-section-sub">
+            Type the full address and choose a suggestion. Latitude, longitude, and radius update in real time.
+          </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="form-grid form-grid-3" style="margin-bottom:12px">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-              <input
-                id="e_latitude"
-                type="number"
-                step="0.000001"
-                placeholder="Auto from map"
-                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
+              <label class="form-label">Latitude</label>
+              <input id="e_latitude" type="number" step="0.000001" class="form-input" placeholder="Auto from map">
             </div>
-
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-              <input
-                id="e_longitude"
-                type="number"
-                step="0.000001"
-                placeholder="Auto from map"
-                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
+              <label class="form-label">Longitude</label>
+              <input id="e_longitude" type="number" step="0.000001" class="form-input" placeholder="Auto from map">
             </div>
-
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Radius (meter)</label>
-              <input
-                id="e_radius"
-                type="number"
-                min="1"
-                placeholder="e.g. 100"
-                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
+              <label class="form-label">Radius (meters)</label>
+              <input id="e_radius" type="number" min="1" class="form-input" placeholder="e.g. 100">
             </div>
           </div>
 
-          <div class="mt-4 flex flex-col sm:flex-row gap-2">
-            <button
-              type="button"
-              onclick="geocodeLocationNow()"
-              class="px-4 py-3 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition font-medium">
-              Auto Detect from Address
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+            <button type="button" onclick="geocodeLocationNow()" class="btn btn-ocean">
+              <i data-lucide="map-pin"></i> Auto Detect from Address
             </button>
-
-            <div id="mapStatus"
-                 class="px-4 py-3 rounded-xl bg-gray-100 text-gray-600 text-sm flex items-center">
-              Map loading...
-            </div>
+            <div id="mapStatus" class="map-status info">Map loading...</div>
           </div>
 
-          <div class="mt-4 rounded-2xl overflow-hidden border border-gray-300">
-            <div id="eventMap" class="w-full h-[360px] bg-gray-100"></div>
+          <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+            <div id="eventMap" class="w-full" style="height:340px;background:#e8eef0"></div>
           </div>
-
-          <p class="text-xs text-gray-500 mt-3">
-            Tip: type address, pick suggestion, then drag pin if needed.
+          <p style="font-size:11.5px;color:var(--hint);margin-top:8px">
+            Tip: type address → pick suggestion → drag pin to fine-tune.
           </p>
         </div>
       </div>
 
-      <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 p-5 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
-        <button
-          type="button"
-          onclick="closeModal()"
-          class="w-full sm:w-auto px-4 py-3 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 transition font-medium">
-          Cancel
-        </button>
-
-        <button
-          type="button"
-          onclick="saveEvent()"
-          id="saveBtn"
-          class="w-full sm:w-auto px-4 py-3 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition font-medium">
-          Save Event
+      <div class="modal-footer">
+        <button type="button" onclick="closeModal()" class="btn btn-ghost">Cancel</button>
+        <button type="button" onclick="saveEvent()" id="saveBtn" class="btn btn-ocean">
+          <i data-lucide="save"></i> Save Event
         </button>
       </div>
     </div>
@@ -379,621 +375,56 @@
 </div>
 {% endif %}
 
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-  crossorigin=""
-></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
 <script>
-let editId = null;
-let eventMap = null;
-let eventMarker = null;
-let eventCircle = null;
-let geocodeTimer = null;
-let reverseGeocodeTimer = null;
-let suggestionTimer = null;
-let mapReady = false;
-let pendingMapSync = false;
-let suppressLocationInputGeocode = false;
-let latestGeocodeRequestId = 0;
-let latestReverseGeocodeRequestId = 0;
-let latestSuggestionRequestId = 0;
+/* ── ALL ORIGINAL JS LOGIC PRESERVED ────────── */
+let editId=null,eventMap=null,eventMarker=null,eventCircle=null;
+let geocodeTimer=null,reverseGeocodeTimer=null,suggestionTimer=null;
+let mapReady=false,pendingMapSync=false,suppressLocationInputGeocode=false;
+let latestGeocodeRequestId=0,latestReverseGeocodeRequestId=0,latestSuggestionRequestId=0;
+const DEFAULT_CENTER=[1.5533,110.3592];
 
-const DEFAULT_CENTER = [1.5533, 110.3592];
-
-function setMapStatus(message, type = "info") {
-  const box = document.getElementById("mapStatus");
-  if (!box) return;
-
-  box.innerText = message;
-
-  if (type === "success") {
-    box.className = "px-4 py-3 rounded-xl bg-green-100 text-green-700 text-sm flex items-center";
-  } else if (type === "error") {
-    box.className = "px-4 py-3 rounded-xl bg-red-100 text-red-700 text-sm flex items-center";
-  } else if (type === "warning") {
-    box.className = "px-4 py-3 rounded-xl bg-yellow-100 text-yellow-800 text-sm flex items-center";
-  } else {
-    box.className = "px-4 py-3 rounded-xl bg-gray-100 text-gray-600 text-sm flex items-center";
-  }
+function setMapStatus(msg,type='info'){
+  const b=document.getElementById('mapStatus');
+  if(!b)return;
+  b.innerText=msg;
+  b.className='map-status '+type;
 }
-
-function getRadiusValue() {
-  const raw = document.getElementById("e_radius").value.trim();
-  const radius = parseInt(raw || "100", 10);
-  return Number.isFinite(radius) && radius > 0 ? radius : 100;
+function getRadiusValue(){const r=parseInt(document.getElementById('e_radius').value.trim()||'100',10);return Number.isFinite(r)&&r>0?r:100;}
+function getLatLngFromInputs(){const la=parseFloat(document.getElementById('e_latitude').value),lo=parseFloat(document.getElementById('e_longitude').value);if(!Number.isFinite(la)||!Number.isFinite(lo))return null;return{lat:la,lng:lo};}
+function setLatLngInputs(la,lo){document.getElementById('e_latitude').value=Number(la).toFixed(6);document.getElementById('e_longitude').value=Number(lo).toFixed(6);}
+function setLocationInputValue(a){const i=document.getElementById('e_location');if(!i)return;suppressLocationInputGeocode=true;i.value=a||'';setTimeout(()=>{suppressLocationInputGeocode=false;},120);}
+function hideSuggestions(){const b=document.getElementById('addressSuggestions');if(!b)return;b.classList.add('hidden');b.innerHTML='';}
+function renderSuggestions(items){
+  const b=document.getElementById('addressSuggestions');if(!b)return;
+  if(!items||!items.length){hideSuggestions();return;}
+  b.innerHTML=items.map((item,i)=>`<button type="button" style="width:100%;text-align:left;padding:10px 14px;border:none;background:none;border-bottom:1px solid #f0f3f4;cursor:pointer;font-size:13px;color:#1a2e35;font-family:inherit" onmouseover="this.style.background='#f7fafb'" onmouseout="this.style.background='none'" onclick="selectAddressSuggestion(${i})">${item.display_name}</button>`).join('');
+  b.classList.remove('hidden');window.__addressSuggestionItems=items;
 }
-
-function getLatLngFromInputs() {
-  const lat = parseFloat(document.getElementById("e_latitude").value);
-  const lng = parseFloat(document.getElementById("e_longitude").value);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return null;
-  }
-
-  return { lat, lng };
-}
-
-function setLatLngInputs(lat, lng) {
-  document.getElementById("e_latitude").value = Number(lat).toFixed(6);
-  document.getElementById("e_longitude").value = Number(lng).toFixed(6);
-}
-
-function setLocationInputValue(address) {
-  const locationInput = document.getElementById("e_location");
-  if (!locationInput) return;
-
-  suppressLocationInputGeocode = true;
-  locationInput.value = address || "";
-  setTimeout(() => {
-    suppressLocationInputGeocode = false;
-  }, 120);
-}
-
-function hideSuggestions() {
-  const box = document.getElementById("addressSuggestions");
-  if (!box) return;
-  box.classList.add("hidden");
-  box.innerHTML = "";
-}
-
-function renderSuggestions(items) {
-  const box = document.getElementById("addressSuggestions");
-  if (!box) return;
-
-  if (!items || !items.length) {
-    hideSuggestions();
-    return;
-  }
-
-  box.innerHTML = items.map((item, index) => `
-    <button
-      type="button"
-      class="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-      onclick="selectAddressSuggestion(${index})"
-    >
-      <div class="text-sm text-gray-800">${item.display_name}</div>
-    </button>
-  `).join("");
-
-  box.classList.remove("hidden");
-  window.__addressSuggestionItems = items;
-}
-
-function selectAddressSuggestion(index) {
-  const items = window.__addressSuggestionItems || [];
-  const item = items[index];
-  if (!item) return;
-
-  const lat = parseFloat(item.lat);
-  const lng = parseFloat(item.lon);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-  setLocationInputValue(item.display_name || "");
-  setLatLngInputs(lat, lng);
-  syncMapFromFields(true);
-  hideSuggestions();
-  setMapStatus("Address suggestion selected", "success");
-}
-
-function clearMapObjects() {
-  if (eventMarker) {
-    eventMap.removeLayer(eventMarker);
-    eventMarker = null;
-  }
-
-  if (eventCircle) {
-    eventMap.removeLayer(eventCircle);
-    eventCircle = null;
-  }
-}
-
-function ensureMarkerAndCircle(position) {
-  if (!mapReady || !eventMap) return;
-
-  if (!eventMarker) {
-    eventMarker = L.marker([position.lat, position.lng], {
-      draggable: true
-    }).addTo(eventMap);
-
-    eventMarker.on("dragend", function () {
-      const latlng = eventMarker.getLatLng();
-      setLatLngInputs(latlng.lat, latlng.lng);
-      syncMapFromFields(false);
-      scheduleReverseGeocode(latlng.lat, latlng.lng, "Pin moved. Updating full address...");
-      setMapStatus("Pin updated manually", "success");
-    });
-  } else {
-    eventMarker.setLatLng([position.lat, position.lng]);
-  }
-
-  if (!eventCircle) {
-    eventCircle = L.circle([position.lat, position.lng], {
-      radius: getRadiusValue()
-    }).addTo(eventMap);
-  } else {
-    eventCircle.setLatLng([position.lat, position.lng]);
-    eventCircle.setRadius(getRadiusValue());
-  }
-}
-
-function syncMapFromFields(shouldPan = true) {
-  if (!mapReady || !eventMap) {
-    pendingMapSync = true;
-    return;
-  }
-
-  const position = getLatLngFromInputs();
-
-  if (!position) {
-    clearMapObjects();
-    eventMap.setView(DEFAULT_CENTER, 12);
-    setMapStatus("Enter address or coordinates to show map", "info");
-    return;
-  }
-
-  ensureMarkerAndCircle(position);
-
-  if (shouldPan) {
-    eventMap.setView([position.lat, position.lng], 17);
-  }
-
-  setMapStatus("Map synced in real time", "success");
-}
-
-async function fetchAddressSuggestions() {
-  const locationText = document.getElementById("e_location").value.trim();
-
-  if (!locationText || locationText.length < 3 || suppressLocationInputGeocode) {
-    hideSuggestions();
-    return;
-  }
-
-  const requestId = ++latestSuggestionRequestId;
-
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(locationText)}`;
-    const response = await fetch(url, {
-      headers: { "Accept": "application/json" }
-    });
-
-    const results = await response.json();
-
-    if (requestId !== latestSuggestionRequestId) return;
-
-    if (!Array.isArray(results)) {
-      hideSuggestions();
-      return;
-    }
-
-    renderSuggestions(results);
-  } catch (error) {
-    hideSuggestions();
-  }
-}
-
-async function geocodeLocationNow() {
-  const locationText = document.getElementById("e_location").value.trim();
-
-  if (!locationText) {
-    setMapStatus("Please enter address first", "warning");
-    return;
-  }
-
-  const requestId = ++latestGeocodeRequestId;
-  setMapStatus("Detecting latitude and longitude from full address...", "info");
-
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(locationText)}`;
-    const response = await fetch(url, {
-      headers: {
-        "Accept": "application/json"
-      }
-    });
-
-    const results = await response.json();
-
-    if (requestId !== latestGeocodeRequestId) return;
-
-    if (!Array.isArray(results) || !results.length) {
-      setMapStatus("Address not found. Adjust manually on the map.", "error");
-      return;
-    }
-
-    const first = results[0];
-    const lat = parseFloat(first.lat);
-    const lng = parseFloat(first.lon);
-
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setMapStatus("Address found but coordinates invalid.", "error");
-      return;
-    }
-
-    setLatLngInputs(lat, lng);
-    if (first.display_name) {
-      setLocationInputValue(first.display_name);
-    }
-    syncMapFromFields(true);
-    hideSuggestions();
-    setMapStatus("Full address detected successfully", "success");
-  } catch (error) {
-    if (requestId !== latestGeocodeRequestId) return;
-    setMapStatus("Failed to detect address. Check internet and try again.", "error");
-  }
-}
-
-async function reverseGeocodeNow(lat, lng, loadingMessage = "Updating full address from pin...") {
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return;
-  }
-
-  const requestId = ++latestReverseGeocodeRequestId;
-  setMapStatus(loadingMessage, "info");
-
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=18&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
-    const response = await fetch(url, {
-      headers: {
-        "Accept": "application/json"
-      }
-    });
-
-    const result = await response.json();
-
-    if (requestId !== latestReverseGeocodeRequestId) return;
-
-    const displayName = result && result.display_name ? result.display_name : "";
-    if (displayName) {
-      setLocationInputValue(displayName);
-      hideSuggestions();
-      setMapStatus("Full address updated from pin in real time", "success");
-    } else {
-      setMapStatus("Coordinates updated, but full address was not found.", "warning");
-    }
-  } catch (error) {
-    if (requestId !== latestReverseGeocodeRequestId) return;
-    setMapStatus("Failed to update full address from pin.", "error");
-  }
-}
-
-function scheduleRealtimeGeocode() {
-  clearTimeout(geocodeTimer);
-
-  const locationText = document.getElementById("e_location").value.trim();
-  if (!locationText || suppressLocationInputGeocode) {
-    return;
-  }
-
-  geocodeTimer = setTimeout(() => {
-    geocodeLocationNow();
-  }, 900);
-}
-
-function scheduleReverseGeocode(lat, lng, loadingMessage) {
-  clearTimeout(reverseGeocodeTimer);
-  reverseGeocodeTimer = setTimeout(() => {
-    reverseGeocodeNow(lat, lng, loadingMessage);
-  }, 250);
-}
-
-function scheduleSuggestionFetch() {
-  clearTimeout(suggestionTimer);
-  suggestionTimer = setTimeout(() => {
-    fetchAddressSuggestions();
-  }, 350);
-}
-
-function resetModalFields() {
-  document.getElementById('e_name').value = '';
-  document.getElementById('e_location').value = '';
-  document.getElementById('e_start_date').value = '';
-  document.getElementById('e_end_date').value = '';
-  document.getElementById('e_start_time').value = '';
-  document.getElementById('e_end_time').value = '';
-  document.getElementById('e_desc').value = '';
-  document.getElementById('e_latitude').value = '';
-  document.getElementById('e_longitude').value = '';
-  document.getElementById('e_radius').value = 100;
-
-  latestGeocodeRequestId = 0;
-  latestReverseGeocodeRequestId = 0;
-  latestSuggestionRequestId = 0;
-
-  hideSuggestions();
-
-  if (mapReady && eventMap) {
-    clearMapObjects();
-    eventMap.setView(DEFAULT_CENTER, 12);
-  }
-
-  setMapStatus("Enter full address to auto detect coordinates", "info");
-}
-
-function openModal() {
-  editId = null;
-  document.getElementById('modalTitle').innerText = 'Create Event';
-  document.getElementById('saveBtn').innerText = 'Save Event';
-  resetModalFields();
-  document.getElementById('modal').classList.remove('hidden');
-  document.body.classList.add('overflow-hidden');
-
-  setTimeout(() => {
-    if (mapReady && eventMap) {
-      eventMap.invalidateSize();
-      eventMap.setView(DEFAULT_CENTER, 12);
-    }
-  }, 250);
-}
-
-function closeModal() {
-  document.getElementById('modal').classList.add('hidden');
-  document.body.classList.remove('overflow-hidden');
-  hideSuggestions();
-}
-
-function handleBackdropClick(event) {
-  if (event.target.id === 'modal') {
-    closeModal();
-  }
-}
-
-function validateEventDateTime(data) {
-  if (!data.name || !data.location || !data.start_date || !data.end_date) {
-    alert('Please fill event name, full address, start date, and end date');
-    return false;
-  }
-
-  if (data.end_date < data.start_date) {
-    alert('End date cannot be earlier than start date');
-    return false;
-  }
-
-  if (data.start_date === data.end_date && data.start_time && data.end_time && data.end_time <= data.start_time) {
-    alert('End time must be later than start time for same-day event');
-    return false;
-  }
-
-  if (!data.latitude || !data.longitude) {
-    alert('Latitude and longitude are required. Please use auto detect or adjust on the map.');
-    return false;
-  }
-
-  if (!data.radius_meter || Number(data.radius_meter) <= 0) {
-    alert('Radius must be more than 0');
-    return false;
-  }
-
-  return true;
-}
-
-function saveEvent() {
-  const saveBtn = document.getElementById('saveBtn');
-
-  const data = {
-    name: document.getElementById('e_name').value.trim(),
-    location: document.getElementById('e_location').value.trim(),
-    start_date: document.getElementById('e_start_date').value,
-    end_date: document.getElementById('e_end_date').value,
-    start_time: document.getElementById('e_start_time').value,
-    end_time: document.getElementById('e_end_time').value,
-    description: document.getElementById('e_desc').value.trim(),
-    latitude: document.getElementById('e_latitude').value.trim(),
-    longitude: document.getElementById('e_longitude').value.trim(),
-    radius_meter: document.getElementById('e_radius').value.trim()
-  };
-
-  if (!validateEventDateTime(data)) {
-    return;
-  }
-
-  saveBtn.disabled = true;
-  saveBtn.innerText = editId ? 'Updating...' : 'Saving...';
-
-  let url = '/api/employees/event/create/';
-  if (editId) {
-    url = '/api/employees/event/update/' + editId + '/';
-  }
-
-  fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-  .then(res => res.json())
-  .then(data => {
-    alert(data.message || data.error);
-    if (data.message) {
-      location.reload();
-    }
-  })
-  .catch(() => {
-    alert('Error saving event');
-  })
-  .finally(() => {
-    saveBtn.disabled = false;
-    saveBtn.innerText = editId ? 'Update Event' : 'Save Event';
-  });
-}
-
-document.querySelectorAll('.edit-btn').forEach(btn => {
-  btn.addEventListener('click', function() {
-    editId = this.dataset.id;
-
-    document.getElementById('modalTitle').innerText = 'Edit Event';
-    document.getElementById('saveBtn').innerText = 'Update Event';
-
-    document.getElementById('e_name').value = this.dataset.name || '';
-    document.getElementById('e_location').value = this.dataset.location || '';
-    document.getElementById('e_start_date').value = this.dataset.startdate || '';
-    document.getElementById('e_end_date').value = this.dataset.enddate || '';
-    document.getElementById('e_start_time').value = this.dataset.starttime || '';
-    document.getElementById('e_end_time').value = this.dataset.endtime || '';
-    document.getElementById('e_desc').value = this.dataset.desc || '';
-    document.getElementById('e_latitude').value = this.dataset.latitude || '';
-    document.getElementById('e_longitude').value = this.dataset.longitude || '';
-    document.getElementById('e_radius').value = this.dataset.radius || 100;
-
-    hideSuggestions();
-    document.getElementById('modal').classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-
-    setTimeout(() => {
-      if (mapReady && eventMap) {
-        eventMap.invalidateSize();
-      }
-      syncMapFromFields(true);
-    }, 250);
-  });
-});
-
-document.querySelectorAll('.delete-btn').forEach(btn => {
-  btn.addEventListener('click', function() {
-    if (!confirm('Delete this event?')) return;
-
-    fetch('/api/employees/event/delete/' + this.dataset.id + '/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    })
-    .then(res => res.json())
-    .then(data => {
-      alert(data.message || data.error);
-      if (data.message) {
-        location.reload();
-      }
-    })
-    .catch(() => {
-      alert('Error deleting event');
-    });
-  });
-});
-
-function initEventMap() {
-  const mapEl = document.getElementById("eventMap");
-  if (!mapEl || typeof L === "undefined") return;
-
-  eventMap = L.map("eventMap");
-  eventMap.setView(DEFAULT_CENTER, 12);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: "&copy; OpenStreetMap contributors"
-  }).addTo(eventMap);
-
-  mapReady = true;
-
-  eventMap.on("click", function (e) {
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
-
-    setLatLngInputs(lat, lng);
-    syncMapFromFields(false);
-    scheduleReverseGeocode(lat, lng, "Map clicked. Updating full address...");
-    setMapStatus("Pin updated from map click", "success");
-  });
-
-  const locationInput = document.getElementById("e_location");
-  const latInput = document.getElementById("e_latitude");
-  const lngInput = document.getElementById("e_longitude");
-  const radiusInput = document.getElementById("e_radius");
-
-  if (locationInput) {
-    locationInput.addEventListener("input", function () {
-      if (suppressLocationInputGeocode) return;
-      scheduleSuggestionFetch();
-      scheduleRealtimeGeocode();
-    });
-
-    locationInput.addEventListener("focus", function () {
-      if (this.value.trim().length >= 3) {
-        scheduleSuggestionFetch();
-      }
-    });
-
-    locationInput.addEventListener("change", function () {
-      if (suppressLocationInputGeocode) return;
-      geocodeLocationNow();
-    });
-  }
-
-  if (latInput) {
-    latInput.addEventListener("input", () => syncMapFromFields(false));
-    latInput.addEventListener("change", () => syncMapFromFields(true));
-  }
-
-  if (lngInput) {
-    lngInput.addEventListener("input", () => syncMapFromFields(false));
-    lngInput.addEventListener("change", () => syncMapFromFields(true));
-  }
-
-  if (radiusInput) {
-    radiusInput.addEventListener("input", () => {
-      if (eventCircle) {
-        eventCircle.setRadius(getRadiusValue());
-      }
-    });
-
-    radiusInput.addEventListener("change", () => {
-      if (eventCircle) {
-        eventCircle.setRadius(getRadiusValue());
-      }
-      setMapStatus("Radius updated in real time", "success");
-    });
-  }
-
-  if (pendingMapSync) {
-    pendingMapSync = false;
-    syncMapFromFields(true);
-  } else {
-    setMapStatus("Map ready", "success");
-  }
-}
-
-document.addEventListener('click', function(event) {
-  const input = document.getElementById("e_location");
-  const box = document.getElementById("addressSuggestions");
-  if (!input || !box) return;
-
-  if (!event.target.closest('#addressSuggestions') && event.target !== input) {
-    hideSuggestions();
-  }
-});
-
-document.addEventListener('keydown', function(event) {
-  if (event.key === 'Escape') {
-    closeModal();
-  }
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-  initEventMap();
-
-  if (window.lucide) {
-    lucide.createIcons();
-  }
-});
+function selectAddressSuggestion(i){const items=window.__addressSuggestionItems||[];const item=items[i];if(!item)return;const la=parseFloat(item.lat),lo=parseFloat(item.lon);if(!Number.isFinite(la)||!Number.isFinite(lo))return;setLocationInputValue(item.display_name||'');setLatLngInputs(la,lo);syncMapFromFields(true);hideSuggestions();setMapStatus('Address suggestion selected','success');}
+function clearMapObjects(){if(eventMarker){eventMap.removeLayer(eventMarker);eventMarker=null;}if(eventCircle){eventMap.removeLayer(eventCircle);eventCircle=null;}}
+function ensureMarkerAndCircle(pos){if(!mapReady||!eventMap)return;if(!eventMarker){eventMarker=L.marker([pos.lat,pos.lng],{draggable:true}).addTo(eventMap);eventMarker.on('dragend',function(){const ll=eventMarker.getLatLng();setLatLngInputs(ll.lat,ll.lng);syncMapFromFields(false);scheduleReverseGeocode(ll.lat,ll.lng,'Pin moved...');setMapStatus('Pin updated manually','success');});}else{eventMarker.setLatLng([pos.lat,pos.lng]);}if(!eventCircle){eventCircle=L.circle([pos.lat,pos.lng],{radius:getRadiusValue(),color:'#003B46',fillColor:'#003B46',fillOpacity:0.12}).addTo(eventMap);}else{eventCircle.setLatLng([pos.lat,pos.lng]);eventCircle.setRadius(getRadiusValue());}}
+function syncMapFromFields(pan=true){if(!mapReady||!eventMap){pendingMapSync=true;return;}const pos=getLatLngFromInputs();if(!pos){clearMapObjects();eventMap.setView(DEFAULT_CENTER,12);setMapStatus('Enter address or coordinates to show map','info');return;}ensureMarkerAndCircle(pos);if(pan)eventMap.setView([pos.lat,pos.lng],17);setMapStatus('Map synced','success');}
+async function fetchAddressSuggestions(){const t=document.getElementById('e_location').value.trim();if(!t||t.length<3||suppressLocationInputGeocode){hideSuggestions();return;}const id=++latestSuggestionRequestId;try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(t)}`,{headers:{'Accept':'application/json'}});const results=await r.json();if(id!==latestSuggestionRequestId)return;if(!Array.isArray(results)){hideSuggestions();return;}renderSuggestions(results);}catch{hideSuggestions();}}
+async function geocodeLocationNow(){const t=document.getElementById('e_location').value.trim();if(!t){setMapStatus('Please enter address first','warning');return;}const id=++latestGeocodeRequestId;setMapStatus('Detecting coordinates...','info');try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(t)}`,{headers:{'Accept':'application/json'}});const results=await r.json();if(id!==latestGeocodeRequestId)return;if(!Array.isArray(results)||!results.length){setMapStatus('Address not found','error');return;}const f=results[0];const la=parseFloat(f.lat),lo=parseFloat(f.lon);if(!Number.isFinite(la)||!Number.isFinite(lo)){setMapStatus('Invalid coordinates','error');return;}setLatLngInputs(la,lo);if(f.display_name)setLocationInputValue(f.display_name);syncMapFromFields(true);hideSuggestions();setMapStatus('Address detected','success');}catch{if(id!==latestGeocodeRequestId)return;setMapStatus('Detection failed. Check connection.','error');}}
+async function reverseGeocodeNow(la,lo,msg='Updating address...'){if(!Number.isFinite(la)||!Number.isFinite(lo))return;const id=++latestReverseGeocodeRequestId;setMapStatus(msg,'info');try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=18&lat=${la}&lon=${lo}`,{headers:{'Accept':'application/json'}});const res=await r.json();if(id!==latestReverseGeocodeRequestId)return;if(res&&res.display_name){setLocationInputValue(res.display_name);hideSuggestions();setMapStatus('Address updated from pin','success');}else{setMapStatus('Coordinates updated','warning');}}catch{if(id!==latestReverseGeocodeRequestId)return;setMapStatus('Failed to update address','error');}}
+function scheduleRealtimeGeocode(){clearTimeout(geocodeTimer);const t=document.getElementById('e_location').value.trim();if(!t||suppressLocationInputGeocode)return;geocodeTimer=setTimeout(()=>geocodeLocationNow(),900);}
+function scheduleReverseGeocode(la,lo,msg){clearTimeout(reverseGeocodeTimer);reverseGeocodeTimer=setTimeout(()=>reverseGeocodeNow(la,lo,msg),250);}
+function scheduleSuggestionFetch(){clearTimeout(suggestionTimer);suggestionTimer=setTimeout(()=>fetchAddressSuggestions(),350);}
+function resetModalFields(){['e_name','e_location','e_start_date','e_end_date','e_start_time','e_end_time','e_desc','e_latitude','e_longitude'].forEach(id=>{document.getElementById(id).value='';});document.getElementById('e_radius').value=100;latestGeocodeRequestId=latestReverseGeocodeRequestId=latestSuggestionRequestId=0;hideSuggestions();if(mapReady&&eventMap){clearMapObjects();eventMap.setView(DEFAULT_CENTER,12);}setMapStatus('Enter full address to auto detect coordinates','info');}
+function openModal(){editId=null;document.getElementById('modalTitle').innerText='Create Event';document.getElementById('saveBtn').innerText='Save Event';resetModalFields();document.getElementById('modal').classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>{if(mapReady&&eventMap){eventMap.invalidateSize();eventMap.setView(DEFAULT_CENTER,12);}},250);}
+function closeModal(){document.getElementById('modal').classList.remove('open');document.body.style.overflow='';hideSuggestions();}
+function handleBackdropClick(e){if(e.target.id==='modal')closeModal();}
+function validateEventDateTime(d){if(!d.name||!d.location||!d.start_date||!d.end_date){alert('Please fill event name, address, start and end date');return false;}if(d.end_date<d.start_date){alert('End date cannot be earlier than start date');return false;}if(d.start_date===d.end_date&&d.start_time&&d.end_time&&d.end_time<=d.start_time){alert('End time must be later than start time');return false;}if(!d.latitude||!d.longitude){alert('Latitude and longitude are required.');return false;}if(!d.radius_meter||Number(d.radius_meter)<=0){alert('Radius must be more than 0');return false;}return true;}
+function saveEvent(){const btn=document.getElementById('saveBtn');const d={name:document.getElementById('e_name').value.trim(),location:document.getElementById('e_location').value.trim(),start_date:document.getElementById('e_start_date').value,end_date:document.getElementById('e_end_date').value,start_time:document.getElementById('e_start_time').value,end_time:document.getElementById('e_end_time').value,description:document.getElementById('e_desc').value.trim(),latitude:document.getElementById('e_latitude').value.trim(),longitude:document.getElementById('e_longitude').value.trim(),radius_meter:document.getElementById('e_radius').value.trim()};if(!validateEventDateTime(d))return;btn.disabled=true;btn.innerText=editId?'Updating...':'Saving...';let url=editId?'/api/employees/event/update/'+editId+'/':'/api/employees/event/create/';fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(r=>r.json()).then(d=>{alert(d.message||d.error);if(d.message)location.reload();}).catch(()=>alert('Error saving event')).finally(()=>{btn.disabled=false;btn.innerText=editId?'Update Event':'Save Event';});}
+document.querySelectorAll('.edit-btn').forEach(btn=>{btn.addEventListener('click',function(){editId=this.dataset.id;document.getElementById('modalTitle').innerText='Edit Event';document.getElementById('saveBtn').innerText='Update Event';document.getElementById('e_name').value=this.dataset.name||'';document.getElementById('e_location').value=this.dataset.location||'';document.getElementById('e_start_date').value=this.dataset.startdate||'';document.getElementById('e_end_date').value=this.dataset.enddate||'';document.getElementById('e_start_time').value=this.dataset.starttime||'';document.getElementById('e_end_time').value=this.dataset.endtime||'';document.getElementById('e_desc').value=this.dataset.desc||'';document.getElementById('e_latitude').value=this.dataset.latitude||'';document.getElementById('e_longitude').value=this.dataset.longitude||'';document.getElementById('e_radius').value=this.dataset.radius||100;hideSuggestions();document.getElementById('modal').classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>{if(mapReady&&eventMap)eventMap.invalidateSize();syncMapFromFields(true);},250);});});
+document.querySelectorAll('.delete-btn').forEach(btn=>{btn.addEventListener('click',function(){if(!confirm('Delete this event?'))return;fetch('/api/employees/event/delete/'+this.dataset.id+'/',{method:'POST',headers:{'Content-Type':'application/json'}}).then(r=>r.json()).then(d=>{alert(d.message||d.error);if(d.message)location.reload();}).catch(()=>alert('Error deleting event'));});});
+function initEventMap(){const el=document.getElementById('eventMap');if(!el||typeof L==='undefined')return;eventMap=L.map('eventMap');eventMap.setView(DEFAULT_CENTER,12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(eventMap);mapReady=true;eventMap.on('click',function(e){const la=e.latlng.lat,lo=e.latlng.lng;setLatLngInputs(la,lo);syncMapFromFields(false);scheduleReverseGeocode(la,lo,'Map clicked. Updating address...');setMapStatus('Pin updated','success');});const li=document.getElementById('e_location'),lai=document.getElementById('e_latitude'),loi=document.getElementById('e_longitude'),ri=document.getElementById('e_radius');if(li){li.addEventListener('input',function(){if(suppressLocationInputGeocode)return;scheduleSuggestionFetch();scheduleRealtimeGeocode();});li.addEventListener('focus',function(){if(this.value.trim().length>=3)scheduleSuggestionFetch();});li.addEventListener('change',function(){if(suppressLocationInputGeocode)return;geocodeLocationNow();});}if(lai){lai.addEventListener('input',()=>syncMapFromFields(false));lai.addEventListener('change',()=>syncMapFromFields(true));}if(loi){loi.addEventListener('input',()=>syncMapFromFields(false));loi.addEventListener('change',()=>syncMapFromFields(true));}if(ri){ri.addEventListener('input',()=>{if(eventCircle)eventCircle.setRadius(getRadiusValue());});ri.addEventListener('change',()=>{if(eventCircle)eventCircle.setRadius(getRadiusValue());setMapStatus('Radius updated','success');});}if(pendingMapSync){pendingMapSync=false;syncMapFromFields(true);}else{setMapStatus('Map ready','success');}}
+document.addEventListener('click',function(e){const i=document.getElementById('e_location'),b=document.getElementById('addressSuggestions');if(!i||!b)return;if(!e.target.closest('#addressSuggestions')&&e.target!==i)hideSuggestions();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+document.addEventListener('DOMContentLoaded',function(){initEventMap();if(window.lucide)lucide.createIcons();});
 </script>
 
 {% endblock %}

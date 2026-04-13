@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-
 {% block content %}
 
 <div id="analytics-overview-data"
@@ -9,24 +8,105 @@
      data-monthly-values='{{ monthly_values_json|safe }}'>
 </div>
 
-<div class="mb-6">
-  <h1 class="text-2xl font-bold text-gray-800">Analytics</h1>
-  <p class="text-sm text-gray-500 mt-1">
-    Attendance reporting, event performance, and operational insights.
-  </p>
+<style>
+  :root{--ocean:#003B46;--ocean-l:#004f60;--silver:#C0C0C0;--silver-l:#E5E4E2;
+    --border:#dde8ea;--text:#1a2e35;--muted:#6b8a93;--hint:#9ab0b7;}
+  .page-title{font-size:22px;font-weight:600;color:var(--text)}
+  .page-sub{font-size:13px;color:var(--muted);margin-top:4px}
+  .page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+  .section-label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--hint);margin:4px 0 13px}
+  /* FILTER */
+  .filter-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:16px}
+  .filter-input,.filter-select{width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;color:var(--text);background:#fff;outline:none;transition:border .15s;box-sizing:border-box}
+  .filter-input:focus,.filter-select:focus{border-color:var(--ocean)}
+  .filter-grid{display:grid;grid-template-columns:1fr 1fr 120px 1fr auto;gap:10px;align-items:end}
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;border:none;text-decoration:none;transition:background .15s;font-family:inherit}
+  .btn [data-lucide]{width:14px;height:14px}
+  .btn-ocean{background:var(--ocean);color:#fff}.btn-ocean:hover{background:var(--ocean-l)}
+  .btn-green{background:#2e7d32;color:#fff}.btn-green:hover{background:#1b5e20}
+  .btn-ghost{background:var(--silver-l);color:var(--text)}.btn-ghost:hover{background:#d4d3d1}
+  .btn-sm{padding:5px 11px;font-size:12px}.btn-sm [data-lucide]{width:13px;height:13px}
+  /* ACTIVE FILTER PILLS */
+  .filter-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+  .filter-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:12px;font-weight:500}
+  .pill-blue{background:#e3f2fd;color:#0d47a1}
+  .pill-indigo{background:#ede7f6;color:#4527a0}
+  .pill-purple{background:#f3e5f5;color:#6a1b9a}
+  .pill-green{background:#e8f5e9;color:#1b5e20}
+  /* STAT CARDS */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:22px}
+  .stat-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px}
+  .stat-label{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .stat-value{font-size:27px;font-weight:600;color:var(--text);line-height:1.1;margin-top:6px}
+  /* CHART GRID */
+  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+  .chart-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .chart-card-header{padding:14px 20px;border-bottom:1px solid var(--border)}
+  .chart-card-title{font-size:14px;font-weight:600;color:var(--text)}
+  .chart-card-sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .chart-card-body{padding:16px 20px}
+  /* LEADERBOARD */
+  .lead-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px}
+  .lead-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .lead-card-header{padding:13px 18px;border-bottom:1px solid var(--border)}
+  .lead-card-title{font-size:13.5px;font-weight:600;color:var(--text)}
+  .lead-item{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid #f0f3f4;font-size:13px}
+  .lead-item:last-child{border-bottom:none}
+  .lead-name{color:var(--text);flex:1;min-width:0;word-break:break-word;padding-right:8px}
+  .lead-count{flex-shrink:0}
+  .badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+  .badge-blue{background:#e3f2fd;color:#0d47a1}
+  .badge-green{background:#e8f5e9;color:#1b5e20}
+  .badge-cyan{background:#e0f7fa;color:#006064}
+  /* TOP EVENTS TABLE */
+  .table-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px}
+  .table-card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
+  .table-card-title{font-size:14px;font-weight:600;color:var(--text)}
+  .tbl-wrap{overflow-x:auto}
+  table.data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:700px}
+  table.data-table thead tr{background:#f4f7f8;border-bottom:1px solid var(--border)}
+  table.data-table thead th{padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border)}
+  table.data-table thead th:last-child{border-right:none}
+  table.data-table tbody tr{border-bottom:1px solid #f0f3f4;transition:background .1s}
+  table.data-table tbody tr:hover{background:#f7fafb}
+  table.data-table tbody tr:last-child{border-bottom:none}
+  table.data-table tbody td{padding:12px 14px;vertical-align:middle;border-right:1px solid #f0f3f4}
+  table.data-table tbody td:last-child{border-right:none}
+  .td-empty{padding:32px;text-align:center;color:var(--hint)}
+  .num-badge{display:inline-block;min-width:36px;text-align:center;padding:4px 10px;border-radius:8px;font-weight:600;font-size:13px}
+  .num-ocean{background:#e0edf0;color:var(--ocean)}
+  .num-blue{background:#e3f2fd;color:#0d47a1}
+  .num-green{background:#e8f5e9;color:#1b5e20}
+  .num-orange{background:#fff3e0;color:#bf6e00}
+  /* FULL WIDTH ANALYTICS TABLE (with charts per event) */
+  .analytics-event-table{width:100%;border-collapse:collapse;font-size:13px}
+  .analytics-event-table thead tr{background:#f4f7f8;border-bottom:1px solid var(--border)}
+  .analytics-event-table thead th{padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border)}
+  .analytics-event-table thead th:last-child{border-right:none}
+  .analytics-event-table tbody tr{border-bottom:1px solid #f0f3f4}
+  .analytics-event-table tbody td{padding:14px;vertical-align:top;border-right:1px solid #f0f3f4}
+  .analytics-event-table tbody td:last-child{border-right:none}
+  .chart-cell{min-width:220px}
+  @media(max-width:1200px){.stats-grid{grid-template-columns:1fr 1fr}.lead-grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:900px){.chart-grid{grid-template-columns:1fr}.lead-grid{grid-template-columns:1fr}.filter-grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:600px){.stats-grid{grid-template-columns:1fr 1fr}.filter-grid{grid-template-columns:1fr}.page-header{flex-direction:column;align-items:flex-start}}
+</style>
+
+<!-- ── PAGE HEADER ──────────────────────────── -->
+<div class="page-header">
+  <div>
+    <div class="page-title">Analytics</div>
+    <div class="page-sub">Attendance reporting, event performance, and operational insights.</div>
+  </div>
 </div>
 
-<form method="GET" class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 mb-6">
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
-    <input
-      type="text"
-      name="name"
-      placeholder="Search event name"
-      value="{{ filter_name }}"
-      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-    >
-
-    <select name="month" class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+<!-- ── FILTER ───────────────────────────────── -->
+<form method="GET" class="filter-card">
+  <div class="filter-grid">
+    <input type="text" name="name" placeholder="Search event name"
+      value="{{ filter_name }}" class="filter-input">
+    <select name="month" class="filter-select">
       <option value="">All Months</option>
       <option value="1" {% if filter_month == '1' %}selected{% endif %}>January</option>
       <option value="2" {% if filter_month == '2' %}selected{% endif %}>February</option>
@@ -41,289 +121,220 @@
       <option value="11" {% if filter_month == '11' %}selected{% endif %}>November</option>
       <option value="12" {% if filter_month == '12' %}selected{% endif %}>December</option>
     </select>
-
-    <input
-      type="number"
-      name="year"
-      placeholder="Year"
-      value="{{ filter_year }}"
-      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-    >
-
-    <input
-      type="text"
-      name="location"
-      placeholder="Search location"
-      value="{{ filter_location }}"
-      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-    >
-
-    <div class="grid grid-cols-2 gap-2">
-      <button class="bg-blue-500 text-white px-4 py-3 rounded-xl hover:bg-blue-600 transition font-medium">
-        Search
-      </button>
-      <a href="/analytics/" class="bg-gray-200 text-gray-700 px-4 py-3 rounded-xl text-center hover:bg-gray-300 transition font-medium">
-        Reset
-      </a>
+    <input type="number" name="year" placeholder="Year" value="{{ filter_year }}" class="filter-input">
+    <input type="text" name="location" placeholder="Search location"
+      value="{{ filter_location }}" class="filter-input">
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ocean"><i data-lucide="search"></i> Search</button>
+      <a href="/analytics/" class="btn btn-ghost">Reset</a>
     </div>
   </div>
 </form>
 
-<div class="flex flex-wrap gap-2 mb-6">
-  {% if filter_name %}
-  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">Event: {{ filter_name }}</span>
-  {% endif %}
-  {% if filter_month %}
-  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-indigo-100 text-indigo-700">Month: {{ filter_month }}</span>
-  {% endif %}
-  {% if filter_year %}
-  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-700">Year: {{ filter_year }}</span>
-  {% endif %}
-  {% if filter_location %}
-  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-700">Location: {{ filter_location }}</span>
-  {% endif %}
+<!-- ── ACTIVE FILTER PILLS ───────────────────── -->
+{% if filter_name or filter_month or filter_year or filter_location %}
+<div class="filter-pills">
+  {% if filter_name %}<span class="filter-pill pill-blue"><i data-lucide="tag" style="width:11px;height:11px"></i> Event: {{ filter_name }}</span>{% endif %}
+  {% if filter_month %}<span class="filter-pill pill-indigo"><i data-lucide="calendar" style="width:11px;height:11px"></i> Month: {{ filter_month }}</span>{% endif %}
+  {% if filter_year %}<span class="filter-pill pill-purple"><i data-lucide="calendar" style="width:11px;height:11px"></i> Year: {{ filter_year }}</span>{% endif %}
+  {% if filter_location %}<span class="filter-pill pill-green"><i data-lucide="map-pin" style="width:11px;height:11px"></i> Location: {{ filter_location }}</span>{% endif %}
 </div>
+{% endif %}
 
-<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-  <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
-    <p class="text-gray-500 text-sm">Filtered Events</p>
-    <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_filtered_events }}</h2>
+<!-- ── SUMMARY STATS ─────────────────────────── -->
+<div class="section-label">Summary</div>
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Filtered Events</div>
+    <div class="stat-value">{{ total_filtered_events }}</div>
   </div>
-  <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
-    <p class="text-gray-500 text-sm">Staff Attendance</p>
-    <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_filtered_staff }}</h2>
+  <div class="stat-card">
+    <div class="stat-label">Staff Attendance</div>
+    <div class="stat-value">{{ total_filtered_staff }}</div>
   </div>
-  <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
-    <p class="text-gray-500 text-sm">Visitor Attendance (Malaysian)</p>
-    <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_filtered_visitors }}</h2>
+  <div class="stat-card">
+    <div class="stat-label">Visitor (Malaysian)</div>
+    <div class="stat-value">{{ total_filtered_visitors }}</div>
   </div>
-  <div class="bg-white p-4 rounded-2xl shadow border border-gray-200">
-    <p class="text-gray-500 text-sm">Visitor Attendance (Non-Malaysian)</p>
-    <h2 class="text-2xl font-bold mt-1 text-gray-800">{{ total_filtered_passport }}</h2>
+  <div class="stat-card">
+    <div class="stat-label">Visitor (Non-Malaysian)</div>
+    <div class="stat-value">{{ total_filtered_passport }}</div>
   </div>
 </div>
 
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-  <div class="bg-white p-5 rounded-2xl shadow border border-gray-200">
-    <div class="mb-4">
-      <h3 class="font-semibold text-lg text-gray-800">Attendance Composition</h3>
-      <p class="text-sm text-gray-500">Breakdown of attendance categories for current filters</p>
+<!-- ── CHARTS ────────────────────────────────── -->
+<div class="section-label">Charts</div>
+<div class="chart-grid">
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <div class="chart-card-title">Attendance Composition</div>
+      <div class="chart-card-sub">Breakdown by category for current filters</div>
     </div>
-    <div class="max-w-md mx-auto">
-      <canvas id="analyticsOverviewChart"></canvas>
+    <div class="chart-card-body" style="display:flex;justify-content:center">
+      <div style="max-width:260px;width:100%">
+        <canvas id="analyticsOverviewChart"></canvas>
+      </div>
     </div>
   </div>
-
-  <div class="bg-white p-5 rounded-2xl shadow border border-gray-200">
-    <div class="mb-4">
-      <h3 class="font-semibold text-lg text-gray-800">Monthly Attendance Trend</h3>
-      <p class="text-sm text-gray-500">Attendance distribution by event month</p>
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <div class="chart-card-title">Monthly Attendance Trend</div>
+      <div class="chart-card-sub">Attendance distribution by event month</div>
     </div>
-    <div class="h-[320px]">
+    <div class="chart-card-body" style="height:280px">
       <canvas id="monthlyTrendChart"></canvas>
     </div>
   </div>
 </div>
 
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-  <div class="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden">
-    <div class="p-4 border-b border-gray-200">
-      <h3 class="font-semibold text-gray-800">Top Departments</h3>
+<!-- ── LEADERBOARDS ──────────────────────────── -->
+<div class="section-label">Leaderboards</div>
+<div class="lead-grid">
+  <div class="lead-card">
+    <div class="lead-card-header">
+      <div class="lead-card-title">Top Departments</div>
     </div>
-    <div class="divide-y divide-gray-100">
-      {% for dept, total in top_departments %}
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-sm text-gray-700">{{ dept }}</span>
-        <span class="inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700">{{ total }}</span>
-      </div>
-      {% empty %}
-      <div class="p-4 text-sm text-gray-500">No department analytics available.</div>
-      {% endfor %}
+    {% for dept, total in top_departments %}
+    <div class="lead-item">
+      <span class="lead-name">{{ dept }}</span>
+      <span class="badge badge-blue lead-count">{{ total }}</span>
     </div>
+    {% empty %}
+    <div style="padding:16px;font-size:12.5px;color:var(--hint);text-align:center">No data available.</div>
+    {% endfor %}
   </div>
-
-  <div class="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden">
-    <div class="p-4 border-b border-gray-200">
-      <h3 class="font-semibold text-gray-800">Top Organizations</h3>
+  <div class="lead-card">
+    <div class="lead-card-header">
+      <div class="lead-card-title">Top Organizations</div>
     </div>
-    <div class="divide-y divide-gray-100">
-      {% for org, total in top_organizations %}
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-sm text-gray-700">{{ org }}</span>
-        <span class="inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-700">{{ total }}</span>
-      </div>
-      {% empty %}
-      <div class="p-4 text-sm text-gray-500">No organization analytics available.</div>
-      {% endfor %}
+    {% for org, total in top_organizations %}
+    <div class="lead-item">
+      <span class="lead-name">{{ org }}</span>
+      <span class="badge badge-green lead-count">{{ total }}</span>
     </div>
+    {% empty %}
+    <div style="padding:16px;font-size:12.5px;color:var(--hint);text-align:center">No data available.</div>
+    {% endfor %}
   </div>
-
-  <div class="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden">
-    <div class="p-4 border-b border-gray-200">
-      <h3 class="font-semibold text-gray-800">Top Countries</h3>
+  <div class="lead-card">
+    <div class="lead-card-header">
+      <div class="lead-card-title">Top Countries</div>
     </div>
-    <div class="divide-y divide-gray-100">
-      {% for country, total in top_countries %}
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-sm text-gray-700">{{ country }}</span>
-        <span class="inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold bg-cyan-100 text-cyan-700">{{ total }}</span>
-      </div>
-      {% empty %}
-      <div class="p-4 text-sm text-gray-500">No non-Malaysian visitor analytics available.</div>
-      {% endfor %}
+    {% for country, total in top_countries %}
+    <div class="lead-item">
+      <span class="lead-name">{{ country }}</span>
+      <span class="badge badge-cyan lead-count">{{ total }}</span>
     </div>
+    {% empty %}
+    <div style="padding:16px;font-size:12.5px;color:var(--hint);text-align:center">No data available.</div>
+    {% endfor %}
   </div>
 </div>
 
-<div class="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden mb-6">
-  <div class="p-4 border-b border-gray-200">
-    <h3 class="font-semibold text-gray-800">Top Events by Attendance</h3>
-  </div>
-  <div class="overflow-x-auto">
-    <table class="min-w-[700px] w-full text-sm border-collapse">
-      <thead class="bg-gray-50">
-        <tr class="border-b border-gray-200">
-          <th class="p-4 text-left border-r border-gray-200">Event</th>
-          <th class="p-4 text-left border-r border-gray-200">Staff</th>
-          <th class="p-4 text-left border-r border-gray-200">Visitor (MY)</th>
-          <th class="p-4 text-left border-r border-gray-200">Visitor (Non-MY)</th>
-          <th class="p-4 text-left">Total</th>
+<!-- ── TOP EVENTS SIMPLE TABLE ───────────────── -->
+<div class="section-label">Top Events by Attendance</div>
+<div class="table-card" style="margin-bottom:20px">
+  <div class="tbl-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>Staff</th>
+          <th>Visitor (MY)</th>
+          <th>Visitor (Non-MY)</th>
+          <th>Total</th>
         </tr>
       </thead>
       <tbody>
         {% for item in top_events %}
-        <tr class="border-b border-gray-200">
-          <td class="p-4 border-r border-gray-200">
-            <div class="font-semibold text-gray-800">{{ item.event.name }}</div>
-            <div class="text-xs text-gray-500 mt-1">{{ item.event.location }}</div>
+        <tr>
+          <td>
+            <div style="font-weight:500;color:var(--text)">{{ item.event.name }}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">{{ item.event.location }}</div>
           </td>
-          <td class="p-4 border-r border-gray-200">{{ item.staff_total }}</td>
-          <td class="p-4 border-r border-gray-200">{{ item.visitor_total }}</td>
-          <td class="p-4 border-r border-gray-200">{{ item.passport_total }}</td>
-          <td class="p-4 font-semibold text-gray-800">{{ item.grand_total }}</td>
+          <td><span class="num-badge num-blue">{{ item.staff_total }}</span></td>
+          <td><span class="num-badge num-green">{{ item.visitor_total }}</span></td>
+          <td><span class="num-badge num-orange">{{ item.passport_total }}</span></td>
+          <td><span class="num-badge num-ocean">{{ item.grand_total }}</span></td>
         </tr>
         {% empty %}
-        <tr>
-          <td colspan="5" class="p-6 text-center text-gray-500">No top event data available.</td>
-        </tr>
+        <tr><td colspan="5" class="td-empty">No event analytics available.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 
-<div class="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden">
-  <div class="p-4 border-b border-gray-200">
-    <h3 class="font-semibold">Event Attendance Analytics</h3>
-    <p class="text-sm text-gray-500 mt-1">
-      Staff by department, Malaysian visitors by organization, and non-Malaysian visitors by country for each event
-    </p>
-  </div>
-
-  <div class="overflow-x-auto">
-    <table class="min-w-[1400px] w-full text-sm border-collapse">
-      <thead class="bg-gray-50">
-        <tr class="border-b border-gray-200">
-          <th class="p-4 text-left border-r border-gray-200">Event</th>
-          <th class="p-4 text-left border-r border-gray-200">Staff / Employee by Department</th>
-          <th class="p-4 text-left border-r border-gray-200">Visitor (Malaysian) by Organization</th>
-          <th class="p-4 text-left {% if can_manage %}border-r border-gray-200{% endif %}">Visitor (Non-Malaysian) by Country</th>
-          {% if can_manage %}
-          <th class="p-4 text-left">Export</th>
-          {% endif %}
+<!-- ── PER-EVENT BREAKDOWN WITH CHARTS ──────── -->
+<div class="section-label">Per-Event Breakdown</div>
+<div class="table-card">
+  <div class="tbl-wrap">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:900px">
+      <thead>
+        <tr style="background:#f4f7f8;border-bottom:1px solid var(--border)">
+          <th style="padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border)">Event</th>
+          <th style="padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border);min-width:220px">Staff by Dept</th>
+          <th style="padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border);min-width:220px">Visitor by Org</th>
+          <th style="padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border);min-width:220px">Non-MY by Country</th>
+          {% if can_manage %}<th style="padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px">Export</th>{% endif %}
         </tr>
       </thead>
-
       <tbody>
-        {% for item in event_analytics %}
-        <tr class="border-b border-gray-200 align-top">
-          <td class="p-4 border-r border-gray-200 min-w-[320px]">
-            <div class="font-semibold text-base">{{ item.event.name }}</div>
-            <div class="text-gray-500 mt-1">Start Date: {{ item.event.start_date|date:"d/m/Y" }}</div>
-            <div class="text-gray-500">End Date: {{ item.event.end_date|date:"d/m/Y" }}</div>
-            <div class="text-gray-500">Location: {{ item.event.location }}</div>
-            <div class="text-gray-500">Description: {{ item.event.description|default:"-" }}</div>
-            <div class="text-gray-500">Latitude: {{ item.event.latitude|default:"-" }}</div>
-            <div class="text-gray-500">Longitude: {{ item.event.longitude|default:"-" }}</div>
-            <div class="text-gray-500">Radius: {{ item.event.radius_meter }} meter</div>
-
-            <div class="mt-3 grid grid-cols-1 gap-2 text-xs">
-              <div class="inline-flex items-center justify-between bg-blue-50 text-blue-700 px-3 py-2 rounded-lg">
-                <span>Staff Attendance</span>
-                <span class="font-semibold">{{ item.staff_total }}</span>
-              </div>
-              <div class="inline-flex items-center justify-between bg-green-50 text-green-700 px-3 py-2 rounded-lg">
-                <span>Visitor Attendance (MY)</span>
-                <span class="font-semibold">{{ item.visitor_total }}</span>
-              </div>
-              <div class="inline-flex items-center justify-between bg-cyan-50 text-cyan-700 px-3 py-2 rounded-lg">
-                <span>Visitor Attendance (Non-MY)</span>
-                <span class="font-semibold">{{ item.passport_total }}</span>
-              </div>
-              <div class="inline-flex items-center justify-between bg-gray-100 text-gray-700 px-3 py-2 rounded-lg">
-                <span>Total Attendance</span>
-                <span class="font-semibold">{{ item.grand_total }}</span>
-              </div>
+        {% for item in top_events %}
+        <tr style="border-bottom:1px solid #f0f3f4">
+          <td style="padding:14px;vertical-align:top;border-right:1px solid #f0f3f4;min-width:180px">
+            <div style="font-weight:500;color:var(--text)">{{ item.event.name }}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">{{ item.event.location }}</div>
+            <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">
+              <span class="num-badge num-blue" style="width:fit-content">{{ item.staff_total }} staff</span>
+              <span class="num-badge num-green" style="width:fit-content">{{ item.visitor_total }} visitor</span>
+              <span class="num-badge num-orange" style="width:fit-content">{{ item.passport_total }} non-MY</span>
             </div>
           </td>
-
-          <td class="p-4 border-r border-gray-200 min-w-[320px]">
+          <td style="padding:14px;vertical-align:top;border-right:1px solid #f0f3f4">
             {% if item.staff_total > 0 %}
-              <div class="w-64 h-64 mx-auto">
-                <canvas
-                  class="staff-chart"
-                  data-labels='{{ item.staff_labels_json|safe }}'
-                  data-values='{{ item.staff_data_json|safe }}'>
-                </canvas>
-              </div>
+            <div style="width:180px;height:180px;margin:0 auto">
+              <canvas class="staff-chart"
+                data-labels='{{ item.staff_labels_json|safe }}'
+                data-values='{{ item.staff_data_json|safe }}'></canvas>
+            </div>
             {% else %}
-              <div class="text-gray-400 text-center py-20">No staff attendance data</div>
+            <div style="color:var(--hint);font-size:12.5px;padding:24px 0;text-align:center">No staff data</div>
             {% endif %}
           </td>
-
-          <td class="p-4 border-r border-gray-200 min-w-[320px]">
+          <td style="padding:14px;vertical-align:top;border-right:1px solid #f0f3f4">
             {% if item.visitor_total > 0 %}
-              <div class="w-64 h-64 mx-auto">
-                <canvas
-                  class="visitor-chart"
-                  data-labels='{{ item.visitor_labels_json|safe }}'
-                  data-values='{{ item.visitor_data_json|safe }}'>
-                </canvas>
-              </div>
+            <div style="width:180px;height:180px;margin:0 auto">
+              <canvas class="visitor-chart"
+                data-labels='{{ item.visitor_labels_json|safe }}'
+                data-values='{{ item.visitor_data_json|safe }}'></canvas>
+            </div>
             {% else %}
-              <div class="text-gray-400 text-center py-12">No visitor attendance data</div>
+            <div style="color:var(--hint);font-size:12.5px;padding:24px 0;text-align:center">No visitor data</div>
             {% endif %}
           </td>
-
-          <td class="p-4 {% if can_manage %}border-r border-gray-200{% endif %} min-w-[320px]">
+          {% if can_manage %}<td style="padding:14px;vertical-align:top;border-right:1px solid #f0f3f4">{% else %}<td style="padding:14px;vertical-align:top">{% endif %}
             {% if item.passport_total > 0 %}
-              <div class="w-64 h-64 mx-auto">
-                <canvas
-                  class="passport-chart"
-                  data-labels='{{ item.passport_labels_json|safe }}'
-                  data-values='{{ item.passport_data_json|safe }}'>
-                </canvas>
-              </div>
+            <div style="width:180px;height:180px;margin:0 auto">
+              <canvas class="passport-chart"
+                data-labels='{{ item.passport_labels_json|safe }}'
+                data-values='{{ item.passport_data_json|safe }}'></canvas>
+            </div>
             {% else %}
-              <div class="text-gray-400 text-center py-12">No non-Malaysian visitor data</div>
+            <div style="color:var(--hint);font-size:12.5px;padding:24px 0;text-align:center">No non-MY data</div>
             {% endif %}
           </td>
-
           {% if can_manage %}
-          <td class="p-4 min-w-[140px]">
+          <td style="padding:14px;vertical-align:top">
             <a href="/api/employees/dashboard/export-event-summary/{{ item.event.id }}/"
-               class="inline-block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-              Export CSV
+               class="btn btn-sm btn-green">
+              <i data-lucide="download"></i> CSV
             </a>
           </td>
           {% endif %}
         </tr>
         {% empty %}
-        <tr>
-          <td colspan="{% if can_manage %}5{% else %}4{% endif %}" class="p-6 text-center text-gray-500">
-            No event analytics available
-          </td>
-        </tr>
+        <tr><td colspan="{% if can_manage %}5{% else %}4{% endif %}" style="padding:32px;text-align:center;color:var(--hint)">No event analytics available.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -332,152 +343,56 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const analyticsData = document.getElementById('analytics-overview-data');
+  const ad = document.getElementById('analytics-overview-data');
+  const oLabels = JSON.parse(ad.dataset.overviewLabels || '[]');
+  const oValues = JSON.parse(ad.dataset.overviewValues || '[]');
+  const mLabels = JSON.parse(ad.dataset.monthlyLabels || '[]');
+  const mValues = JSON.parse(ad.dataset.monthlyValues || '[]');
 
-  const overviewLabels = JSON.parse(analyticsData.dataset.overviewLabels || '[]');
-  const overviewValues = JSON.parse(analyticsData.dataset.overviewValues || '[]');
-  const monthlyLabels = JSON.parse(analyticsData.dataset.monthlyLabels || '[]');
-  const monthlyValues = JSON.parse(analyticsData.dataset.monthlyValues || '[]');
+  const COLORS = ['#003B46', '#00A8CC', '#C0C0C0', '#5DADE2', '#1abc9c', '#f39c12', '#e74c3c'];
 
-  const overviewCanvas = document.getElementById('analyticsOverviewChart');
-  if (overviewCanvas) {
-    new Chart(overviewCanvas, {
+  const oCanvas = document.getElementById('analyticsOverviewChart');
+  if (oCanvas) {
+    new Chart(oCanvas, {
       type: 'doughnut',
-      data: {
-        labels: overviewLabels,
-        datasets: [{
-          data: overviewValues,
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: 'bottom' },
-          title: {
-            display: true,
-            text: 'Attendance Composition'
-          }
-        }
-      }
+      data: { labels: oLabels, datasets: [{ data: oValues,
+        backgroundColor: ['#003B46','#00A8CC','#C0C0C0'], borderColor:'#fff', borderWidth:3, hoverOffset:6 }] },
+      options: { responsive:true, cutout:'66%',
+        plugins: { legend:{ position:'bottom', labels:{ font:{size:11} } }, title:{ display:false } } }
     });
   }
 
-  const monthlyCanvas = document.getElementById('monthlyTrendChart');
-  if (monthlyCanvas) {
-    new Chart(monthlyCanvas, {
+  const mCanvas = document.getElementById('monthlyTrendChart');
+  if (mCanvas) {
+    new Chart(mCanvas, {
       type: 'bar',
-      data: {
-        labels: monthlyLabels,
-        datasets: [{
-          label: 'Attendance',
-          data: monthlyValues,
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          title: {
-            display: true,
-            text: 'Monthly Attendance Trend'
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        }
-      }
+      data: { labels: mLabels, datasets: [{
+        label: 'Attendance', data: mValues,
+        backgroundColor: '#003B46', borderRadius: 6, borderSkipped: false }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins: { legend:{ display:false } },
+        scales: { y:{ beginAtZero:true, grid:{ color:'#f0f3f4' } },
+                  x:{ grid:{ display:false } } } }
     });
   }
 
-  document.querySelectorAll('.staff-chart').forEach(function (canvas) {
+  function makePie(canvas, labelKey, titleText) {
     const labels = JSON.parse(canvas.dataset.labels || '[]');
     const values = JSON.parse(canvas.dataset.values || '[]');
-
     new Chart(canvas, {
       type: 'pie',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: values,
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom' },
-          title: {
-            display: true,
-            text: 'Staff / Employee by Department'
-          }
-        }
-      }
+      data: { labels, datasets: [{ data: values, backgroundColor: COLORS, borderWidth:2, borderColor:'#fff' }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins: { legend:{ position:'bottom', labels:{ font:{size:10}, boxWidth:10 } },
+          title:{ display:true, text:titleText, font:{size:11} } } }
     });
-  });
-
-  document.querySelectorAll('.visitor-chart').forEach(function (canvas) {
-    const labels = JSON.parse(canvas.dataset.labels || '[]');
-    const values = JSON.parse(canvas.dataset.values || '[]');
-
-    new Chart(canvas, {
-      type: 'pie',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: values,
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom' },
-          title: {
-            display: true,
-            text: 'Visitor by Organization'
-          }
-        }
-      }
-    });
-  });
-
-  document.querySelectorAll('.passport-chart').forEach(function (canvas) {
-    const labels = JSON.parse(canvas.dataset.labels || '[]');
-    const values = JSON.parse(canvas.dataset.values || '[]');
-
-    new Chart(canvas, {
-      type: 'pie',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: values,
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom' },
-          title: {
-            display: true,
-            text: 'Visitor (Non-Malaysian) by Country'
-          }
-        }
-      }
-    });
-  });
-
-  if (window.lucide) {
-    lucide.createIcons();
   }
+
+  document.querySelectorAll('.staff-chart').forEach(c => makePie(c, 'labels', 'Staff by Department'));
+  document.querySelectorAll('.visitor-chart').forEach(c => makePie(c, 'labels', 'Visitor by Organization'));
+  document.querySelectorAll('.passport-chart').forEach(c => makePie(c, 'labels', 'Non-MY by Country'));
+
+  if (window.lucide) lucide.createIcons();
 });
 </script>
 

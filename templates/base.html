@@ -1,128 +1,434 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <title>DBKU Attendance</title>
+  <style>
+    :root {
+      --ocean: #003B46;
+      --ocean-light: #004f60;
+      --ocean-dark: #002830;
+      --silver: #C0C0C0;
+      --silver-light: #E5E4E2;
+      --offwhite: #FAFAFA;
+      --page-bg: #F4F6F7;
+      --border: #dde8ea;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background: var(--page-bg);
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+    }
+
+    /* ─── OCEAN BAR ─────────────────────────── */
+    .ocean-bar {
+      height: 3px;
+      background: var(--ocean);
+      width: 100%;
+      flex-shrink: 0;
+    }
+
+    /* ─── SIDEBAR ───────────────────────────── */
+    #sidebar {
+      background: var(--ocean);
+      width: 220px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px 16px;
+      transition: transform 0.25s ease;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+      padding: 0 4px;
+    }
+
+    /* .brand-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #00c8f0;
+      flex-shrink: 0;
+    } */
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }    
+
+    .brand-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      color: rgba(255,255,255,0.45);
+      margin-top: 1px;
+    }
+
+    .nav-section {
+      font-size: 10px;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 0 4px;
+      margin-bottom: 8px;
+      margin-top: 16px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      color: rgba(255,255,255,0.6);
+      text-decoration: none;
+      font-size: 13.5px;
+      margin-bottom: 2px;
+      transition: all 0.15s;
+    }
+
+    .nav-item:hover {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+    }
+
+    .nav-item.active {
+      background: rgba(255,255,255,0.13);
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .nav-item svg, .nav-item [data-lucide] {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .logout-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(224,80,80,0.15);
+      color: #f08080;
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      width: 100%;
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+
+    .logout-btn:hover { background: rgba(224,80,80,0.27); }
+    .logout-btn [data-lucide] { width: 15px; height: 15px; }
+
+    /* ─── TOPBAR ────────────────────────────── */
+    .topbar {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .topbar-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #1a2e35;
+    }
+
+    .topbar-sub {
+      font-size: 11px;
+      color: #6b8a93;
+    }
+
+    .topbar-badge {
+      background: var(--silver-light);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12.5px;
+      color: #1a2e35;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .topbar-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--ocean);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ─── MAIN LAYOUT ───────────────────────── */
+    .app-layout {
+      display: flex;
+      height: 100vh;
+    }
+
+    .app-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .app-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 28px;
+    }
+
+    /* ─── DROPDOWN ──────────────────────────── */
+    #user-dropdown {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      width: 200px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,59,70,0.12);
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    #user-dropdown.hidden { display: none; }
+
+    .dropdown-header {
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #6b8a93;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dropdown-item {
+      display: block;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #e05050;
+      text-decoration: none;
+      transition: background 0.12s;
+    }
+
+    .dropdown-item:hover { background: #fef2f2; }
+
+    /* ─── MOBILE ────────────────────────────── */
+    .mobile-topbar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hamburger-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 16px;
+      cursor: pointer;
+      color: var(--ocean);
+    }
+
+    #mobile-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 40;
+    }
+
+    /* ─── SCROLLBAR ─────────────────────────── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--silver); border-radius: 4px; }
+
+    /* ─── RESPONSIVE ────────────────────────── */
+    @media (max-width: 768px) {
+      .app-layout { flex-direction: column; height: auto; min-height: 100vh; }
+      #sidebar {
+        position: fixed;
+        left: 0; top: 0; bottom: 0;
+        z-index: 50;
+        transform: translateX(-100%);
+        width: 240px;
+      }
+      #sidebar.open { transform: translateX(0); }
+      .mobile-topbar { display: flex; }
+      .topbar { display: none; }
+      .ocean-bar { display: none; }
+      .app-content { padding: 16px; }
+    }
+  </style>
 </head>
 
-<body class="bg-gray-100">
+<body>
+<div id="mobile-overlay" onclick="closeSidebar()"></div>
 
-<div class="flex h-screen flex-col md:flex-row">
+<div class="app-layout">
 
-  <!-- SIDEBAR -->
-  <div id="sidebar"
-     class="w-full md:w-64 bg-white shadow-xl p-5 flex flex-col justify-between hidden md:flex">
+  <!-- ── SIDEBAR ── -->
+  <div id="sidebar">
     <div>
-      <h2 class="text-xl font-bold text-blue-600 mb-8">ADMIN PANEL</h2>
-
-      <ul class="space-y-3">
-        <li>
-          <a href="/dashboard/"
-            class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 {% if request.path == '/dashboard/' %}bg-blue-100 text-blue-600{% else %}text-gray-600{% endif %}">
-            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-            <span>Dashboard</span>
-          </a>
-        </li>
-
-        <li>
-          <a href="/employees/"
-            class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 {% if request.path == '/employees/' %}bg-blue-100 text-blue-600{% else %}text-gray-600{% endif %}">
-            <i data-lucide="users" class="w-5 h-5"></i>
-            <span>Staff</span>
-          </a>
-        </li>
-
-        <li>
-          <a href="/events/"
-            class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 {% if request.path == '/events/' or '/events/' in request.path %}bg-blue-100 text-blue-600{% else %}text-gray-600{% endif %}">
-            <i data-lucide="calendar-days" class="w-5 h-5"></i>
-            <span>Events</span>
-          </a>
-        </li>
-
-        <li>
-          <a href="/analytics/"
-            class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 {% if request.path == '/analytics/' %}bg-blue-100 text-blue-600{% else %}text-gray-600{% endif %}">
-            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
-            <span>Analytics</span>
-          </a>
-        </li>
-      </ul>
-    </div>
-
-    <form method="POST" action="/logout/">
-      {% csrf_token %}
-      <button class="inline-flex items-center justify-center gap-2 bg-red-500 text-white w-full py-3 rounded-xl hover:bg-red-600 transition font-medium">
-        <i data-lucide="log-out" class="w-5 h-5"></i>
-        <span>Logout</span>
-      </button>
-    </form>
-  </div>
-
-  <!-- MAIN -->
-  <div class="flex-1 p-4 md:p-6 overflow-y-auto">
-
-    <!-- TOP BAR -->
-  <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-6">
-    <div class="flex items-center justify-between gap-3">
-      <button onclick="toggleSidebar()" class="md:hidden bg-white px-3 py-2 rounded shadow">
-        ☰
-      </button>
-
-      <div class="text-sm text-gray-500">
-        DBKU Attendance Management System
-      </div>
-    </div>
-
-    <div class="relative">
-      <button onclick="toggleDropdown()" class="flex items-center gap-2 bg-white px-4 py-2 rounded shadow w-full md:w-auto">
-        👤
-        <span>
-          {{ current_employee.full_name|default:request.user.username }}
-          {% if current_employee %}
-            - {{ current_employee.role|title }}
-          {% endif %}
-        </span>
-      </button>
-
-      <div id="dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white shadow rounded z-50">
-        <div class="px-4 py-2 text-sm text-gray-500 border-b">
-          {{ request.user.username }}
+      <div class="sidebar-brand">
+        <img src="{% static 'logo.png' %}" class="brand-logo">
+        <div>
+          <div class="brand-name">DBKU Attendance Management System</div>
         </div>
-        <a href="/logout/" class="block px-4 py-2 text-red-500 hover:bg-gray-100">Logout</a>
       </div>
+
+      <div class="nav-section">Main</div>
+
+      <a href="/dashboard/"
+         class="nav-item {% if request.path == '/dashboard/' %}active{% endif %}">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="/employees/"
+         class="nav-item {% if request.path == '/employees/' %}active{% endif %}">
+        <i data-lucide="users"></i>
+        <span>Staff</span>
+      </a>
+
+      <a href="/events/"
+         class="nav-item {% if request.path == '/events/' or '/events/' in request.path %}active{% endif %}">
+        <i data-lucide="calendar-days"></i>
+        <span>Events</span>
+      </a>
+
+      <a href="/analytics/"
+         class="nav-item {% if request.path == '/analytics/' %}active{% endif %}">
+        <i data-lucide="bar-chart-3"></i>
+        <span>Analytics</span>
+      </a>
+    </div>
+
+    <div>
+      <form method="POST" action="/logout/">
+        {% csrf_token %}
+        <button class="logout-btn">
+          <i data-lucide="log-out"></i>
+          <span>Logout</span>
+        </button>
+      </form>
     </div>
   </div>
 
-    {% block content %}
-    {% endblock %}
+  <!-- ── MAIN ── -->
+  <div class="app-main">
+
+    <!-- Mobile topbar -->
+    <div class="mobile-topbar">
+      <button class="hamburger-btn" onclick="openSidebar()">☰</button>
+      <div style="font-size:13px;font-weight:600;color:var(--ocean)">DBKU Attendance</div>
+      <div style="font-size:12px;color:#6b8a93">
+        {{ current_employee.full_name|default:request.user.username }}
+      </div>
+    </div>
+
+    <div class="ocean-bar"></div>
+
+    <!-- Desktop topbar -->
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">DBKU Attendance Management System</div>
+        <div class="topbar-sub">{{ today_date|date:"l, d F Y"|default:"" }}</div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;position:relative">
+        <button
+          onclick="toggleDropdown()"
+          style="display:flex;align-items:center;gap:8px;background:var(--silver-light);border:none;border-radius:10px;padding:6px 12px;cursor:pointer;font-family:inherit;font-size:13px;color:#1a2e35">
+          <div class="topbar-avatar">
+            {{ current_employee.full_name|default:request.user.username|slice:":2"|upper }}
+          </div>
+          <span>
+            {{ current_employee.full_name|default:request.user.username }}
+            {% if current_employee %} — {{ current_employee.role|title }}{% endif %}
+          </span>
+          <i data-lucide="chevron-down" style="width:13px;height:13px;color:#6b8a93"></i>
+        </button>
+
+        <div id="user-dropdown" class="hidden">
+          <div class="dropdown-header">{{ request.user.username }}</div>
+          <a href="/logout/" class="dropdown-item">
+            <i data-lucide="log-out" style="width:13px;height:13px;display:inline;margin-right:6px"></i>
+            Logout
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page content -->
+    <div class="app-content">
+      {% block content %}
+      {% endblock %}
+    </div>
 
   </div>
-
 </div>
 
 <script>
 function toggleDropdown() {
-  document.getElementById("dropdown").classList.toggle("hidden");
+  document.getElementById('user-dropdown').classList.toggle('hidden');
 }
 
-function toggleSidebar() {
-  document.getElementById("sidebar").classList.toggle("hidden");
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('mobile-overlay').style.display = 'block';
 }
 
-document.addEventListener("click", function (e) {
-  const dropdown = document.getElementById("dropdown");
-  if (!e.target.closest(".relative")) {
-    dropdown.classList.add("hidden");
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('mobile-overlay').style.display = 'none';
+}
+
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('user-dropdown');
+  if (dd && !e.target.closest('[onclick="toggleDropdown()"]')) {
+    dd.classList.add('hidden');
   }
 });
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener('DOMContentLoaded', function() {
   lucide.createIcons();
 });
 </script>
-
 </body>
 </html>
