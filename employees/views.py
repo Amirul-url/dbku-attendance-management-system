@@ -20,6 +20,9 @@ import qrcode
 from PIL import Image
 from paddleocr import PaddleOCR
 
+from django.db import transaction
+from openpyxl import load_workbook, Workbook
+from openpyxl.styles import Font
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
@@ -440,6 +443,12 @@ def register_manual(request):
                 password=password
             )
 
+            # CHECK: ada admin sudah wujud atau belum
+            if not Employee.objects.filter(role='admin').exists():
+                role = 'admin'
+            else:
+                role = 'viewer'
+
             Employee.objects.create(
                 user=user,
                 full_name=full_name,
@@ -447,7 +456,7 @@ def register_manual(request):
                 email=email,
                 department=department,
                 registration_method=registration_method,
-                role='viewer'
+                role=role
             )
 
             return JsonResponse({'message': f'Employee registered via {registration_method}'})
@@ -673,6 +682,21 @@ def reset_password_submit(request):
 
 def generate_otp():
     return str(random.randint(100000, 999999))
+
+def validate_staff_password_fields(password, confirm_password=None):
+    if not password:
+        return False, 'Password is required'
+
+    if confirm_password is not None and password != confirm_password:
+        return False, 'Password and confirm password do not match'
+
+    if len(password) < 8:
+        return False, 'Password must be at least 8 characters'
+
+    if not re.search(r'[A-Za-z]', password) or not re.search(r'\d', password):
+        return False, 'Password must contain letters and numbers'
+
+    return True, ''
 
 def dashboard(request):
     login_check = require_login_page(request)
@@ -952,18 +976,24 @@ def add_employee(request):
         try:
             data = json.loads(request.body)
 
-            full_name = data.get('full_name')
-            employee_id = data.get('employee_id')
-            email = data.get('email')
-            department = data.get('department')
-            registration_method = data.get('registration_method', 'manual')
-            role = data.get('role', 'viewer')
+            full_name = (data.get('full_name') or '').strip()
+            employee_id = (data.get('employee_id') or '').strip()
+            email = (data.get('email') or '').strip().lower()
+            department = (data.get('department') or '').strip()
+            registration_method = (data.get('registration_method') or 'manual').strip()
+            role = (data.get('role') or 'viewer').strip()
+            password = data.get('password') or ''
+            confirm_password = data.get('confirm_password') or ''
 
             if not full_name or not employee_id or not email or not department:
                 return JsonResponse({'error': 'All fields are required'}, status=400)
 
-            if role not in ['editor', 'viewer', 'admin']:
+            if role not in ['admin', 'editor', 'viewer']:
                 return JsonResponse({'error': 'Invalid role'}, status=400)
+
+            is_valid_password, password_error = validate_staff_password_fields(password, confirm_password)
+            if not is_valid_password:
+                return JsonResponse({'error': password_error}, status=400)
 
             if User.objects.filter(username=employee_id).exists():
                 return JsonResponse({'error': 'Employee ID already exists as login user'}, status=400)
@@ -977,7 +1007,7 @@ def add_employee(request):
             user = User.objects.create_user(
                 username=employee_id,
                 email=email,
-                password='Password123'
+                password=password
             )
 
             Employee.objects.create(
@@ -990,16 +1020,185 @@ def add_employee(request):
                 role=role
             )
 
-            return JsonResponse({
-                'message': 'Employee added successfully',
-                'default_password': 'Password123'
-            })
+            return JsonResponse({'message': 'Employee added successfully'})
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
+@csrf_exempt
+def import_employees_excel(request):
+    permission_check = require_admin_api(request)
+    if permission_check:
+        return permission_check
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        if 'excel_file' not in request.FILES:
+            return JsonResponse({'error': 'Excel file is required'}, status=400)
+
+        excel_file = request.FILES['excel_file']
+        filename = excel_file.name.lower()
+
+        if not filename.endswith('.xlsx'):
+            return JsonResponse({'error': 'Only .xlsx file is supported'}, status=400)
+
+        workbook = load_workbook(excel_file)
+        sheet = workbook.active
+
+        rows = list(sheet.iter_rows(values_only=True))
+        if not rows:
+            return JsonResponse({'error': 'Excel file is empty'}, status=400)
+
+        headers = [str(cell).strip().lower() if cell is not None else '' for cell in rows[0]]
+
+        required_headers = ['full_name', 'employee_id', 'email', 'department', 'password']
+        for header in required_headers:
+            if header not in headers:
+                return JsonResponse({
+                    'error': f'Missing required column: {header}'
+                }, status=400)
+
+        header_index = {header: idx for idx, header in enumerate(headers)}
+
+        created_count = 0
+        errors = []
+
+        for row_number, row in enumerate(rows[1:], start=2):
+            if row is None:
+                continue
+
+            full_name = str(row[header_index['full_name']]).strip() if row[header_index['full_name']] is not None else ''
+            employee_id = str(row[header_index['employee_id']]).strip() if row[header_index['employee_id']] is not None else ''
+            email = str(row[header_index['email']]).strip().lower() if row[header_index['email']] is not None else ''
+            department = str(row[header_index['department']]).strip() if row[header_index['department']] is not None else ''
+            password = str(row[header_index['password']]).strip() if row[header_index['password']] is not None else ''
+
+            role = 'viewer'
+            if 'role' in header_index and row[header_index['role']] is not None:
+                role = str(row[header_index['role']]).strip().lower() or 'viewer'
+
+            registration_method = 'manual'
+            if 'registration_method' in header_index and row[header_index['registration_method']] is not None:
+                registration_method = str(row[header_index['registration_method']]).strip().lower() or 'manual'
+
+            if not full_name and not employee_id and not email and not department and not password:
+                continue
+
+            if not full_name or not employee_id or not email or not department or not password:
+                errors.append(f'Row {row_number}: Missing required fields')
+                continue
+
+            if role not in ['admin', 'editor', 'viewer']:
+                errors.append(f'Row {row_number}: Invalid role')
+                continue
+
+            is_valid_password, password_error = validate_staff_password_fields(password)
+            if not is_valid_password:
+                errors.append(f'Row {row_number}: {password_error}')
+                continue
+
+            if User.objects.filter(username=employee_id).exists():
+                errors.append(f'Row {row_number}: Employee ID already exists as login user')
+                continue
+
+            if Employee.objects.filter(employee_id=employee_id).exists():
+                errors.append(f'Row {row_number}: Employee ID already exists')
+                continue
+
+            if Employee.objects.filter(email=email).exists():
+                errors.append(f'Row {row_number}: Email already exists')
+                continue
+
+            try:
+                with transaction.atomic():
+                    user = User.objects.create_user(
+                        username=employee_id,
+                        email=email,
+                        password=password
+                    )
+
+                    Employee.objects.create(
+                        user=user,
+                        full_name=full_name,
+                        employee_id=employee_id,
+                        email=email,
+                        department=department,
+                        registration_method=registration_method,
+                        role=role
+                    )
+
+                created_count += 1
+
+            except Exception as e:
+                errors.append(f'Row {row_number}: {str(e)}')
+
+        return JsonResponse({
+            'message': f'Excel import completed. {created_count} staff created.',
+            'created_count': created_count,
+            'error_count': len(errors),
+            'errors': errors[:20]
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def export_employees_excel(request):
+    permission_check = require_admin_api(request)
+    if permission_check:
+        return permission_check
+
+    search_name = (request.GET.get('name') or '').strip()
+    department = (request.GET.get('department') or '').strip()
+
+    employees = Employee.objects.all().order_by('full_name')
+
+    if search_name:
+        employees = employees.filter(full_name__icontains=search_name)
+
+    if department:
+        employees = employees.filter(department__icontains=department)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Staff"
+
+    headers = [
+        'Full Name',
+        'Staff ID',
+        'Email',
+        'Department',
+        'Role',
+        'Registration Method',
+        'Created At',
+    ]
+    ws.append(headers)
+
+    from openpyxl.styles import Font
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    for emp in employees:
+        ws.append([
+            emp.full_name,
+            emp.employee_id,
+            emp.email,
+            emp.department,
+            emp.role,
+            emp.registration_method,
+            emp.created_at.strftime('%d/%m/%Y %H:%M') if emp.created_at else '',
+        ])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="staff_export.xlsx"'
+
+    wb.save(response)
+    return response
 
 @csrf_exempt
 def delete_employee(request, id):
@@ -1034,17 +1233,19 @@ def update_employee(request, id):
 
             emp = Employee.objects.get(id=id)
 
-            full_name = data.get('full_name')
-            employee_id = data.get('employee_id')
-            email = data.get('email')
-            department = data.get('department')
-            registration_method = data.get('registration_method')
-            role = data.get('role', emp.role)
+            full_name = (data.get('full_name') or '').strip()
+            employee_id = (data.get('employee_id') or '').strip()
+            email = (data.get('email') or '').strip().lower()
+            department = (data.get('department') or '').strip()
+            registration_method = (data.get('registration_method') or '').strip()
+            role = (data.get('role') or emp.role).strip()
+            password = data.get('password') or ''
+            confirm_password = data.get('confirm_password') or ''
 
             if not full_name or not employee_id or not email or not department:
                 return JsonResponse({'error': 'All fields are required'}, status=400)
 
-            if role not in ['editor', 'viewer', 'admin']:
+            if role not in ['admin', 'editor', 'viewer']:
                 return JsonResponse({'error': 'Invalid role'}, status=400)
 
             if Employee.objects.exclude(id=id).filter(employee_id=employee_id).exists():
@@ -1057,13 +1258,21 @@ def update_employee(request, id):
             emp.employee_id = employee_id
             emp.email = email
             emp.department = department
-            emp.registration_method = registration_method
+            emp.registration_method = registration_method or emp.registration_method
             emp.role = role
             emp.save()
 
             if emp.user:
                 emp.user.username = employee_id
                 emp.user.email = email
+
+                if password or confirm_password:
+                    is_valid_password, password_error = validate_staff_password_fields(password, confirm_password)
+                    if not is_valid_password:
+                        return JsonResponse({'error': password_error}, status=400)
+
+                    emp.user.set_password(password)
+
                 emp.user.save()
 
             return JsonResponse({'message': 'Updated successfully'})

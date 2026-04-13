@@ -49,11 +49,34 @@
     </div>
 
     {% if is_admin %}
-    <button
-      onclick="openModal()"
-      class="bg-green-500 text-white px-4 py-2.5 rounded-xl hover:bg-green-600 transition font-medium w-full sm:w-auto">
-      + Add Staff
-    </button>
+    <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+      <button
+        type="button"
+        onclick="openModal()"
+        class="bg-green-500 text-white px-4 py-2.5 rounded-xl hover:bg-green-600 transition font-medium w-full sm:w-auto">
+        + Add Staff
+      </button>
+
+      <button
+        type="button"
+        onclick="document.getElementById('excelFileInput').click()"
+        class="bg-indigo-500 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-600 transition font-medium w-full sm:w-auto">
+        Import Excel
+      </button>
+
+      <a
+        href="/api/employees/export-excel/?name={{ request.GET.name|default:''|urlencode }}&department={{ request.GET.department|default:''|urlencode }}"
+        class="bg-emerald-500 text-white px-4 py-2.5 rounded-xl hover:bg-emerald-600 transition font-medium w-full sm:w-auto text-center">
+        Export Excel
+      </a>
+
+      <input
+        id="excelFileInput"
+        type="file"
+        accept=".xlsx"
+        class="hidden"
+        onchange="importExcelStaff(event)">
+    </div>
     {% endif %}
   </div>
 
@@ -67,7 +90,6 @@
           <th class="p-4 text-left border-r border-gray-200 font-semibold">Department</th>
           <th class="p-4 text-left border-r border-gray-200 font-semibold">Method</th>
           <th class="p-4 text-left {% if is_admin %}border-r border-gray-200{% endif %} font-semibold">Role</th>
-
           {% if is_admin %}
           <th class="p-4 text-left font-semibold">Actions</th>
           {% endif %}
@@ -176,7 +198,7 @@
     >
       <div class="flex items-center justify-between p-5 border-b border-gray-200">
         <div>
-          <h2 id="modalTitle" class="text-xl font-bold text-gray-800">Add Employee</h2>
+          <h2 id="modalTitle" class="text-xl font-bold text-gray-800">Add Staff</h2>
           <p class="text-sm text-gray-500 mt-1">Fill in the staff details below</p>
         </div>
 
@@ -212,6 +234,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
               id="m_email"
+              type="email"
               placeholder="Enter email"
               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
@@ -245,18 +268,17 @@
               <option value="Landscape and Planning (LNP)">Landscape and Planning (LNP)</option>
               <option value="Mechanical and Electrical (MNE)">Mechanical and Electrical (MNE)</option>
               <option value="Public Relations (PRD)">Public Relations (PRD)</option>
-              <option value="Special Project & Public Facility (SPF)">Special Project & Public Facility (SPF)</option>
-              <option value="Transformation and Innovation (TRI)">Transformation and Innovation (TRI)</option>
-              <option value="Valuation and Taxation (VAL)">Valuation and Taxation (VAL)</option>
+              <option value="Special Project & Public Transport (SPT)">Special Project & Public Transport (SPT)</option>
+              <option value="Valuation and Property Management (VPM)">Valuation and Property Management (VPM)</option>
               <option value="Others">Others</option>
             </select>
           </div>
 
-          <div id="m_otherDeptWrapper" class="hidden md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Custom Department</label>
+          <div id="m_otherDeptWrapper" class="md:col-span-2 hidden">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Please Specify Department</label>
             <input
               id="m_other_dept"
-              placeholder="Enter custom department"
+              placeholder="Enter department"
               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
           </div>
@@ -282,6 +304,40 @@
               <option value="editor">Editor</option>
               <option value="admin">Admin</option>
             </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              id="m_password"
+              type="password"
+              placeholder="Enter password"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <input
+              id="m_confirm_password"
+              type="password"
+              placeholder="Confirm password"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+          </div>
+
+          <div class="md:col-span-2">
+            <div class="mt-1 p-3 rounded-xl border border-blue-200 bg-blue-50 text-sm text-blue-800">
+              <p class="font-semibold mb-1">Password Requirements</p>
+              <ul class="list-disc list-inside space-y-1">
+                <li>Minimum 8 characters</li>
+                <li>Must contain at least 1 letter</li>
+                <li>Must contain at least 1 number</li>
+              </ul>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">
+              Leave password fields empty during edit if you do not want to change the current password.
+            </p>
           </div>
         </div>
       </div>
@@ -342,12 +398,14 @@ function resetModalFields() {
   document.getElementById('m_otherDeptWrapper').classList.add('hidden');
   document.getElementById('m_method').value = 'manual';
   document.getElementById('m_role').value = 'viewer';
+  document.getElementById('m_password').value = '';
+  document.getElementById('m_confirm_password').value = '';
 }
 
 function openModal() {
   editId = null;
-  document.getElementById('modalTitle').innerText = 'Add Employee';
-  document.getElementById('saveBtn').innerText = 'Save Employee';
+  document.getElementById('modalTitle').innerText = 'Add Staff';
+  document.getElementById('saveBtn').innerText = 'Save Staff';
   resetModalFields();
   document.getElementById('modal').classList.remove('hidden');
   document.body.classList.add('overflow-hidden');
@@ -368,6 +426,9 @@ function saveEmployee() {
   const saveBtn = document.getElementById('saveBtn');
   const departmentValue = getModalDepartmentValue();
 
+  const password = document.getElementById('m_password').value;
+  const confirmPassword = document.getElementById('m_confirm_password').value;
+
   if (
     !document.getElementById('m_name').value.trim() ||
     !document.getElementById('m_id').value.trim() ||
@@ -378,13 +439,20 @@ function saveEmployee() {
     return;
   }
 
+  if (!editId && (!password || !confirmPassword)) {
+    alert('Password and confirm password are required');
+    return;
+  }
+
   const data = {
     full_name: document.getElementById('m_name').value.trim(),
     employee_id: document.getElementById('m_id').value.trim(),
     email: document.getElementById('m_email').value.trim(),
     department: departmentValue,
     registration_method: document.getElementById('m_method').value,
-    role: document.getElementById('m_role').value
+    role: document.getElementById('m_role').value,
+    password: password,
+    confirm_password: confirmPassword
   };
 
   saveBtn.disabled = true;
@@ -412,7 +480,7 @@ function saveEmployee() {
   })
   .finally(() => {
     saveBtn.disabled = false;
-    saveBtn.innerText = editId ? 'Update Employee' : 'Save Employee';
+    saveBtn.innerText = editId ? 'Update Staff' : 'Save Staff';
   });
 }
 
@@ -426,22 +494,25 @@ document.querySelectorAll('.edit-btn').forEach(btn => {
     document.getElementById('m_name').value = this.dataset.name || '';
     document.getElementById('m_id').value = this.dataset.empid || '';
     document.getElementById('m_email').value = this.dataset.email || '';
+
+    const deptValue = this.dataset.dept || '';
+    const deptSelect = document.getElementById('m_dept');
+    const knownOption = Array.from(deptSelect.options).some(option => option.value === deptValue);
+
+    if (knownOption) {
+      deptSelect.value = deptValue;
+      document.getElementById('m_other_dept').value = '';
+      document.getElementById('m_otherDeptWrapper').classList.add('hidden');
+    } else {
+      deptSelect.value = 'Others';
+      document.getElementById('m_other_dept').value = deptValue;
+      document.getElementById('m_otherDeptWrapper').classList.remove('hidden');
+    }
+
     document.getElementById('m_method').value = this.dataset.method || 'manual';
     document.getElementById('m_role').value = this.dataset.role || 'viewer';
-
-    const dept = this.dataset.dept || '';
-    const select = document.getElementById('m_dept');
-    const availableOptions = Array.from(select.options).map(option => option.value);
-
-    if (availableOptions.includes(dept)) {
-      select.value = dept;
-      document.getElementById('m_otherDeptWrapper').classList.add('hidden');
-      document.getElementById('m_other_dept').value = '';
-    } else {
-      select.value = 'Others';
-      document.getElementById('m_otherDeptWrapper').classList.remove('hidden');
-      document.getElementById('m_other_dept').value = dept;
-    }
+    document.getElementById('m_password').value = '';
+    document.getElementById('m_confirm_password').value = '';
 
     document.getElementById('modal').classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
@@ -452,10 +523,13 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
   btn.addEventListener('click', function() {
     const id = this.dataset.id;
 
-    if (!confirm('Delete this employee?')) return;
+    if (!confirm('Are you sure you want to delete this staff?')) {
+      return;
+    }
 
     fetch('/api/employees/delete/' + id + '/', {
-      method: 'POST'
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'}
     })
     .then(res => res.json())
     .then(data => {
@@ -470,11 +544,41 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
   });
 });
 
-document.addEventListener('keydown', function(event) {
-  if (event.key === 'Escape') {
-    closeModal();
-  }
-});
+function importExcelStaff(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('excel_file', file);
+
+  fetch('/api/employees/import-excel/', {
+    method: 'POST',
+    body: formData
+  })
+  .then(async (res) => {
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Excel import failed');
+    }
+    return data;
+  })
+  .then((data) => {
+    let message = data.message || 'Import completed';
+
+    if (data.errors && data.errors.length) {
+      message += '\n\nSome rows failed:\n- ' + data.errors.join('\n- ');
+    }
+
+    alert(message);
+    location.reload();
+  })
+  .catch((error) => {
+    alert(error.message || 'Error importing Excel');
+  })
+  .finally(() => {
+    document.getElementById('excelFileInput').value = '';
+  });
+}
 </script>
 {% endif %}
 

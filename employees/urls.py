@@ -31,12 +31,13 @@ from .views import (
     delete_visitor_attendance,
     update_passport_attendance,
     delete_passport_attendance,
-
     forgot_password_page,
     send_forgot_password_otp,
     verify_forgot_password_otp,
     reset_password_page,
     reset_password_submit,
+    import_employees_excel,
+    export_employees_excel,
 )
 
 urlpatterns = [
@@ -59,6 +60,8 @@ urlpatterns = [
 
     path('employees/', employees_page),
     path('add/', add_employee),
+    path('import-excel/', import_employees_excel),
+    path('export-excel/', export_employees_excel),
     path('delete/<int:id>/', delete_employee),
     path('update/<int:id>/', update_employee),
 
