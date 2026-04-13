@@ -1,228 +1,797 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Visitor Attendance</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --teal: #0E7C6B;
+      --teal-light: #E6F5F2;
+      --teal-mid: #3DA896;
+      --surface: #F7F8FA;
+      --card: #FFFFFF;
+      --border: #E2E6EE;
+      --text: #1A1D26;
+      --muted: #6B7280;
+      --accent: #075C4E;
+      --success: #16A349;
+      --error: #DC2626;
+      --radius: 14px;
+      --input-h: 52px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--surface);
+      min-height: 100vh;
+      padding: 2rem 1rem 4rem;
+      color: var(--text);
+    }
+
+    .page-wrap {
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .org-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+    }
+
+    .org-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+      padding: 4px;
+    }
+
+    .org-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .org-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--teal);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .org-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .card-header {
+      background: var(--teal);
+      padding: 1.75rem 1.75rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-header::after {
+      content: '';
+      position: absolute;
+      right: -30px;
+      top: -30px;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+    }
+
+    .card-header::before {
+      content: '';
+      position: absolute;
+      right: 40px;
+      bottom: -50px;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .form-type-pill {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.9);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 100px;
+      margin-bottom: 0.75rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.3;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-subtitle {
+      font-size: 13px;
+      color: rgba(255,255,255,0.72);
+      margin-top: 6px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .visitor-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 100px;
+      padding: 4px 12px 4px 8px;
+      margin-top: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .visitor-badge svg {
+      width: 13px;
+      height: 13px;
+      fill: rgba(255,255,255,0.85);
+    }
+
+    .visitor-badge span {
+      font-size: 11px;
+      color: rgba(255,255,255,0.85);
+      font-weight: 500;
+    }
+
+    .event-info {
+      margin: 1.5rem 1.75rem 0;
+      background: var(--teal-light);
+      border: 1px solid #A8DDD5;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 20px;
+    }
+
+    .event-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .event-row.full {
+      grid-column: 1 / -1;
+    }
+
+    .event-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--teal-mid);
+    }
+
+    .event-val {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      word-break: break-word;
+    }
+
+    .form-body {
+      padding: 1.75rem;
+    }
+
+    .field-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .field-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 7px;
+      letter-spacing: 0.02em;
+    }
+
+    .field-num {
+      width: 22px;
+      height: 22px;
+      background: var(--teal-light);
+      color: var(--teal);
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    input,
+    select {
+      width: 100%;
+      height: var(--input-h);
+      padding: 0 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14.5px;
+      color: var(--text);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    input::placeholder {
+      color: #B0B8C9;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(14, 124, 107, 0.1);
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236B7280' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.5rem 0;
+    }
+
+    .submit-btn {
+      width: 100%;
+      height: 54px;
+      background: var(--teal);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, transform 0.1s;
+      letter-spacing: 0.01em;
+      margin-top: 1.25rem;
+    }
+
+    .submit-btn:hover {
+      background: var(--accent);
+    }
+
+    .submit-btn:active {
+      transform: scale(0.99);
+    }
+
+    .submit-btn:disabled {
+      background: #8ABDB7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .gps-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 1rem;
+      background: #FFF8E6;
+      border: 1px solid #F5D97A;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #7A5C00;
+      line-height: 1.5;
+    }
+
+    .gps-note svg {
+      width: 14px;
+      height: 14px;
+      fill: #B88A00;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 15, 30, 0.55);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 2rem 1.75rem;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid #E2E6EE;
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin: 0 auto 1.25rem;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .status-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.25rem;
+    }
+
+    .status-icon.success {
+      background: #DCFCE7;
+    }
+
+    .status-icon.error {
+      background: #FEE2E2;
+    }
+
+    .status-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .modal-msg {
+      font-size: 14.5px;
+      font-weight: 500;
+      line-height: 1.5;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+      white-space: pre-line;
+    }
+
+    .modal-msg.success {
+      color: var(--success);
+    }
+
+    .modal-msg.error {
+      color: var(--error);
+    }
+
+    .modal-close {
+      background: var(--teal);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 11px 32px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .modal-close:hover {
+      background: var(--accent);
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 1rem 0.75rem 3rem;
+      }
+
+      .card-header {
+        padding: 1.5rem 1.25rem;
+      }
+
+      .event-info {
+        margin: 1.25rem 1.25rem 0;
+        grid-template-columns: 1fr;
+      }
+
+      .form-body {
+        padding: 1.25rem;
+      }
+    }
+  </style>
 </head>
+<body>
 
-<body class="bg-gray-100 min-h-screen py-6 px-4">
+<div class="page-wrap">
 
-<div class="max-w-xl mx-auto bg-white p-6 rounded-2xl shadow-lg">
-
-  <h2 class="text-2xl font-bold text-center mb-2">
-    Attendance Registration Form (Visitor - Malaysian Citizen)
-  </h2>
-
-  <p class="text-center text-gray-500 mb-6">
-    Please complete the form below to record your attendance
-  </p>
-
-  <div class="bg-gray-50 p-4 rounded-lg mb-6 text-sm space-y-1">
-    <p><b>Event Name:</b> {{ event.name }}</p>
-    <p><b>Date:</b> {{ event.date|date:"d/m/Y" }}</p>
-    <p><b>Location:</b> {{ event.location }}</p>
-    <p><b>Description:</b> {{ event.description|default:"-" }}</p>
-    <p><b>Allowed Radius:</b> {{ event.radius_meter }} meter</p>
-  </div>
-
-  <div class="space-y-4">
-    <div>
-      <label class="font-semibold">1. Full Name</label>
-      <input id="name" placeholder="e.g. John Doe"
-        class="w-full mt-1 p-3 border rounded-lg">
+  <div class="org-badge">
+    <div class="org-logo">
+      <img src="{% static 'logo.png' %}" alt="DBKU Logo">
     </div>
-
     <div>
-      <label class="font-semibold">2. Phone Number</label>
-      <input id="phone" placeholder="e.g. 0123456789"
-        class="w-full mt-1 p-3 border rounded-lg">
-    </div>
-
-    <div>
-      <label class="font-semibold">3. Email</label>
-      <input id="email" placeholder="e.g. john@email.com"
-        class="w-full mt-1 p-3 border rounded-lg">
-    </div>
-
-    <div>
-      <label class="font-semibold">4. Organization Category</label>
-      <select id="org" onchange="toggleOtherOrganization()"
-        class="w-full mt-1 p-3 border rounded-lg bg-white">
-        <option value="">-- Select organization category --</option>
-        <option value="Individual / Personal">Individual / Personal</option>
-        <option value="Private Company / Corporate">Private Company / Corporate</option>
-        <option value="Government Agency / Public Sector">Government Agency / Public Sector</option>
-        <option value="Student (School / University)">Student (School / University)</option>
-        <option value="NGO / Association">NGO / Association</option>
-        <option value="Others">Others</option>
-      </select>
-    </div>
-
-    <div id="otherOrgWrapper" class="hidden">
-      <label class="font-semibold">5. Please Specify</label>
-      <input id="other_org" placeholder="e.g. Community Group / Freelance / Other"
-        class="w-full mt-1 p-3 border rounded-lg">
+      <div class="org-name">DBKU</div>
+      <div class="org-sub">Dewan Bandaraya Kuching Utara</div>
     </div>
   </div>
 
-  <button id="submitBtn" onclick="submitForm()"
-    class="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700">
-    Register
-  </button>
+  <div class="card">
+    <div class="card-header">
+      <div class="form-type-pill">Visitor</div>
+      <div class="card-title">Attendance Registration</div>
+      <div class="card-subtitle">Fill in your details to register attendance for this event</div>
+      <div class="visitor-badge">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+        </svg>
+        <span>Malaysian Citizen</span>
+      </div>
+    </div>
+
+    <div class="event-info">
+      <div class="event-row full">
+        <div class="event-label">Event Name</div>
+        <div class="event-val">{{ event.name }}</div>
+      </div>
+
+      <div class="event-row">
+        <div class="event-label">Start Date</div>
+        <div class="event-val">{{ event.start_date|date:"d/m/Y" }}</div>
+      </div>
+
+      <div class="event-row">
+        <div class="event-label">End Date</div>
+        <div class="event-val">{{ event.end_date|date:"d/m/Y" }}</div>
+      </div>
+
+      <div class="event-row">
+        <div class="event-label">Start Time</div>
+        <div class="event-val">{{ event.start_time|time:"H:i"|default:"-" }}</div>
+      </div>
+
+      <div class="event-row">
+        <div class="event-label">End Time</div>
+        <div class="event-val">{{ event.end_time|time:"H:i"|default:"-" }}</div>
+      </div>
+
+      <div class="event-row">
+        <div class="event-label">Radius</div>
+        <div class="event-val">{{ event.radius_meter }} m</div>
+      </div>
+
+      <div class="event-row">
+        <div class="event-label">Location</div>
+        <div class="event-val">{{ event.location }}</div>
+      </div>
+
+      <div class="event-row full">
+        <div class="event-label">Description</div>
+        <div class="event-val">{{ event.description|default:"-" }}</div>
+      </div>
+    </div>
+
+    <div class="form-body">
+
+      <div class="field-group">
+        <label class="field-label">
+          <span class="field-num">1</span> Full Name
+        </label>
+        <input id="name" type="text" placeholder="e.g. John Doe" autocomplete="name">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">
+          <span class="field-num">2</span> Phone Number
+        </label>
+        <input id="phone" type="tel" placeholder="e.g. 0123456789" autocomplete="tel">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">
+          <span class="field-num">3</span> Email Address
+        </label>
+        <input id="email" type="email" placeholder="e.g. john@email.com" autocomplete="email">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">
+          <span class="field-num">4</span> Organization
+        </label>
+        <select id="org" onchange="toggleOtherOrganization()">
+          <option value="">-- Select organization --</option>
+          <option value="Individual / Personal">Individual / Personal</option>
+          <option value="Private Company / Corporate">Private Company / Corporate</option>
+          <option value="Government Agency / Public Sector">Government Agency / Public Sector</option>
+          <option value="Student (School / University)">Student (School / University)</option>
+          <option value="NGO / Association">NGO / Association</option>
+          <option value="Others">Others</option>
+        </select>
+      </div>
+
+      <div id="otherOrgWrapper" class="field-group hidden">
+        <label class="field-label">
+          <span class="field-num">5</span> Please Specify Organization
+        </label>
+        <input id="other_org" type="text" placeholder="e.g. Community Group / Freelance / Other">
+      </div>
+
+      <hr class="divider">
+
+      <div class="gps-note">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+        <span>Location access is required to verify you are within the allowed radius. Please allow location access when prompted.</span>
+      </div>
+
+      <button id="submitBtn" class="submit-btn" onclick="submitForm()">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+        </svg>
+        Submit
+      </button>
+
+    </div>
+  </div>
 
 </div>
 
-<!-- LOADING / MESSAGE MODAL -->
-<div id="statusModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 px-4">
-  <div class="bg-white p-6 rounded-2xl text-center w-full max-w-sm shadow-xl">
-    <div id="spinner" class="mx-auto mb-4 w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin hidden"></div>
-    <p id="statusMsg" class="font-semibold text-gray-700"></p>
-    <button id="closeBtn" onclick="closeStatusModal()"
-      class="hidden mt-5 bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600">
-      Close
-    </button>
+<div id="statusModal" class="modal-overlay">
+  <div class="modal-box">
+    <div id="spinner" class="spinner hidden"></div>
+    <div id="statusIcon" class="status-icon hidden"></div>
+    <p id="statusMsg" class="modal-msg"></p>
+    <button id="closeBtn" class="modal-close hidden" onclick="closeStatusModal()">Close</button>
   </div>
 </div>
 
 <script>
-function showLoading(message) {
-  document.getElementById("statusMsg").innerText = message;
-  document.getElementById("spinner").classList.remove("hidden");
-  document.getElementById("closeBtn").classList.add("hidden");
-  document.getElementById("statusModal").classList.remove("hidden");
-}
-
-function showMessage(message, type = "info") {
-  const msg = document.getElementById("statusMsg");
-  msg.innerText = message;
-
-  if (type === "success") {
-    msg.className = "font-semibold text-green-600";
-  } else if (type === "error") {
-    msg.className = "font-semibold text-red-600";
-  } else {
-    msg.className = "font-semibold text-gray-700";
+  function getEl(id) {
+    return document.getElementById(id);
   }
 
-  document.getElementById("spinner").classList.add("hidden");
-  document.getElementById("closeBtn").classList.remove("hidden");
-  document.getElementById("statusModal").classList.remove("hidden");
-}
-
-function closeStatusModal() {
-  document.getElementById("statusModal").classList.add("hidden");
-}
-
-function toggleOtherOrganization() {
-  const org = document.getElementById("org").value;
-  const wrapper = document.getElementById("otherOrgWrapper");
-  const otherInput = document.getElementById("other_org");
-
-  if (org === "Others") {
-    wrapper.classList.remove("hidden");
-  } else {
-    wrapper.classList.add("hidden");
-    otherInput.value = "";
-  }
-}
-
-function submitForm() {
-  const btn = document.getElementById("submitBtn");
-
-  const full_name = document.getElementById("name").value.trim();
-  const phone = document.getElementById("phone").value.trim();
-  const email = document.getElementById("email").value.trim();
-  const orgCategory = document.getElementById("org").value.trim();
-  const otherOrg = document.getElementById("other_org").value.trim();
-
-  if (!email.includes("@")) {
-    showMessage("Invalid email format", "error");
-    return;
+  function showLoading(message) {
+    getEl("statusMsg").innerText = message;
+    getEl("statusMsg").className = "modal-msg";
+    getEl("spinner").classList.remove("hidden");
+    getEl("statusIcon").classList.add("hidden");
+    getEl("closeBtn").classList.add("hidden");
+    getEl("statusModal").classList.add("active");
   }
 
-  let organization = orgCategory;
+  function showMessage(message, type = "info") {
+    const msg = getEl("statusMsg");
+    msg.innerText = message;
+    msg.className = "modal-msg " + (
+      type === "success" ? "success" :
+      type === "error" ? "error" : ""
+    );
 
-  if (orgCategory === "Others") {
-    organization = otherOrg;
-  }
+    getEl("spinner").classList.add("hidden");
+    getEl("closeBtn").classList.remove("hidden");
 
-  if (!full_name || !phone || !email || !orgCategory) {
-    showMessage("Please fill all fields", "error");
-    return;
-  }
+    const icon = getEl("statusIcon");
+    icon.classList.remove("hidden", "success", "error");
 
-  if (orgCategory === "Others" && !otherOrg) {
-    showMessage("Please specify your organization", "error");
-    return;
-  }
-
-  btn.disabled = true;
-  btn.innerText = "Processing...";
-
-  if (!navigator.geolocation) {
-    showMessage("Please enable location/GPS and try again.", "error");
-    btn.disabled = false;
-    btn.innerText = "Register";
-    return;
-  }
-
-  showLoading("Getting location...");
-
-  navigator.geolocation.getCurrentPosition(
-    function(position) {
-      showLoading("Submitting attendance...");
-
-      fetch('/api/employees/visitor-attendance/submit/{{ event.id }}/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          full_name,
-          phone,
-          email,
-          organization,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          showMessage(data.error, "error");
-        } else {
-          showMessage(
-            data.message + " (Distance: " + data.distance_meter + "m)",
-            "success"
-          );
-
-          document.getElementById("name").value = "";
-          document.getElementById("phone").value = "";
-          document.getElementById("email").value = "";
-          document.getElementById("org").value = "";
-          document.getElementById("other_org").value = "";
-          document.getElementById("otherOrgWrapper").classList.add("hidden");
-        }
-
-        btn.disabled = false;
-        btn.innerText = "Register";
-      })
-      .catch(() => {
-        showMessage("Server error", "error");
-        btn.disabled = false;
-        btn.innerText = "Register";
-      });
-    },
-    function() {
-      showMessage("Please enable location/GPS and try again.", "error");
-      btn.disabled = false;
-      btn.innerText = "Register";
-    },
-    {
-      enableHighAccuracy: true,
-      timeout: 8000,
-      maximumAge: 60000
+    if (type === "success") {
+      icon.className = "status-icon success";
+      icon.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="#16A349" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+        </svg>
+      `;
+    } else if (type === "error") {
+      icon.className = "status-icon error";
+      icon.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="#DC2626" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
+        </svg>
+      `;
+    } else {
+      icon.classList.add("hidden");
+      icon.innerHTML = "";
     }
-  );
-}
+
+    getEl("statusModal").classList.add("active");
+  }
+
+  function closeStatusModal() {
+    getEl("statusModal").classList.remove("active");
+  }
+
+  function toggleOtherOrganization() {
+    const org = getEl("org").value;
+    const wrapper = getEl("otherOrgWrapper");
+
+    if (org === "Others") {
+      wrapper.classList.remove("hidden");
+    } else {
+      wrapper.classList.add("hidden");
+      getEl("other_org").value = "";
+    }
+  }
+
+  function resetBtn() {
+    const btn = getEl("submitBtn");
+    btn.disabled = false;
+    btn.innerHTML = `
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+      </svg>
+      Register Attendance
+    `;
+  }
+
+  function clearForm() {
+    getEl("name").value = "";
+    getEl("phone").value = "";
+    getEl("email").value = "";
+    getEl("org").value = "";
+    getEl("other_org").value = "";
+    getEl("otherOrgWrapper").classList.add("hidden");
+  }
+
+  function submitForm() {
+    const btn = getEl("submitBtn");
+
+    const full_name = getEl("name").value.trim();
+    const phone = getEl("phone").value.trim();
+    const email = getEl("email").value.trim();
+    const orgCategory = getEl("org").value.trim();
+    const otherOrg = getEl("other_org").value.trim();
+
+    if (!full_name || !phone || !email || !orgCategory) {
+      showMessage("Please fill in all required fields.", "error");
+      return;
+    }
+
+    if (!email.includes("@")) {
+      showMessage("Please enter a valid email address.", "error");
+      return;
+    }
+
+    if (orgCategory === "Others" && !otherOrg) {
+      showMessage("Please specify your organization.", "error");
+      return;
+    }
+
+    const organization = orgCategory === "Others" ? otherOrg : orgCategory;
+
+    btn.disabled = true;
+    btn.innerHTML = `
+      <div style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;"></div>
+      Processing...
+    `;
+
+    if (!navigator.geolocation) {
+      showMessage("Please enable location/GPS and try again.", "error");
+      resetBtn();
+      return;
+    }
+
+    showLoading("Getting your location...");
+
+    navigator.geolocation.getCurrentPosition(
+      function (position) {
+        showLoading("Submitting attendance...");
+
+        fetch('/api/employees/visitor-attendance/submit/{{ event.id }}/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            full_name: full_name,
+            phone: phone,
+            email: email,
+            organization: organization,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          })
+        })
+        .then(function (response) {
+          return response.json();
+        })
+        .then(function (data) {
+          if (data.error) {
+            showMessage(data.error, "error");
+          } else {
+            showMessage(
+              data.message + "\n\nDistance: " + data.distance_meter + " m",
+              "success"
+            );
+            clearForm();
+          }
+          resetBtn();
+        })
+        .catch(function () {
+          showMessage("Server error. Please try again.", "error");
+          resetBtn();
+        });
+      },
+      function () {
+        showMessage("Please enable location/GPS and try again.", "error");
+        resetBtn();
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 60000
+      }
+    );
+  }
 </script>
 
 </body>

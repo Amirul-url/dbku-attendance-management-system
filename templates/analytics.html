@@ -1,399 +1,1045 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div id="analytics-overview-data"
-     data-overview-labels='{{ overview_labels_json|safe }}'
-     data-overview-values='{{ overview_values_json|safe }}'
-     data-monthly-labels='{{ monthly_labels_json|safe }}'
-     data-monthly-values='{{ monthly_values_json|safe }}'>
-</div>
+<div
+  id="analytics-overview-data"
+  data-overview-labels='{{ overview_labels_json|safe }}'
+  data-overview-values='{{ overview_values_json|safe }}'
+  data-monthly-labels='{{ monthly_labels_json|safe }}'
+  data-monthly-values='{{ monthly_values_json|safe }}'
+></div>
 
 <style>
-  :root{--ocean:#003B46;--ocean-l:#004f60;--silver:#C0C0C0;--silver-l:#E5E4E2;
-    --border:#dde8ea;--text:#1a2e35;--muted:#6b8a93;--hint:#9ab0b7;}
-  .page-title{font-size:22px;font-weight:600;color:var(--text)}
-  .page-sub{font-size:13px;color:var(--muted);margin-top:4px}
-  .page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
-  .section-label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--hint);margin:4px 0 13px}
-  /* FILTER */
-  .filter-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:16px}
-  .filter-input,.filter-select{width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;color:var(--text);background:#fff;outline:none;transition:border .15s;box-sizing:border-box}
-  .filter-input:focus,.filter-select:focus{border-color:var(--ocean)}
-  .filter-grid{display:grid;grid-template-columns:1fr 1fr 120px 1fr auto;gap:10px;align-items:end}
-  /* BUTTONS */
-  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;border:none;text-decoration:none;transition:background .15s;font-family:inherit}
-  .btn [data-lucide]{width:14px;height:14px}
-  .btn-ocean{background:var(--ocean);color:#fff}.btn-ocean:hover{background:var(--ocean-l)}
-  .btn-green{background:#2e7d32;color:#fff}.btn-green:hover{background:#1b5e20}
-  .btn-ghost{background:var(--silver-l);color:var(--text)}.btn-ghost:hover{background:#d4d3d1}
-  .btn-sm{padding:5px 11px;font-size:12px}.btn-sm [data-lucide]{width:13px;height:13px}
-  /* ACTIVE FILTER PILLS */
-  .filter-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
-  .filter-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:12px;font-weight:500}
-  .pill-blue{background:#e3f2fd;color:#0d47a1}
-  .pill-indigo{background:#ede7f6;color:#4527a0}
-  .pill-purple{background:#f3e5f5;color:#6a1b9a}
-  .pill-green{background:#e8f5e9;color:#1b5e20}
-  /* STAT CARDS */
-  .stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:22px}
-  .stat-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px}
-  .stat-label{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
-  .stat-value{font-size:27px;font-weight:600;color:var(--text);line-height:1.1;margin-top:6px}
-  /* CHART GRID */
-  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
-  .chart-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
-  .chart-card-header{padding:14px 20px;border-bottom:1px solid var(--border)}
-  .chart-card-title{font-size:14px;font-weight:600;color:var(--text)}
-  .chart-card-sub{font-size:12px;color:var(--muted);margin-top:2px}
-  .chart-card-body{padding:16px 20px}
-  /* LEADERBOARD */
-  .lead-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px}
-  .lead-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
-  .lead-card-header{padding:13px 18px;border-bottom:1px solid var(--border)}
-  .lead-card-title{font-size:13.5px;font-weight:600;color:var(--text)}
-  .lead-item{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid #f0f3f4;font-size:13px}
-  .lead-item:last-child{border-bottom:none}
-  .lead-name{color:var(--text);flex:1;min-width:0;word-break:break-word;padding-right:8px}
-  .lead-count{flex-shrink:0}
-  .badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
-  .badge-blue{background:#e3f2fd;color:#0d47a1}
-  .badge-green{background:#e8f5e9;color:#1b5e20}
-  .badge-cyan{background:#e0f7fa;color:#006064}
-  /* TOP EVENTS TABLE */
-  .table-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px}
-  .table-card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
-  .table-card-title{font-size:14px;font-weight:600;color:var(--text)}
-  .tbl-wrap{overflow-x:auto}
-  table.data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:700px}
-  table.data-table thead tr{background:#f4f7f8;border-bottom:1px solid var(--border)}
-  table.data-table thead th{padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border)}
-  table.data-table thead th:last-child{border-right:none}
-  table.data-table tbody tr{border-bottom:1px solid #f0f3f4;transition:background .1s}
-  table.data-table tbody tr:hover{background:#f7fafb}
-  table.data-table tbody tr:last-child{border-bottom:none}
-  table.data-table tbody td{padding:12px 14px;vertical-align:middle;border-right:1px solid #f0f3f4}
-  table.data-table tbody td:last-child{border-right:none}
-  .td-empty{padding:32px;text-align:center;color:var(--hint)}
-  .num-badge{display:inline-block;min-width:36px;text-align:center;padding:4px 10px;border-radius:8px;font-weight:600;font-size:13px}
-  .num-ocean{background:#e0edf0;color:var(--ocean)}
-  .num-blue{background:#e3f2fd;color:#0d47a1}
-  .num-green{background:#e8f5e9;color:#1b5e20}
-  .num-orange{background:#fff3e0;color:#bf6e00}
-  /* FULL WIDTH ANALYTICS TABLE (with charts per event) */
-  .analytics-event-table{width:100%;border-collapse:collapse;font-size:13px}
-  .analytics-event-table thead tr{background:#f4f7f8;border-bottom:1px solid var(--border)}
-  .analytics-event-table thead th{padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border)}
-  .analytics-event-table thead th:last-child{border-right:none}
-  .analytics-event-table tbody tr{border-bottom:1px solid #f0f3f4}
-  .analytics-event-table tbody td{padding:14px;vertical-align:top;border-right:1px solid #f0f3f4}
-  .analytics-event-table tbody td:last-child{border-right:none}
-  .chart-cell{min-width:220px}
-  @media(max-width:1200px){.stats-grid{grid-template-columns:1fr 1fr}.lead-grid{grid-template-columns:1fr 1fr}}
-  @media(max-width:900px){.chart-grid{grid-template-columns:1fr}.lead-grid{grid-template-columns:1fr}.filter-grid{grid-template-columns:1fr 1fr}}
-  @media(max-width:600px){.stats-grid{grid-template-columns:1fr 1fr}.filter-grid{grid-template-columns:1fr}.page-header{flex-direction:column;align-items:flex-start}}
+  :root {
+    --ocean: #003b46;
+    --ocean-light: #004f60;
+    --silver: #c0c0c0;
+    --silver-light: #e5e4e2;
+    --border: #dde8ea;
+    --border-soft: #f0f3f4;
+    --bg-head: #f4f7f8;
+    --text: #1a2e35;
+    --muted: #6b8a93;
+    --hint: #9ab0b7;
+    --white: #ffffff;
+
+    --blue-bg: #e3f2fd;
+    --blue-text: #0d47a1;
+    --green-bg: #e8f5e9;
+    --green-text: #1b5e20;
+    --purple-bg: #f3e5f5;
+    --purple-text: #6a1b9a;
+    --indigo-bg: #ede7f6;
+    --indigo-text: #4527a0;
+    --cyan-bg: #e0f7fa;
+    --cyan-text: #006064;
+    --orange-bg: #fff3e0;
+    --orange-text: #bf6e00;
+
+    --radius-lg: 14px;
+    --radius-md: 10px;
+    --radius-sm: 8px;
+    --shadow-none: none;
+  }
+
+  /* =========================
+     Base
+  ========================= */
+  .analytics-page {
+    color: var(--text);
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .page-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .page-subtitle {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .section-label {
+    margin: 4px 0 13px;
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--hint);
+  }
+
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-none);
+  }
+
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .card-subtitle {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .card-body {
+    padding: 16px 20px;
+  }
+
+  .empty-state {
+    padding: 24px 0;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--hint);
+  }
+
+  .empty-table {
+    padding: 32px;
+    text-align: center;
+    color: var(--hint);
+  }
+
+  /* =========================
+     Form / Filters
+  ========================= */
+  .filter-card {
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 120px 1fr auto;
+    gap: 10px;
+    align-items: end;
+  }
+
+  .input,
+  .select {
+    width: 100%;
+    padding: 9px 13px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--white);
+    outline: none;
+    transition: border-color 0.15s ease;
+    box-sizing: border-box;
+  }
+
+  .input:focus,
+  .select:focus {
+    border-color: var(--ocean);
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* =========================
+     Buttons
+  ========================= */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: background 0.15s ease;
+  }
+
+  .btn [data-lucide] {
+    width: 14px;
+    height: 14px;
+  }
+
+  .btn-primary {
+    background: var(--ocean);
+    color: var(--white);
+  }
+
+  .btn-primary:hover {
+    background: var(--ocean-light);
+  }
+
+  .btn-success {
+    background: #2e7d32;
+    color: var(--white);
+  }
+
+  .btn-success:hover {
+    background: #1b5e20;
+  }
+
+  .btn-ghost {
+    background: var(--silver-light);
+    color: var(--text);
+  }
+
+  .btn-ghost:hover {
+    background: #d4d3d1;
+  }
+
+  .btn-sm {
+    padding: 5px 11px;
+    font-size: 12px;
+  }
+
+  .btn-sm [data-lucide] {
+    width: 13px;
+    height: 13px;
+  }
+
+  /* =========================
+     Filter Pills
+  ========================= */
+  .filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .pill-blue {
+    background: var(--blue-bg);
+    color: var(--blue-text);
+  }
+
+  .pill-indigo {
+    background: var(--indigo-bg);
+    color: var(--indigo-text);
+  }
+
+  .pill-purple {
+    background: var(--purple-bg);
+    color: var(--purple-text);
+  }
+
+  .pill-green {
+    background: var(--green-bg);
+    color: var(--green-text);
+  }
+
+  .pill-icon {
+    width: 11px;
+    height: 11px;
+  }
+
+  /* =========================
+     Stats
+  ========================= */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 13px;
+    margin-bottom: 22px;
+  }
+
+  .stat-card {
+    padding: 16px 18px;
+  }
+
+  .stat-label {
+    font-size: 11.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .stat-value {
+    margin-top: 6px;
+    font-size: 27px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--text);
+  }
+
+  /* =========================
+     Charts
+  ========================= */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .chart-center {
+    display: flex;
+    justify-content: center;
+  }
+
+  .chart-doughnut-wrap {
+    width: 100%;
+    max-width: 260px;
+  }
+
+  .chart-bar-wrap {
+    height: 280px;
+  }
+
+  .mini-chart-wrap {
+    width: 180px;
+    height: 180px;
+    margin: 0 auto;
+  }
+
+  /* =========================
+     Leaderboards
+  ========================= */
+  .lead-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .lead-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 13px;
+  }
+
+  .lead-item:last-child {
+    border-bottom: none;
+  }
+
+  .lead-name {
+    flex: 1;
+    min-width: 0;
+    padding-right: 8px;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .lead-count {
+    flex-shrink: 0;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .badge-blue {
+    background: var(--blue-bg);
+    color: var(--blue-text);
+  }
+
+  .badge-green {
+    background: var(--green-bg);
+    color: var(--green-text);
+  }
+
+  .badge-cyan {
+    background: var(--cyan-bg);
+    color: var(--cyan-text);
+  }
+
+  /* =========================
+     Tables
+  ========================= */
+  .table-card {
+    margin-bottom: 20px;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  .table {
+    width: 100%;
+    min-width: 700px;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .table-wide {
+    min-width: 900px;
+  }
+
+  .table thead tr {
+    background: var(--bg-head);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table thead th {
+    padding: 11px 14px;
+    text-align: left;
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--muted);
+    border-right: 1px solid var(--border);
+  }
+
+  .table thead th:last-child {
+    border-right: none;
+  }
+
+  .table tbody tr {
+    border-bottom: 1px solid var(--border-soft);
+    transition: background 0.1s ease;
+  }
+
+  .table tbody tr:hover {
+    background: #f7fafb;
+  }
+
+  .table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .table tbody td {
+    padding: 12px 14px;
+    vertical-align: middle;
+    border-right: 1px solid var(--border-soft);
+  }
+
+  .table tbody td:last-child {
+    border-right: none;
+  }
+
+  .table-top-align tbody td {
+    vertical-align: top;
+    padding: 14px;
+  }
+
+  .event-name {
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .event-meta {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .event-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
+  /* =========================
+     Number badges
+  ========================= */
+  .num-badge {
+    display: inline-block;
+    min-width: 36px;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .num-ocean {
+    background: #e0edf0;
+    color: var(--ocean);
+  }
+
+  .num-blue {
+    background: var(--blue-bg);
+    color: var(--blue-text);
+  }
+
+  .num-green {
+    background: var(--green-bg);
+    color: var(--green-text);
+  }
+
+  .num-orange {
+    background: var(--orange-bg);
+    color: var(--orange-text);
+  }
+
+  /* =========================
+     Responsive
+  ========================= */
+  @media (max-width: 1200px) {
+    .stats-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .lead-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .chart-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .lead-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .filter-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .stats-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .filter-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .page-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
 </style>
 
-<!-- ── PAGE HEADER ──────────────────────────── -->
-<div class="page-header">
-  <div>
-    <div class="page-title">Analytics</div>
-    <div class="page-sub">Attendance reporting, event performance, and operational insights.</div>
-  </div>
-</div>
-
-<!-- ── FILTER ───────────────────────────────── -->
-<form method="GET" class="filter-card">
-  <div class="filter-grid">
-    <input type="text" name="name" placeholder="Search event name"
-      value="{{ filter_name }}" class="filter-input">
-    <select name="month" class="filter-select">
-      <option value="">All Months</option>
-      <option value="1" {% if filter_month == '1' %}selected{% endif %}>January</option>
-      <option value="2" {% if filter_month == '2' %}selected{% endif %}>February</option>
-      <option value="3" {% if filter_month == '3' %}selected{% endif %}>March</option>
-      <option value="4" {% if filter_month == '4' %}selected{% endif %}>April</option>
-      <option value="5" {% if filter_month == '5' %}selected{% endif %}>May</option>
-      <option value="6" {% if filter_month == '6' %}selected{% endif %}>June</option>
-      <option value="7" {% if filter_month == '7' %}selected{% endif %}>July</option>
-      <option value="8" {% if filter_month == '8' %}selected{% endif %}>August</option>
-      <option value="9" {% if filter_month == '9' %}selected{% endif %}>September</option>
-      <option value="10" {% if filter_month == '10' %}selected{% endif %}>October</option>
-      <option value="11" {% if filter_month == '11' %}selected{% endif %}>November</option>
-      <option value="12" {% if filter_month == '12' %}selected{% endif %}>December</option>
-    </select>
-    <input type="number" name="year" placeholder="Year" value="{{ filter_year }}" class="filter-input">
-    <input type="text" name="location" placeholder="Search location"
-      value="{{ filter_location }}" class="filter-input">
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ocean"><i data-lucide="search"></i> Search</button>
-      <a href="/analytics/" class="btn btn-ghost">Reset</a>
-    </div>
-  </div>
-</form>
-
-<!-- ── ACTIVE FILTER PILLS ───────────────────── -->
-{% if filter_name or filter_month or filter_year or filter_location %}
-<div class="filter-pills">
-  {% if filter_name %}<span class="filter-pill pill-blue"><i data-lucide="tag" style="width:11px;height:11px"></i> Event: {{ filter_name }}</span>{% endif %}
-  {% if filter_month %}<span class="filter-pill pill-indigo"><i data-lucide="calendar" style="width:11px;height:11px"></i> Month: {{ filter_month }}</span>{% endif %}
-  {% if filter_year %}<span class="filter-pill pill-purple"><i data-lucide="calendar" style="width:11px;height:11px"></i> Year: {{ filter_year }}</span>{% endif %}
-  {% if filter_location %}<span class="filter-pill pill-green"><i data-lucide="map-pin" style="width:11px;height:11px"></i> Location: {{ filter_location }}</span>{% endif %}
-</div>
-{% endif %}
-
-<!-- ── SUMMARY STATS ─────────────────────────── -->
-<div class="section-label">Summary</div>
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-label">Filtered Events</div>
-    <div class="stat-value">{{ total_filtered_events }}</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Staff Attendance</div>
-    <div class="stat-value">{{ total_filtered_staff }}</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Visitor (Malaysian)</div>
-    <div class="stat-value">{{ total_filtered_visitors }}</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Visitor (Non-Malaysian)</div>
-    <div class="stat-value">{{ total_filtered_passport }}</div>
-  </div>
-</div>
-
-<!-- ── CHARTS ────────────────────────────────── -->
-<div class="section-label">Charts</div>
-<div class="chart-grid">
-  <div class="chart-card">
-    <div class="chart-card-header">
-      <div class="chart-card-title">Attendance Composition</div>
-      <div class="chart-card-sub">Breakdown by category for current filters</div>
-    </div>
-    <div class="chart-card-body" style="display:flex;justify-content:center">
-      <div style="max-width:260px;width:100%">
-        <canvas id="analyticsOverviewChart"></canvas>
+<div class="analytics-page">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">Analytics</div>
+      <div class="page-subtitle">
+        Attendance reporting, event performance, and operational insights.
       </div>
     </div>
   </div>
-  <div class="chart-card">
-    <div class="chart-card-header">
-      <div class="chart-card-title">Monthly Attendance Trend</div>
-      <div class="chart-card-sub">Attendance distribution by event month</div>
-    </div>
-    <div class="chart-card-body" style="height:280px">
-      <canvas id="monthlyTrendChart"></canvas>
-    </div>
-  </div>
-</div>
 
-<!-- ── LEADERBOARDS ──────────────────────────── -->
-<div class="section-label">Leaderboards</div>
-<div class="lead-grid">
-  <div class="lead-card">
-    <div class="lead-card-header">
-      <div class="lead-card-title">Top Departments</div>
-    </div>
-    {% for dept, total in top_departments %}
-    <div class="lead-item">
-      <span class="lead-name">{{ dept }}</span>
-      <span class="badge badge-blue lead-count">{{ total }}</span>
-    </div>
-    {% empty %}
-    <div style="padding:16px;font-size:12.5px;color:var(--hint);text-align:center">No data available.</div>
-    {% endfor %}
-  </div>
-  <div class="lead-card">
-    <div class="lead-card-header">
-      <div class="lead-card-title">Top Organizations</div>
-    </div>
-    {% for org, total in top_organizations %}
-    <div class="lead-item">
-      <span class="lead-name">{{ org }}</span>
-      <span class="badge badge-green lead-count">{{ total }}</span>
-    </div>
-    {% empty %}
-    <div style="padding:16px;font-size:12.5px;color:var(--hint);text-align:center">No data available.</div>
-    {% endfor %}
-  </div>
-  <div class="lead-card">
-    <div class="lead-card-header">
-      <div class="lead-card-title">Top Countries</div>
-    </div>
-    {% for country, total in top_countries %}
-    <div class="lead-item">
-      <span class="lead-name">{{ country }}</span>
-      <span class="badge badge-cyan lead-count">{{ total }}</span>
-    </div>
-    {% empty %}
-    <div style="padding:16px;font-size:12.5px;color:var(--hint);text-align:center">No data available.</div>
-    {% endfor %}
-  </div>
-</div>
+  <!-- Filter -->
+  <form method="GET" class="card filter-card">
+    <div class="filter-grid">
+      <input
+        type="text"
+        name="name"
+        class="input"
+        placeholder="Search event name"
+        value="{{ filter_name }}"
+      />
 
-<!-- ── TOP EVENTS SIMPLE TABLE ───────────────── -->
-<div class="section-label">Top Events by Attendance</div>
-<div class="table-card" style="margin-bottom:20px">
-  <div class="tbl-wrap">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Event</th>
-          <th>Staff</th>
-          <th>Visitor (MY)</th>
-          <th>Visitor (Non-MY)</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in top_events %}
-        <tr>
-          <td>
-            <div style="font-weight:500;color:var(--text)">{{ item.event.name }}</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px">{{ item.event.location }}</div>
-          </td>
-          <td><span class="num-badge num-blue">{{ item.staff_total }}</span></td>
-          <td><span class="num-badge num-green">{{ item.visitor_total }}</span></td>
-          <td><span class="num-badge num-orange">{{ item.passport_total }}</span></td>
-          <td><span class="num-badge num-ocean">{{ item.grand_total }}</span></td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="5" class="td-empty">No event analytics available.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+      <select name="month" class="select">
+        <option value="">All Months</option>
+        <option value="1" {% if filter_month == '1' %}selected{% endif %}>January</option>
+        <option value="2" {% if filter_month == '2' %}selected{% endif %}>February</option>
+        <option value="3" {% if filter_month == '3' %}selected{% endif %}>March</option>
+        <option value="4" {% if filter_month == '4' %}selected{% endif %}>April</option>
+        <option value="5" {% if filter_month == '5' %}selected{% endif %}>May</option>
+        <option value="6" {% if filter_month == '6' %}selected{% endif %}>June</option>
+        <option value="7" {% if filter_month == '7' %}selected{% endif %}>July</option>
+        <option value="8" {% if filter_month == '8' %}selected{% endif %}>August</option>
+        <option value="9" {% if filter_month == '9' %}selected{% endif %}>September</option>
+        <option value="10" {% if filter_month == '10' %}selected{% endif %}>October</option>
+        <option value="11" {% if filter_month == '11' %}selected{% endif %}>November</option>
+        <option value="12" {% if filter_month == '12' %}selected{% endif %}>December</option>
+      </select>
 
-<!-- ── PER-EVENT BREAKDOWN WITH CHARTS ──────── -->
-<div class="section-label">Per-Event Breakdown</div>
-<div class="table-card">
-  <div class="tbl-wrap">
-    <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:900px">
-      <thead>
-        <tr style="background:#f4f7f8;border-bottom:1px solid var(--border)">
-          <th style="padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border)">Event</th>
-          <th style="padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border);min-width:220px">Staff by Dept</th>
-          <th style="padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border);min-width:220px">Visitor by Org</th>
-          <th style="padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border);min-width:220px">Non-MY by Country</th>
-          {% if can_manage %}<th style="padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px">Export</th>{% endif %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in top_events %}
-        <tr style="border-bottom:1px solid #f0f3f4">
-          <td style="padding:14px;vertical-align:top;border-right:1px solid #f0f3f4;min-width:180px">
-            <div style="font-weight:500;color:var(--text)">{{ item.event.name }}</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px">{{ item.event.location }}</div>
-            <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">
-              <span class="num-badge num-blue" style="width:fit-content">{{ item.staff_total }} staff</span>
-              <span class="num-badge num-green" style="width:fit-content">{{ item.visitor_total }} visitor</span>
-              <span class="num-badge num-orange" style="width:fit-content">{{ item.passport_total }} non-MY</span>
-            </div>
-          </td>
-          <td style="padding:14px;vertical-align:top;border-right:1px solid #f0f3f4">
-            {% if item.staff_total > 0 %}
-            <div style="width:180px;height:180px;margin:0 auto">
-              <canvas class="staff-chart"
-                data-labels='{{ item.staff_labels_json|safe }}'
-                data-values='{{ item.staff_data_json|safe }}'></canvas>
-            </div>
-            {% else %}
-            <div style="color:var(--hint);font-size:12.5px;padding:24px 0;text-align:center">No staff data</div>
+      <input
+        type="number"
+        name="year"
+        class="input"
+        placeholder="Year"
+        value="{{ filter_year }}"
+      />
+
+      <input
+        type="text"
+        name="location"
+        class="input"
+        placeholder="Search location"
+        value="{{ filter_location }}"
+      />
+
+      <div class="filter-actions">
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="search"></i>
+          Search
+        </button>
+        <a href="/analytics/" class="btn btn-ghost">Reset</a>
+      </div>
+    </div>
+  </form>
+
+  <!-- Active Filters -->
+  {% if filter_name or filter_month or filter_year or filter_location %}
+  <div class="filter-pills">
+    {% if filter_name %}
+    <span class="filter-pill pill-blue">
+      <i data-lucide="tag" class="pill-icon"></i>
+      Event: {{ filter_name }}
+    </span>
+    {% endif %}
+
+    {% if filter_month %}
+    <span class="filter-pill pill-indigo">
+      <i data-lucide="calendar" class="pill-icon"></i>
+      Month: {{ filter_month }}
+    </span>
+    {% endif %}
+
+    {% if filter_year %}
+    <span class="filter-pill pill-purple">
+      <i data-lucide="calendar" class="pill-icon"></i>
+      Year: {{ filter_year }}
+    </span>
+    {% endif %}
+
+    {% if filter_location %}
+    <span class="filter-pill pill-green">
+      <i data-lucide="map-pin" class="pill-icon"></i>
+      Location: {{ filter_location }}
+    </span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Summary -->
+  <div class="section-label">Summary</div>
+  <div class="stats-grid">
+    <div class="card stat-card">
+      <div class="stat-label">Filtered Events</div>
+      <div class="stat-value">{{ total_filtered_events }}</div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-label">Staff Attendance</div>
+      <div class="stat-value">{{ total_filtered_staff }}</div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-label">Visitor (Malaysian)</div>
+      <div class="stat-value">{{ total_filtered_visitors }}</div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-label">Visitor (Non-Malaysian)</div>
+      <div class="stat-value">{{ total_filtered_passport }}</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="section-label">Charts</div>
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Attendance Composition</div>
+        <div class="card-subtitle">Breakdown by category for current filters</div>
+      </div>
+      <div class="card-body chart-center">
+        <div class="chart-doughnut-wrap">
+          <canvas id="analyticsOverviewChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Monthly Attendance Trend</div>
+        <div class="card-subtitle">Attendance distribution by event month</div>
+      </div>
+      <div class="card-body chart-bar-wrap">
+        <canvas id="monthlyTrendChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboards -->
+  <div class="section-label">Leaderboards</div>
+  <div class="lead-grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Top Departments</div>
+      </div>
+
+      {% for dept, total in top_departments %}
+      <div class="lead-item">
+        <span class="lead-name">{{ dept }}</span>
+        <span class="badge badge-blue lead-count">{{ total }}</span>
+      </div>
+      {% empty %}
+      <div class="empty-state">No data available.</div>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Top Organizations</div>
+      </div>
+
+      {% for org, total in top_organizations %}
+      <div class="lead-item">
+        <span class="lead-name">{{ org }}</span>
+        <span class="badge badge-green lead-count">{{ total }}</span>
+      </div>
+      {% empty %}
+      <div class="empty-state">No data available.</div>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Top Countries</div>
+      </div>
+
+      {% for country, total in top_countries %}
+      <div class="lead-item">
+        <span class="lead-name">{{ country }}</span>
+        <span class="badge badge-cyan lead-count">{{ total }}</span>
+      </div>
+      {% empty %}
+      <div class="empty-state">No data available.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Top Events -->
+  <div class="section-label">Top Events by Attendance</div>
+  <div class="card table-card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Staff</th>
+            <th>Visitor (MY)</th>
+            <th>Visitor (Non-MY)</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in top_events %}
+          <tr>
+            <td>
+              <div class="event-name">{{ item.event.name }}</div>
+              <div class="event-meta">{{ item.event.location }}</div>
+            </td>
+            <td><span class="num-badge num-blue">{{ item.staff_total }}</span></td>
+            <td><span class="num-badge num-green">{{ item.visitor_total }}</span></td>
+            <td><span class="num-badge num-orange">{{ item.passport_total }}</span></td>
+            <td><span class="num-badge num-ocean">{{ item.grand_total }}</span></td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="empty-table">No event analytics available.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Per Event Breakdown -->
+  <div class="section-label">Per-Event Breakdown</div>
+  <div class="card table-card">
+    <div class="table-wrap">
+      <table class="table table-wide table-top-align">
+        <thead>
+          <tr>
+            <th style="min-width: 180px;">Event</th>
+            <th style="min-width: 220px;">Staff by Dept</th>
+            <th style="min-width: 220px;">Visitor by Org</th>
+            <th style="min-width: 220px;">Non-MY by Country</th>
+            {% if can_manage %}
+            <th>Export</th>
             {% endif %}
-          </td>
-          <td style="padding:14px;vertical-align:top;border-right:1px solid #f0f3f4">
-            {% if item.visitor_total > 0 %}
-            <div style="width:180px;height:180px;margin:0 auto">
-              <canvas class="visitor-chart"
-                data-labels='{{ item.visitor_labels_json|safe }}'
-                data-values='{{ item.visitor_data_json|safe }}'></canvas>
-            </div>
-            {% else %}
-            <div style="color:var(--hint);font-size:12.5px;padding:24px 0;text-align:center">No visitor data</div>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in top_events %}
+          <tr>
+            <td>
+              <div class="event-name">{{ item.event.name }}</div>
+              <div class="event-meta">{{ item.event.location }}</div>
+
+              <div class="event-stack">
+                <span class="num-badge num-blue" style="width: fit-content;">
+                  {{ item.staff_total }} staff
+                </span>
+                <span class="num-badge num-green" style="width: fit-content;">
+                  {{ item.visitor_total }} visitor
+                </span>
+                <span class="num-badge num-orange" style="width: fit-content;">
+                  {{ item.passport_total }} non-MY
+                </span>
+              </div>
+            </td>
+
+            <td>
+              {% if item.staff_total > 0 %}
+              <div class="mini-chart-wrap">
+                <canvas
+                  class="staff-chart"
+                  data-labels='{{ item.staff_labels_json|safe }}'
+                  data-values='{{ item.staff_data_json|safe }}'
+                ></canvas>
+              </div>
+              {% else %}
+              <div class="empty-state">No staff data</div>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if item.visitor_total > 0 %}
+              <div class="mini-chart-wrap">
+                <canvas
+                  class="visitor-chart"
+                  data-labels='{{ item.visitor_labels_json|safe }}'
+                  data-values='{{ item.visitor_data_json|safe }}'
+                ></canvas>
+              </div>
+              {% else %}
+              <div class="empty-state">No visitor data</div>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if item.passport_total > 0 %}
+              <div class="mini-chart-wrap">
+                <canvas
+                  class="passport-chart"
+                  data-labels='{{ item.passport_labels_json|safe }}'
+                  data-values='{{ item.passport_data_json|safe }}'
+                ></canvas>
+              </div>
+              {% else %}
+              <div class="empty-state">No non-MY data</div>
+              {% endif %}
+            </td>
+
+            {% if can_manage %}
+            <td>
+              <a
+                href="/api/employees/dashboard/export-event-summary/{{ item.event.id }}/"
+                class="btn btn-sm btn-success"
+              >
+                <i data-lucide="download"></i>
+                CSV
+              </a>
+            </td>
             {% endif %}
-          </td>
-          {% if can_manage %}<td style="padding:14px;vertical-align:top;border-right:1px solid #f0f3f4">{% else %}<td style="padding:14px;vertical-align:top">{% endif %}
-            {% if item.passport_total > 0 %}
-            <div style="width:180px;height:180px;margin:0 auto">
-              <canvas class="passport-chart"
-                data-labels='{{ item.passport_labels_json|safe }}'
-                data-values='{{ item.passport_data_json|safe }}'></canvas>
-            </div>
-            {% else %}
-            <div style="color:var(--hint);font-size:12.5px;padding:24px 0;text-align:center">No non-MY data</div>
-            {% endif %}
-          </td>
-          {% if can_manage %}
-          <td style="padding:14px;vertical-align:top">
-            <a href="/api/employees/dashboard/export-event-summary/{{ item.event.id }}/"
-               class="btn btn-sm btn-green">
-              <i data-lucide="download"></i> CSV
-            </a>
-          </td>
-          {% endif %}
-        </tr>
-        {% empty %}
-        <tr><td colspan="{% if can_manage %}5{% else %}4{% endif %}" style="padding:32px;text-align:center;color:var(--hint)">No event analytics available.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="{% if can_manage %}5{% else %}4{% endif %}" class="empty-table">
+              No event analytics available.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const ad = document.getElementById('analytics-overview-data');
-  const oLabels = JSON.parse(ad.dataset.overviewLabels || '[]');
-  const oValues = JSON.parse(ad.dataset.overviewValues || '[]');
-  const mLabels = JSON.parse(ad.dataset.monthlyLabels || '[]');
-  const mValues = JSON.parse(ad.dataset.monthlyValues || '[]');
+  document.addEventListener("DOMContentLoaded", function () {
+    const analyticsData = document.getElementById("analytics-overview-data");
 
-  const COLORS = ['#003B46', '#00A8CC', '#C0C0C0', '#5DADE2', '#1abc9c', '#f39c12', '#e74c3c'];
+    const overviewLabels = JSON.parse(analyticsData.dataset.overviewLabels || "[]");
+    const overviewValues = JSON.parse(analyticsData.dataset.overviewValues || "[]");
+    const monthlyLabels = JSON.parse(analyticsData.dataset.monthlyLabels || "[]");
+    const monthlyValues = JSON.parse(analyticsData.dataset.monthlyValues || "[]");
 
-  const oCanvas = document.getElementById('analyticsOverviewChart');
-  if (oCanvas) {
-    new Chart(oCanvas, {
-      type: 'doughnut',
-      data: { labels: oLabels, datasets: [{ data: oValues,
-        backgroundColor: ['#003B46','#00A8CC','#C0C0C0'], borderColor:'#fff', borderWidth:3, hoverOffset:6 }] },
-      options: { responsive:true, cutout:'66%',
-        plugins: { legend:{ position:'bottom', labels:{ font:{size:11} } }, title:{ display:false } } }
+    const CHART_COLORS = [
+      "#003B46",
+      "#00A8CC",
+      "#C0C0C0",
+      "#5DADE2",
+      "#1abc9c",
+      "#f39c12",
+      "#e74c3c"
+    ];
+
+    function createOverviewChart() {
+      const canvas = document.getElementById("analyticsOverviewChart");
+      if (!canvas) return;
+
+      new Chart(canvas, {
+        type: "doughnut",
+        data: {
+          labels: overviewLabels,
+          datasets: [
+            {
+              data: overviewValues,
+              backgroundColor: ["#003B46", "#00A8CC", "#C0C0C0"],
+              borderColor: "#fff",
+              borderWidth: 3,
+              hoverOffset: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          cutout: "66%",
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                font: {
+                  size: 11
+                }
+              }
+            },
+            title: {
+              display: false
+            }
+          }
+        }
+      });
+    }
+
+    function createMonthlyTrendChart() {
+      const canvas = document.getElementById("monthlyTrendChart");
+      if (!canvas) return;
+
+      new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: monthlyLabels,
+          datasets: [
+            {
+              label: "Attendance",
+              data: monthlyValues,
+              backgroundColor: "#003B46",
+              borderRadius: 6,
+              borderSkipped: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "#f0f3f4"
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function createPieChart(canvas, title) {
+      const labels = JSON.parse(canvas.dataset.labels || "[]");
+      const values = JSON.parse(canvas.dataset.values || "[]");
+
+      new Chart(canvas, {
+        type: "pie",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              data: values,
+              backgroundColor: CHART_COLORS,
+              borderWidth: 2,
+              borderColor: "#fff"
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                font: {
+                  size: 10
+                },
+                boxWidth: 10
+              }
+            },
+            title: {
+              display: true,
+              text: title,
+              font: {
+                size: 11
+              }
+            }
+          }
+        }
+      });
+    }
+
+    createOverviewChart();
+    createMonthlyTrendChart();
+
+    document.querySelectorAll(".staff-chart").forEach(function (canvas) {
+      createPieChart(canvas, "Staff by Department");
     });
-  }
 
-  const mCanvas = document.getElementById('monthlyTrendChart');
-  if (mCanvas) {
-    new Chart(mCanvas, {
-      type: 'bar',
-      data: { labels: mLabels, datasets: [{
-        label: 'Attendance', data: mValues,
-        backgroundColor: '#003B46', borderRadius: 6, borderSkipped: false }] },
-      options: { responsive:true, maintainAspectRatio:false,
-        plugins: { legend:{ display:false } },
-        scales: { y:{ beginAtZero:true, grid:{ color:'#f0f3f4' } },
-                  x:{ grid:{ display:false } } } }
+    document.querySelectorAll(".visitor-chart").forEach(function (canvas) {
+      createPieChart(canvas, "Visitor by Organization");
     });
-  }
 
-  function makePie(canvas, labelKey, titleText) {
-    const labels = JSON.parse(canvas.dataset.labels || '[]');
-    const values = JSON.parse(canvas.dataset.values || '[]');
-    new Chart(canvas, {
-      type: 'pie',
-      data: { labels, datasets: [{ data: values, backgroundColor: COLORS, borderWidth:2, borderColor:'#fff' }] },
-      options: { responsive:true, maintainAspectRatio:false,
-        plugins: { legend:{ position:'bottom', labels:{ font:{size:10}, boxWidth:10 } },
-          title:{ display:true, text:titleText, font:{size:11} } } }
+    document.querySelectorAll(".passport-chart").forEach(function (canvas) {
+      createPieChart(canvas, "Non-MY by Country");
     });
-  }
 
-  document.querySelectorAll('.staff-chart').forEach(c => makePie(c, 'labels', 'Staff by Department'));
-  document.querySelectorAll('.visitor-chart').forEach(c => makePie(c, 'labels', 'Visitor by Organization'));
-  document.querySelectorAll('.passport-chart').forEach(c => makePie(c, 'labels', 'Non-MY by Country'));
-
-  if (window.lucide) lucide.createIcons();
-});
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  });
 </script>
 
 {% endblock %}

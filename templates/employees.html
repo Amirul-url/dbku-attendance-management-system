@@ -3,109 +3,564 @@
 
 <style>
   :root {
-    --ocean:#003B46;--ocean-l:#004f60;--silver:#C0C0C0;--silver-l:#E5E4E2;
-    --white:#FAFAFA;--border:#dde8ea;--text:#1a2e35;--muted:#6b8a93;--hint:#9ab0b7;
+    --ocean: #003B46;
+    --ocean-l: #004f60;
+    --silver: #C0C0C0;
+    --silver-l: #E5E4E2;
+    --white: #FAFAFA;
+    --border: #dde8ea;
+    --text: #1a2e35;
+    --muted: #6b8a93;
+    --hint: #9ab0b7;
   }
-  .page-title{font-size:22px;font-weight:600;color:var(--text)}
-  .page-sub{font-size:13px;color:var(--muted);margin-top:4px}
-  .page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
-  .header-actions{display:flex;gap:8px;flex-wrap:wrap}
-  .filter-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:20px}
-  .filter-input{width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;color:var(--text);background:#fff;outline:none;transition:border .15s;box-sizing:border-box}
-  .filter-input:focus{border-color:var(--ocean)}
-  .filter-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
-  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;border:none;text-decoration:none;transition:background .15s;font-family:inherit;white-space:nowrap}
-  .btn [data-lucide]{width:14px;height:14px}
-  .btn-ocean{background:var(--ocean);color:#fff}.btn-ocean:hover{background:var(--ocean-l)}
-  .btn-green{background:#2e7d32;color:#fff}.btn-green:hover{background:#1b5e20}
-  .btn-indigo{background:#283593;color:#fff}.btn-indigo:hover{background:#1a237e}
-  .btn-emerald{background:#00695c;color:#fff}.btn-emerald:hover{background:#004d40}
-  .btn-blue{background:#1565c0;color:#fff}.btn-blue:hover{background:#0d47a1}
-  .btn-red{background:#c62828;color:#fff}.btn-red:hover{background:#b71c1c}
-  .btn-ghost{background:var(--silver-l);color:var(--text)}.btn-ghost:hover{background:#d4d3d1}
-  .btn-sm{padding:6px 12px;font-size:12px}.btn-sm [data-lucide]{width:13px;height:13px}
-  .table-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px}
-  .table-card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px}
-  .table-card-title{font-size:14px;font-weight:600;color:var(--text)}
-  .table-card-sub{font-size:12px;color:var(--muted);margin-top:1px}
-  .tbl-wrap{overflow-x:auto}
-  table.data-table{width:100%;border-collapse:collapse;font-size:13px;min-width:1000px}
-  table.data-table thead tr{background:#f4f7f8;border-bottom:1px solid var(--border)}
-  table.data-table thead th{padding:11px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;border-right:1px solid var(--border);white-space:nowrap}
-  table.data-table thead th:last-child{border-right:none}
-  table.data-table tbody tr{border-bottom:1px solid #f0f3f4;transition:background .1s}
-  table.data-table tbody tr:hover{background:#f7fafb}
-  table.data-table tbody tr:last-child{border-bottom:none}
-  table.data-table tbody td{padding:12px 14px;color:var(--text);vertical-align:middle;border-right:1px solid #f0f3f4}
-  table.data-table tbody td:last-child{border-right:none}
-  .td-name{font-weight:500}
-  .td-empty{padding:32px;text-align:center;color:var(--hint)}
-  .badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
-  .badge-green{background:#e8f5e9;color:#1b5e20}
-  .badge-blue{background:#e3f2fd;color:#0d47a1}
-  .badge-red{background:#ffebee;color:#b71c1c}
-  .badge-yellow{background:#fffde7;color:#f57f17}
-  .badge-gray{background:var(--silver-l);color:var(--muted)}
-  .modal-overlay{display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);overflow-y:auto;padding:24px 16px}
-  .modal-overlay.open{display:flex;align-items:flex-start;justify-content:center}
-  .modal-box{background:#fff;width:100%;border-radius:16px;border:1px solid var(--border);overflow:hidden}
-  .modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--border)}
-  .modal-title{font-size:16px;font-weight:600;color:var(--text)}
-  .modal-sub{font-size:12px;color:var(--muted);margin-top:2px}
-  .modal-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--silver-l);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
-  .modal-close:hover{background:#c8c7c5}
-  .modal-body{padding:20px 22px}
-  .modal-footer{padding:14px 22px;border-top:1px solid var(--border);background:#f7f9fa;display:flex;justify-content:flex-end;gap:8px;border-radius:0 0 16px 16px}
-  .form-label{display:block;font-size:12.5px;font-weight:500;color:var(--text);margin-bottom:5px}
-  .form-input,.form-select{width:100%;padding:9px 13px;border:1px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;color:var(--text);background:#fff;outline:none;transition:border .15s;box-sizing:border-box}
-  .form-input:focus,.form-select:focus{border-color:var(--ocean)}
-  .form-grid{display:grid;gap:14px}
-  .form-grid-2{grid-template-columns:1fr 1fr}
-  .col-span-2{grid-column:span 2}
-  .pw-note{background:#e0edf0;border:1px solid #b0d0d8;border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--ocean)}
-  .pw-note strong{display:block;margin-bottom:4px;font-weight:600}
-  @media(max-width:900px){.filter-grid{grid-template-columns:1fr 1fr}.form-grid-2{grid-template-columns:1fr}.col-span-2{grid-column:span 1}}
-  @media(max-width:600px){.filter-grid{grid-template-columns:1fr}.page-header{flex-direction:column;align-items:flex-start}.header-actions{flex-wrap:wrap}}
+
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .page-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .page-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .filter-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+  }
+
+  .filter-input,
+  .form-input,
+  .form-select {
+    width: 100%;
+    padding: 9px 13px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text);
+    background: #fff;
+    outline: none;
+    transition: border .15s;
+    box-sizing: border-box;
+  }
+
+  .filter-input:focus,
+  .form-input:focus,
+  .form-select:focus {
+    border-color: var(--ocean);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: background .15s;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+
+  .btn [data-lucide] {
+    width: 14px;
+    height: 14px;
+  }
+
+  .btn-ocean {
+    background: var(--ocean);
+    color: #fff;
+  }
+
+  .btn-ocean:hover {
+    background: var(--ocean-l);
+  }
+
+  .btn-green {
+    background: #2e7d32;
+    color: #fff;
+  }
+
+  .btn-green:hover {
+    background: #1b5e20;
+  }
+
+  .btn-indigo {
+    background: #283593;
+    color: #fff;
+  }
+
+  .btn-indigo:hover {
+    background: #1a237e;
+  }
+
+  .btn-emerald {
+    background: #00695c;
+    color: #fff;
+  }
+
+  .btn-emerald:hover {
+    background: #004d40;
+  }
+
+  .btn-blue {
+    background: #1565c0;
+    color: #fff;
+  }
+
+  .btn-blue:hover {
+    background: #0d47a1;
+  }
+
+  .btn-red {
+    background: #c62828;
+    color: #fff;
+  }
+
+  .btn-red:hover {
+    background: #b71c1c;
+  }
+
+  .btn-ghost {
+    background: var(--silver-l);
+    color: var(--text);
+  }
+
+  .btn-ghost:hover {
+    background: #d4d3d1;
+  }
+
+  .btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .btn-sm [data-lucide] {
+    width: 13px;
+    height: 13px;
+  }
+
+  .table-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .table-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .table-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .table-card-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .tbl-wrap {
+    overflow-x: auto;
+  }
+
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 1000px;
+  }
+
+  table.data-table thead tr {
+    background: #f4f7f8;
+    border-bottom: 1px solid var(--border);
+  }
+
+  table.data-table thead th {
+    padding: 11px 14px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    border-right: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  table.data-table thead th:last-child {
+    border-right: none;
+  }
+
+  table.data-table tbody tr {
+    border-bottom: 1px solid #f0f3f4;
+    transition: background .1s;
+  }
+
+  table.data-table tbody tr:hover {
+    background: #f7fafb;
+  }
+
+  table.data-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  table.data-table tbody td {
+    padding: 12px 14px;
+    color: var(--text);
+    vertical-align: middle;
+    border-right: 1px solid #f0f3f4;
+  }
+
+  table.data-table tbody td:last-child {
+    border-right: none;
+  }
+
+  .td-name {
+    font-weight: 500;
+  }
+
+  .td-empty {
+    padding: 32px;
+    text-align: center;
+    color: var(--hint);
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .badge-green {
+    background: #e8f5e9;
+    color: #1b5e20;
+  }
+
+  .badge-blue {
+    background: #e3f2fd;
+    color: #0d47a1;
+  }
+
+  .badge-red {
+    background: #ffebee;
+    color: #b71c1c;
+  }
+
+  .badge-yellow {
+    background: #fffde7;
+    color: #f57f17;
+  }
+
+  .badge-gray {
+    background: var(--silver-l);
+    color: var(--muted);
+  }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(0, 0, 0, .45);
+    overflow-y: auto;
+    padding: 24px 16px;
+  }
+
+  .modal-overlay.open {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .modal-box {
+    background: #fff;
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .modal-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--silver-l);
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s;
+  }
+
+  .modal-close:hover {
+    background: #c8c7c5;
+  }
+
+  .modal-body {
+    padding: 20px 22px;
+  }
+
+  .modal-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+    background: #f7f9fa;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-radius: 0 0 16px 16px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 5px;
+  }
+
+  .form-grid {
+    display: grid;
+    gap: 14px;
+  }
+
+  .form-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .col-span-2 {
+    grid-column: span 2;
+  }
+
+  .pw-note {
+    background: #e0edf0;
+    border: 1px solid #b0d0d8;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    color: var(--ocean);
+  }
+
+  .pw-note strong {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  .mono-text {
+    font-size: 12.5px;
+    color: var(--muted);
+    font-family: monospace;
+  }
+
+  .email-text {
+    font-size: 12.5px;
+    word-break: break-all;
+  }
+
+  .dept-text {
+    max-width: 200px;
+    word-break: break-word;
+    font-size: 12.5px;
+  }
+
+  .action-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .modal-shell {
+    min-height: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .modal-box-wrap {
+    max-width: 640px;
+    margin: 8px 0;
+  }
+
+  .helper-text {
+    font-size: 11.5px;
+    color: var(--hint);
+    margin-top: 6px;
+  }
+
+  @media (max-width: 900px) {
+    .filter-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .form-grid-2 {
+      grid-template-columns: 1fr;
+    }
+
+    .col-span-2 {
+      grid-column: span 1;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .filter-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .page-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .header-actions {
+      flex-wrap: wrap;
+    }
+  }
 </style>
 
-<!-- ── PAGE HEADER ──────────────────────────── -->
 <div class="page-header">
   <div>
     <div class="page-title">Staff Management</div>
     <div class="page-sub">Manage staff records, registration methods, and access roles.</div>
   </div>
+
   {% if is_admin %}
   <div class="header-actions">
     <button type="button" onclick="openModal()" class="btn btn-green">
-      <i data-lucide="user-plus"></i> Add Staff
+      <i data-lucide="user-plus"></i>
+      Add Staff
     </button>
+
     <button type="button" onclick="document.getElementById('excelFileInput').click()" class="btn btn-indigo">
-      <i data-lucide="upload"></i> Import Excel
+      <i data-lucide="upload"></i>
+      Import Excel
     </button>
-    <a href="/api/employees/export-excel/?name={{ request.GET.name|default:''|urlencode }}&department={{ request.GET.department|default:''|urlencode }}"
-       class="btn btn-emerald">
-      <i data-lucide="download"></i> Export Excel
+
+    <a
+      href="/api/employees/export-excel/?name={{ request.GET.name|default:''|urlencode }}&department={{ request.GET.department|default:''|urlencode }}"
+      class="btn btn-emerald"
+    >
+      <i data-lucide="download"></i>
+      Export Excel
     </a>
-    <input id="excelFileInput" type="file" accept=".xlsx" class="hidden" onchange="importExcelStaff(event)" style="display:none">
+
+    <input
+      id="excelFileInput"
+      type="file"
+      accept=".xlsx"
+      class="hidden"
+      style="display:none"
+      onchange="importExcelStaff(event)"
+    >
   </div>
   {% endif %}
 </div>
 
-<!-- ── FILTER ───────────────────────────────── -->
 <form method="GET" class="filter-card">
   <div class="filter-grid">
-    <input type="text" name="name" placeholder="Search staff name"
-      value="{{ request.GET.name }}" class="filter-input">
-    <input type="text" name="department" placeholder="Search department"
-      value="{{ request.GET.department }}" class="filter-input">
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ocean"><i data-lucide="search"></i> Filter</button>
+    <input
+      type="text"
+      name="name"
+      placeholder="Search staff name"
+      value="{{ request.GET.name }}"
+      class="filter-input"
+    >
+
+    <input
+      type="text"
+      name="department"
+      placeholder="Search department"
+      value="{{ request.GET.department }}"
+      class="filter-input"
+    >
+
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-ocean">
+        <i data-lucide="search"></i>
+        Filter
+      </button>
       <a href="/employees/" class="btn btn-ghost">Reset</a>
     </div>
   </div>
 </form>
 
-<!-- ── STAFF TABLE ───────────────────────────── -->
 <div class="table-card">
   <div class="table-card-header">
     <div>
@@ -113,6 +568,7 @@
       <div class="table-card-sub">All staff members registered in the system</div>
     </div>
   </div>
+
   <div class="tbl-wrap">
     <table class="data-table">
       <thead>
@@ -123,16 +579,20 @@
           <th>Department</th>
           <th>Method</th>
           <th>Role</th>
-          {% if is_admin %}<th>Actions</th>{% endif %}
+          {% if is_admin %}
+          <th>Actions</th>
+          {% endif %}
         </tr>
       </thead>
+
       <tbody>
         {% for emp in employees %}
         <tr>
           <td class="td-name">{{ emp.full_name }}</td>
-          <td style="font-size:12.5px;color:var(--muted);font-family:monospace">{{ emp.employee_id }}</td>
-          <td style="font-size:12.5px;word-break:break-all">{{ emp.email }}</td>
-          <td style="max-width:200px;word-break:break-word;font-size:12.5px">{{ emp.department }}</td>
+          <td class="mono-text">{{ emp.employee_id }}</td>
+          <td class="email-text">{{ emp.email }}</td>
+          <td class="dept-text">{{ emp.department }}</td>
+
           <td>
             {% if emp.registration_method == "mykad" %}
               <span class="badge badge-green">MyKad</span>
@@ -140,6 +600,7 @@
               <span class="badge badge-blue">Manual</span>
             {% endif %}
           </td>
+
           <td>
             {% if emp.role == "admin" %}
               <span class="badge badge-red">Admin</span>
@@ -149,25 +610,43 @@
               <span class="badge badge-gray">Viewer</span>
             {% endif %}
           </td>
+
           {% if is_admin %}
           <td>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <button type="button" class="btn btn-sm btn-blue edit-btn"
-                data-id="{{ emp.id }}" data-name="{{ emp.full_name }}"
-                data-empid="{{ emp.employee_id }}" data-email="{{ emp.email }}"
-                data-dept="{{ emp.department }}" data-method="{{ emp.registration_method }}"
-                data-role="{{ emp.role }}">
-                <i data-lucide="pencil"></i> Edit
+            <div class="action-group">
+              <button
+                type="button"
+                class="btn btn-sm btn-blue edit-btn"
+                data-id="{{ emp.id }}"
+                data-name="{{ emp.full_name }}"
+                data-empid="{{ emp.employee_id }}"
+                data-email="{{ emp.email }}"
+                data-dept="{{ emp.department }}"
+                data-method="{{ emp.registration_method }}"
+                data-role="{{ emp.role }}"
+              >
+                <i data-lucide="pencil"></i>
+                Edit
               </button>
-              <button type="button" class="btn btn-sm btn-red delete-btn" data-id="{{ emp.id }}">
-                <i data-lucide="trash-2"></i> Delete
+
+              <button
+                type="button"
+                class="btn btn-sm btn-red delete-btn"
+                data-id="{{ emp.id }}"
+              >
+                <i data-lucide="trash-2"></i>
+                Delete
               </button>
             </div>
           </td>
           {% endif %}
         </tr>
         {% empty %}
-        <tr><td colspan="{% if is_admin %}7{% else %}6{% endif %}" class="td-empty">No staff found.</td></tr>
+        <tr>
+          <td colspan="{% if is_admin %}7{% else %}6{% endif %}" class="td-empty">
+            No staff found.
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
@@ -175,10 +654,9 @@
 </div>
 
 {% if is_admin %}
-<!-- ── STAFF MODAL ───────────────────────────── -->
 <div id="modal" class="modal-overlay" onclick="handleBackdropClick(event)">
-  <div style="min-height:100%;display:flex;align-items:flex-start;justify-content:center;width:100%">
-    <div class="modal-box" style="max-width:640px;margin:8px 0" onclick="event.stopPropagation()">
+  <div class="modal-shell">
+    <div class="modal-box modal-box-wrap" onclick="event.stopPropagation()">
       <div class="modal-header">
         <div>
           <div id="modalTitle" class="modal-title">Add Staff</div>
@@ -186,44 +664,59 @@
         </div>
         <button type="button" onclick="closeModal()" class="modal-close">×</button>
       </div>
+
       <div class="modal-body">
         <div class="form-grid form-grid-2">
           <div class="col-span-2">
             <label class="form-label">Full Name</label>
             <input id="m_name" class="form-input" placeholder="Enter full name">
           </div>
+
           <div>
             <label class="form-label">Staff ID</label>
             <input id="m_id" class="form-input" placeholder="Enter Staff ID">
           </div>
+
           <div>
             <label class="form-label">Email</label>
             <input id="m_email" type="email" class="form-input" placeholder="Enter email">
           </div>
+
           <div class="col-span-2">
             <label class="form-label">Department</label>
             <select id="m_dept" onchange="toggleOtherDeptModal()" class="form-select">
               <option value="">-- Select department --</option>
-              <option>Administration (ADM)</option><option>Internal Audit (AUD)</option>
-              <option>Building (BLG)</option><option>Community Development &amp; Services (CDS)</option>
-              <option>Contract and Procurement (COP)</option><option>Committee Secretariat (CTS)</option>
-              <option>Engineering Project (ENG)</option><option>Enforcement and Security (ENS)</option>
-              <option>Health and Environment (ENV)</option><option>Finance (FIN)</option>
+              <option>Administration (ADM)</option>
+              <option>Internal Audit (AUD)</option>
+              <option>Building (BLG)</option>
+              <option>Community Development &amp; Services (CDS)</option>
+              <option>Contract and Procurement (COP)</option>
+              <option>Committee Secretariat (CTS)</option>
+              <option>Engineering Project (ENG)</option>
+              <option>Enforcement and Security (ENS)</option>
+              <option>Health and Environment (ENV)</option>
+              <option>Finance (FIN)</option>
               <option>Geoinformation and Property Management (GPM)</option>
               <option>Human Resource Management (HRM)</option>
               <option>Information and Communication Technology (ICT)</option>
-              <option>Infrastructure Maintenance (IMT)</option><option>Information Resource (IRD)</option>
-              <option>Legal Affairs (LAW)</option><option>Licensing (LES)</option>
-              <option>Landscape and Planning (LNP)</option><option>Mechanical and Electrical (MNE)</option>
+              <option>Infrastructure Maintenance (IMT)</option>
+              <option>Information Resource (IRD)</option>
+              <option>Legal Affairs (LAW)</option>
+              <option>Licensing (LES)</option>
+              <option>Landscape and Planning (LNP)</option>
+              <option>Mechanical and Electrical (MNE)</option>
               <option>Public Relations (PRD)</option>
               <option>Special Project &amp; Public Transport (SPT)</option>
-              <option>Valuation and Property Management (VPM)</option><option>Others</option>
+              <option>Valuation and Property Management (VPM)</option>
+              <option>Others</option>
             </select>
           </div>
+
           <div id="m_otherDeptWrapper" class="col-span-2 hidden" style="display:none">
             <label class="form-label">Please Specify Department</label>
             <input id="m_other_dept" class="form-input" placeholder="Enter department">
           </div>
+
           <div>
             <label class="form-label">Registration Method</label>
             <select id="m_method" class="form-select">
@@ -231,6 +724,7 @@
               <option value="mykad">MyKad</option>
             </select>
           </div>
+
           <div>
             <label class="form-label">Role</label>
             <select id="m_role" class="form-select">
@@ -239,29 +733,38 @@
               <option value="admin">Admin</option>
             </select>
           </div>
+
           <div>
             <label class="form-label">Password</label>
             <input id="m_password" type="password" class="form-input" placeholder="Enter password">
           </div>
+
           <div>
             <label class="form-label">Confirm Password</label>
             <input id="m_confirm_password" type="password" class="form-input" placeholder="Confirm password">
           </div>
+
           <div class="col-span-2">
             <div class="pw-note">
               <strong>Password Requirements</strong>
-              Minimum 8 characters · At least 1 letter · At least 1 number
+              <ul style="margin: 6px 0 0 18px; padding: 0;">
+                <li>· Minimum 8 characters</li>
+                <li>· Must contain at least 1 letter</li>
+                <li>· Must contain at least 1 number</li>
+              </ul>
             </div>
-            <p style="font-size:11.5px;color:var(--hint);margin-top:6px">
+            <p class="helper-text">
               Leave password fields empty during edit to keep the current password.
             </p>
           </div>
         </div>
       </div>
+
       <div class="modal-footer">
         <button type="button" onclick="closeModal()" class="btn btn-ghost">Cancel</button>
         <button type="button" onclick="saveEmployee()" id="saveBtn" class="btn btn-ocean">
-          <i data-lucide="save"></i> Save Staff
+          <i data-lucide="save"></i>
+          Save Staff
         </button>
       </div>
     </div>
@@ -269,27 +772,276 @@
 </div>
 
 <script>
-let editId=null;
-function toggleOtherDeptModal(){const d=document.getElementById('m_dept').value,w=document.getElementById('m_otherDeptWrapper'),o=document.getElementById('m_other_dept');if(d==='Others'){w.style.display='block';}else{w.style.display='none';o.value='';}}
-function getModalDepartmentValue(){const s=document.getElementById('m_dept').value.trim(),o=document.getElementById('m_other_dept').value.trim();return s==='Others'?o:s;}
-function resetModalFields(){['m_name','m_id','m_email','m_other_dept','m_password','m_confirm_password'].forEach(id=>document.getElementById(id).value='');document.getElementById('m_dept').value='';document.getElementById('m_otherDeptWrapper').style.display='none';document.getElementById('m_method').value='manual';document.getElementById('m_role').value='viewer';}
-function openModal(){editId=null;document.getElementById('modalTitle').innerText='Add Staff';document.getElementById('saveBtn').innerText='Save Staff';resetModalFields();document.getElementById('modal').classList.add('open');document.body.style.overflow='hidden';}
-function closeModal(){document.getElementById('modal').classList.remove('open');document.body.style.overflow='';}
-function handleBackdropClick(e){if(e.target.id==='modal')closeModal();}
-function saveEmployee(){
-  const btn=document.getElementById('saveBtn');const dept=getModalDepartmentValue();
-  const pw=document.getElementById('m_password').value,cpw=document.getElementById('m_confirm_password').value;
-  if(!document.getElementById('m_name').value.trim()||!document.getElementById('m_id').value.trim()||!document.getElementById('m_email').value.trim()||!dept){alert('Please fill all required fields');return;}
-  if(!editId&&(!pw||!cpw)){alert('Password and confirm password are required');return;}
-  const data={full_name:document.getElementById('m_name').value.trim(),employee_id:document.getElementById('m_id').value.trim(),email:document.getElementById('m_email').value.trim(),department:dept,registration_method:document.getElementById('m_method').value,role:document.getElementById('m_role').value,password:pw,confirm_password:cpw};
-  btn.disabled=true;btn.innerText=editId?'Updating...':'Saving...';
-  fetch(editId?'/api/employees/update/'+editId+'/':'/api/employees/add/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json()).then(d=>{alert(d.message||d.error);if(d.message)location.reload();}).catch(()=>alert('Error saving staff')).finally(()=>{btn.disabled=false;btn.innerText=editId?'Update Staff':'Save Staff';});
-}
-document.querySelectorAll('.edit-btn').forEach(btn=>{btn.addEventListener('click',function(){editId=this.dataset.id;document.getElementById('modalTitle').innerText='Edit Staff';document.getElementById('saveBtn').innerText='Update Staff';document.getElementById('m_name').value=this.dataset.name||'';document.getElementById('m_id').value=this.dataset.empid||'';document.getElementById('m_email').value=this.dataset.email||'';const dv=this.dataset.dept||'',ds=document.getElementById('m_dept');const known=Array.from(ds.options).some(o=>o.value===dv);if(known){ds.value=dv;document.getElementById('m_other_dept').value='';document.getElementById('m_otherDeptWrapper').style.display='none';}else{ds.value='Others';document.getElementById('m_other_dept').value=dv;document.getElementById('m_otherDeptWrapper').style.display='block';}document.getElementById('m_method').value=this.dataset.method||'manual';document.getElementById('m_role').value=this.dataset.role||'viewer';document.getElementById('m_password').value='';document.getElementById('m_confirm_password').value='';document.getElementById('modal').classList.add('open');document.body.style.overflow='hidden';});});
-document.querySelectorAll('.delete-btn').forEach(btn=>{btn.addEventListener('click',function(){if(!confirm('Delete this staff member?'))return;fetch('/api/employees/delete/'+this.dataset.id+'/',{method:'POST',headers:{'Content-Type':'application/json'}}).then(r=>r.json()).then(d=>{alert(d.message||d.error);if(d.message)location.reload();}).catch(()=>alert('Error deleting staff'));});});
-function importExcelStaff(e){const file=e.target.files[0];if(!file)return;const fd=new FormData();fd.append('excel_file',file);fetch('/api/employees/import-excel/',{method:'POST',body:fd}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||'Import failed');return d;}).then(d=>{let msg=d.message||'Import completed';if(d.errors&&d.errors.length)msg+='\n\nFailed rows:\n- '+d.errors.join('\n- ');alert(msg);location.reload();}).catch(e=>alert(e.message||'Error importing Excel')).finally(()=>{document.getElementById('excelFileInput').value='';});}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
-document.addEventListener('DOMContentLoaded',()=>{if(window.lucide)lucide.createIcons();});
+  let editId = null;
+
+  function getEl(id) {
+    return document.getElementById(id);
+  }
+
+  function toggleOtherDeptModal() {
+    const departmentValue = getEl('m_dept').value;
+    const wrapper = getEl('m_otherDeptWrapper');
+    const otherInput = getEl('m_other_dept');
+
+    if (departmentValue === 'Others') {
+      wrapper.style.display = 'block';
+    } else {
+      wrapper.style.display = 'none';
+      otherInput.value = '';
+    }
+  }
+
+  function getModalDepartmentValue() {
+    const selectedDepartment = getEl('m_dept').value.trim();
+    const otherDepartment = getEl('m_other_dept').value.trim();
+    return selectedDepartment === 'Others' ? otherDepartment : selectedDepartment;
+  }
+
+  function resetModalFields() {
+    const fieldIds = [
+      'm_name',
+      'm_id',
+      'm_email',
+      'm_other_dept',
+      'm_password',
+      'm_confirm_password'
+    ];
+
+    fieldIds.forEach(function(id) {
+      getEl(id).value = '';
+    });
+
+    getEl('m_dept').value = '';
+    getEl('m_otherDeptWrapper').style.display = 'none';
+    getEl('m_method').value = 'manual';
+    getEl('m_role').value = 'viewer';
+  }
+
+  function openModal() {
+    editId = null;
+    getEl('modalTitle').innerText = 'Add Staff';
+    getEl('saveBtn').innerText = 'Save Staff';
+    resetModalFields();
+    getEl('modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    getEl('modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function handleBackdropClick(event) {
+    if (event.target.id === 'modal') {
+      closeModal();
+    }
+  }
+
+  function validateEmployeeForm() {
+    const fullName = getEl('m_name').value.trim();
+    const employeeId = getEl('m_id').value.trim();
+    const email = getEl('m_email').value.trim();
+    const department = getModalDepartmentValue();
+    const password = getEl('m_password').value;
+    const confirmPassword = getEl('m_confirm_password').value;
+
+    if (!fullName || !employeeId || !email || !department) {
+      alert('Please fill all required fields');
+      return false;
+    }
+
+    if (!editId && (!password || !confirmPassword)) {
+      alert('Password and confirm password are required');
+      return false;
+    }
+
+    return true;
+  }
+
+  function buildEmployeePayload() {
+    return {
+      full_name: getEl('m_name').value.trim(),
+      employee_id: getEl('m_id').value.trim(),
+      email: getEl('m_email').value.trim(),
+      department: getModalDepartmentValue(),
+      registration_method: getEl('m_method').value,
+      role: getEl('m_role').value,
+      password: getEl('m_password').value,
+      confirm_password: getEl('m_confirm_password').value
+    };
+  }
+
+  function saveEmployee() {
+    if (!validateEmployeeForm()) {
+      return;
+    }
+
+    const saveBtn = getEl('saveBtn');
+    const payload = buildEmployeePayload();
+
+    saveBtn.disabled = true;
+    saveBtn.innerText = editId ? 'Updating...' : 'Saving...';
+
+    fetch(
+      editId ? '/api/employees/update/' + editId + '/' : '/api/employees/add/',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      }
+    )
+    .then(function(response) {
+      return response.json();
+    })
+    .then(function(data) {
+      alert(data.message || data.error);
+      if (data.message) {
+        location.reload();
+      }
+    })
+    .catch(function() {
+      alert('Error saving staff');
+    })
+    .finally(function() {
+      saveBtn.disabled = false;
+      saveBtn.innerText = editId ? 'Update Staff' : 'Save Staff';
+    });
+  }
+
+  function openEditModal(button) {
+    editId = button.dataset.id;
+
+    getEl('modalTitle').innerText = 'Edit Staff';
+    getEl('saveBtn').innerText = 'Update Staff';
+
+    getEl('m_name').value = button.dataset.name || '';
+    getEl('m_id').value = button.dataset.empid || '';
+    getEl('m_email').value = button.dataset.email || '';
+
+    const departmentValue = button.dataset.dept || '';
+    const departmentSelect = getEl('m_dept');
+    const isKnownDepartment = Array.from(departmentSelect.options).some(function(option) {
+      return option.value === departmentValue;
+    });
+
+    if (isKnownDepartment) {
+      departmentSelect.value = departmentValue;
+      getEl('m_other_dept').value = '';
+      getEl('m_otherDeptWrapper').style.display = 'none';
+    } else {
+      departmentSelect.value = 'Others';
+      getEl('m_other_dept').value = departmentValue;
+      getEl('m_otherDeptWrapper').style.display = 'block';
+    }
+
+    getEl('m_method').value = button.dataset.method || 'manual';
+    getEl('m_role').value = button.dataset.role || 'viewer';
+    getEl('m_password').value = '';
+    getEl('m_confirm_password').value = '';
+
+    getEl('modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function deleteEmployee(id) {
+    const confirmed = confirm('Delete this staff member?');
+    if (!confirmed) {
+      return;
+    }
+
+    fetch('/api/employees/delete/' + id + '/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(function(response) {
+      return response.json();
+    })
+    .then(function(data) {
+      alert(data.message || data.error);
+      if (data.message) {
+        location.reload();
+      }
+    })
+    .catch(function() {
+      alert('Error deleting staff');
+    });
+  }
+
+  function importExcelStaff(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('excel_file', file);
+
+    fetch('/api/employees/import-excel/', {
+      method: 'POST',
+      body: formData
+    })
+    .then(async function(response) {
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Import failed');
+      }
+      return data;
+    })
+    .then(function(data) {
+      let message = data.message || 'Import completed';
+
+      if (data.errors && data.errors.length) {
+        message += '\n\nFailed rows:\n- ' + data.errors.join('\n- ');
+      }
+
+      alert(message);
+      location.reload();
+    })
+    .catch(function(error) {
+      alert(error.message || 'Error importing Excel');
+    })
+    .finally(function() {
+      getEl('excelFileInput').value = '';
+    });
+  }
+
+  function bindEditButtons() {
+    document.querySelectorAll('.edit-btn').forEach(function(button) {
+      button.addEventListener('click', function() {
+        openEditModal(this);
+      });
+    });
+  }
+
+  function bindDeleteButtons() {
+    document.querySelectorAll('.delete-btn').forEach(function(button) {
+      button.addEventListener('click', function() {
+        deleteEmployee(this.dataset.id);
+      });
+    });
+  }
+
+  function bindKeyboardEvents() {
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeModal();
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    bindEditButtons();
+    bindDeleteButtons();
+    bindKeyboardEvents();
+
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  });
 </script>
 {% endif %}
 
