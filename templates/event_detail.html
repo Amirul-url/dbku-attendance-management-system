@@ -1209,14 +1209,14 @@
                 data-countrycode="{{ extra.country_code|default:'' }}"
                 data-passportnumber="{{ att.passport_visitor.passport_number|default:'' }}"
                 data-nationality="{{ extra.nationality|default:att.passport_visitor.country|default:'' }}"
-                data-surname="{{ extra.surname|default:'' }}"
-                data-givenname="{{ extra.given_name|default:'' }}"
+                data-firstname="{{ extra.first_name|default:'' }}"
+                data-lastname="{{ extra.last_name|default:'' }}"
                 data-dateofbirth="{{ att.passport_visitor.date_of_birth|default:'' }}"
                 data-sex="{{ att.passport_visitor.gender|default:'' }}"
                 data-dateofissue="{{ extra.date_of_issue|default:'' }}"
                 data-dateofexpiry="{{ att.passport_visitor.expiry_date|default:'' }}"
                 data-status="{{ att.passport_visitor.status|default:'' }}"
-                data-rawtext="{{ att.passport_visitor.ocr_raw_text|default:''|escapejs }}"
+                data-rawtext-id="passport_raw_text_{{ att.id }}"
                 data-dynamicfields='{{ extra.dynamic_fields|default:"[]"|escapejs }}'
               >
                 <i data-lucide="eye"></i>
@@ -1232,14 +1232,14 @@
                 data-countrycode="{{ extra.country_code|default:'' }}"
                 data-passportnumber="{{ att.passport_visitor.passport_number|default:'' }}"
                 data-nationality="{{ extra.nationality|default:att.passport_visitor.country|default:'' }}"
-                data-surname="{{ extra.surname|default:'' }}"
-                data-givenname="{{ extra.given_name|default:'' }}"
+                data-firstname="{{ extra.first_name|default:'' }}"
+                data-lastname="{{ extra.last_name|default:'' }}"
                 data-dateofbirth="{{ att.passport_visitor.date_of_birth|default:'' }}"
                 data-sex="{{ att.passport_visitor.gender|default:'' }}"
                 data-dateofissue="{{ extra.date_of_issue|default:'' }}"
                 data-dateofexpiry="{{ att.passport_visitor.expiry_date|default:'' }}"
                 data-status="{{ att.passport_visitor.status|default:'' }}"
-                data-rawtext="{{ att.passport_visitor.ocr_raw_text|default:''|escapejs }}"
+                data-rawtext-id="passport_raw_text_{{ att.id }}"
                 data-dynamicfields='{{ extra.dynamic_fields|default:"[]"|escapejs }}'
               >
                 <i data-lucide="pencil"></i>
@@ -1251,9 +1251,9 @@
                 data-id="{{ att.id }}"
               >
                 <i data-lucide="trash-2"></i>
-              </button>
-            </div>
-          </td>
+              </button>      </div>
+              <textarea id="passport_raw_text_{{ att.id }}" class="hidden">{{ att.passport_visitor.ocr_raw_text|default:'' }}</textarea>
+            </td>
           {% endwith %}
           {% endif %}
         </tr>
@@ -1588,12 +1588,12 @@
             <input id="view_nationality" class="form-input" readonly>
           </div>
           <div>
-            <label class="form-label">Surname</label>
-            <input id="view_surname" class="form-input" readonly>
+            <label class="form-label">First Name</label>
+            <input id="view_first_name" class="form-input" readonly>
           </div>
           <div>
-            <label class="form-label">Given Name</label>
-            <input id="view_given_name" class="form-input" readonly>
+            <label class="form-label">Last Name</label>
+            <input id="view_last_name" class="form-input" readonly>
           </div>
           <div>
             <label class="form-label">Date of Birth</label>
@@ -1618,7 +1618,7 @@
         </div>
 
         <div class="section-divider" style="margin-top:14px">
-          <div class="section-divider-title">Additional Passport Fields</div>
+          <div class="section-divider-title">Dynamic Fields</div>
           <div id="viewDynamicFields" class="form-grid-2"></div>
         </div>
 
@@ -1741,12 +1741,12 @@
           </div>
 
           <div>
-            <label class="form-label">Surname</label>
-            <input id="edit_surname" class="form-input">
+            <label class="form-label">First Name</label>
+            <input id="edit_first_name" class="form-input" placeholder="Enter first name">
           </div>
           <div>
-            <label class="form-label">Given Name</label>
-            <input id="edit_given_name" class="form-input">
+            <label class="form-label">Last Name</label>
+            <input id="edit_last_name" class="form-input" placeholder="Enter last name">
           </div>
           <div>
             <label class="form-label">Date of Birth</label>
@@ -1781,7 +1781,7 @@
 
         <div class="section-divider" style="margin-top:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div class="section-divider-title" style="margin-bottom:0">Additional Passport Fields</div>
+            <div class="section-divider-title" style="margin-bottom:0">Dynamic Fields</div>
             <button type="button" onclick="addEditDynamicField()" class="btn btn-sm btn-ocean">
               <i data-lucide="plus"></i>
               Add Field
@@ -1811,6 +1811,15 @@
 <script>
   function getEl(id) {
     return document.getElementById(id);
+  }
+
+  function getExactPassportRawText(dataset) {
+    const rawTextId = dataset.rawtextId || dataset.rawtextid || '';
+    const rawTextEl = rawTextId ? getEl(rawTextId) : null;
+    if (rawTextEl) {
+      return rawTextEl.value || rawTextEl.textContent || '';
+    }
+    return dataset.rawtext || '';
   }
 
   function setSelectWithOther(selectId, otherId, value) {
@@ -1919,17 +1928,26 @@
     wrapper.innerHTML = '';
 
     if (!fields.length) {
-      wrapper.innerHTML = '<p style="font-size:12.5px;color:var(--hint);grid-column:span 2">No additional fields.</p>';
+      wrapper.innerHTML = '<div class="col-span-2" style="font-size:12.5px;color:var(--hint)">No dynamic fields available.</div>';
       return;
     }
 
     fields.forEach(function (field) {
-      const div = document.createElement('div');
-      div.innerHTML = `
-        <label class="form-label">${field.label || field.key || 'Field'}</label>
-        <input class="form-input" value="${field.value || ''}" readonly>
+      const row = document.createElement('div');
+      row.className = 'dynamic-row col-span-2';
+      row.innerHTML = `
+        <div class="form-grid-2">
+          <div>
+            <label class="form-label">Field Name</label>
+            <input class="form-input" value="${field.key || ''}" readonly>
+          </div>
+          <div>
+            <label class="form-label">Value</label>
+            <input class="form-input" value="${field.value || ''}" readonly>
+          </div>
+        </div>
       `;
-      wrapper.appendChild(div);
+      wrapper.appendChild(row);
     });
   }
 
@@ -1940,36 +1958,29 @@
     fields.forEach(function (field) {
       addEditDynamicField(
         field.key || '',
-        field.label || '',
         field.value || ''
       );
     });
   }
 
-  function addEditDynamicField(key = '', label = '', value = '') {
+  function addEditDynamicField(key = '', value = '') {
     const wrapper = getEl('editDynamicFields');
-    const div = document.createElement('div');
-    div.className = 'dynamic-row';
-
-    div.innerHTML = `
+    const row = document.createElement('div');
+    row.className = 'dynamic-row col-span-2';
+    row.innerHTML = `
       <button type="button" class="dynamic-remove" onclick="this.parentElement.remove()">×</button>
-      <div style="display:grid;gap:8px">
+      <div class="form-grid-2">
         <div>
-          <label class="form-label">Key</label>
-          <input class="dynamic-key form-input" value="${key}">
-        </div>
-        <div>
-          <label class="form-label">Label</label>
-          <input class="dynamic-label form-input" value="${label}">
+          <label class="form-label">Field Name</label>
+          <input class="dynamic-key form-input" placeholder="e.g. Place of Birth" value="${key}">
         </div>
         <div>
           <label class="form-label">Value</label>
-          <input class="dynamic-value form-input" value="${value}">
+          <input class="dynamic-value form-input" placeholder="Enter value" value="${value}">
         </div>
       </div>
     `;
-
-    wrapper.appendChild(div);
+    wrapper.appendChild(row);
   }
 
   function getEditDynamicFieldsPayload() {
@@ -1977,12 +1988,11 @@
       .map(function (row) {
         return {
           key: row.querySelector('.dynamic-key')?.value?.trim() || '',
-          label: row.querySelector('.dynamic-label')?.value?.trim() || '',
           value: row.querySelector('.dynamic-value')?.value?.trim() || ''
         };
       })
       .filter(function (field) {
-        return field.key;
+        return field.key || field.value;
       });
   }
 
@@ -2076,8 +2086,8 @@
         country_code: getEl('edit_country_code').value,
         passport_number: getEl('edit_passport_number').value,
         nationality: getSelectWithOtherValue('edit_nationality', 'edit_nationality_other'),
-        surname: getEl('edit_surname').value,
-        given_name: getEl('edit_given_name').value,
+        first_name: getEl('edit_first_name').value,
+        last_name: getEl('edit_last_name').value,
         date_of_birth: getEl('edit_date_of_birth').value,
         sex: getEl('edit_sex').value,
         date_of_issue: getEl('edit_date_of_issue').value,
@@ -2199,19 +2209,19 @@
       getEl('view_country_code').value = this.dataset.countrycode || '';
       getEl('view_passport_number').value = this.dataset.passportnumber || '';
       getEl('view_nationality').value = this.dataset.nationality || '';
-      getEl('view_surname').value = this.dataset.surname || '';
-      getEl('view_given_name').value = this.dataset.givenname || '';
+      getEl('view_last_name').value = this.dataset.lastname || '';
+      getEl('view_first_name').value = this.dataset.firstname || '';
       getEl('view_sex').value = this.dataset.sex || '';
       getEl('view_date_of_birth').value = normalizeDateForInput(this.dataset.dateofbirth || '');
       getEl('view_date_of_issue').value = normalizeDateForInput(this.dataset.dateofissue || '');
       getEl('view_date_of_expiry').value = normalizeDateForInput(this.dataset.dateofexpiry || '');
       getEl('view_status').value = this.dataset.status || '';
-      getEl('view_raw_text').value = this.dataset.rawtext || '';
+      getEl('view_raw_text').value = getExactPassportRawText(this.dataset);
 
       setImagePreview(
         'passportViewPreview',
         'passportViewNoPreview',
-        this.dataset.originalimage || this.dataset.processedimage || ''
+        this.dataset.originalimage || ''
       );
 
       renderViewDynamicFields(
@@ -2229,19 +2239,19 @@
       getEl('edit_country_code').value = this.dataset.countrycode || '';
       getEl('edit_passport_number').value = this.dataset.passportnumber || '';
       setSelectWithOther('edit_nationality', 'edit_nationality_other', this.dataset.nationality || '');
-      getEl('edit_surname').value = this.dataset.surname || '';
-      getEl('edit_given_name').value = this.dataset.givenname || '';
+      getEl('edit_last_name').value = this.dataset.lastname || '';
+      getEl('edit_first_name').value = this.dataset.firstname || '';
       getEl('edit_sex').value = this.dataset.sex || '';
       getEl('edit_date_of_birth').value = normalizeDateForInput(this.dataset.dateofbirth || '');
       getEl('edit_date_of_issue').value = normalizeDateForInput(this.dataset.dateofissue || '');
       getEl('edit_date_of_expiry').value = normalizeDateForInput(this.dataset.dateofexpiry || '');
       getEl('edit_status').value = this.dataset.status || 'pending verification';
-      getEl('edit_raw_text').value = this.dataset.rawtext || '';
+      getEl('edit_raw_text').value = getExactPassportRawText(this.dataset);
 
       setImagePreview(
         'editPassportPreview',
         'editPassportNoPreview',
-        this.dataset.originalimage || this.dataset.processedimage || ''
+        this.dataset.originalimage || ''
       );
 
       renderEditDynamicFields(

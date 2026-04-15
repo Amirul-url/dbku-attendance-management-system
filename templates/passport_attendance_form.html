@@ -1,934 +1,2089 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <title>Passport Attendance</title>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  >
+  <title>Attendance Registration – Non-Malaysian</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  >
+
+  <style>
+    :root {
+      --teal-900: #0d3d38;
+      --teal-800: #0f4b44;
+      --teal-700: #0f5c54;
+      --teal-600: #177a6e;
+      --teal-500: #1e9e8e;
+      --teal-400: #2bbfad;
+      --teal-300: #5dd4c5;
+      --teal-200: #9be8df;
+      --teal-100: #d4f5f1;
+      --teal-50: #edfaf8;
+
+      --green-500: #16a34a;
+      --green-100: #dcfce7;
+
+      --amber-500: #f59e0b;
+      --amber-100: #fef3c7;
+
+      --red-500: #ef4444;
+      --red-100: #fee2e2;
+
+      --blue-500: #3b82f6;
+      --blue-100: #dbeafe;
+
+      --gray-950: #0f172a;
+      --gray-900: #111827;
+      --gray-800: #1f2937;
+      --gray-700: #374151;
+      --gray-600: #4b5563;
+      --gray-500: #6b7280;
+      --gray-400: #9ca3af;
+      --gray-300: #d1d5db;
+      --gray-200: #e5e7eb;
+      --gray-100: #f3f4f6;
+      --gray-50: #f9fafb;
+      --white: #ffffff;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+      --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.10), 0 4px 10px rgba(0, 0, 0, 0.06);
+
+      --font-sans: "DM Sans", system-ui, sans-serif;
+      --font-mono: "DM Mono", monospace;
+
+      --transition: 0.18s ease;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: linear-gradient(
+        135deg,
+        var(--teal-50) 0%,
+        #f0faf9 40%,
+        #e8f7f4 100%
+      );
+      min-height: 100vh;
+      color: var(--gray-900);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    .page-wrapper {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+
+    @media (min-width: 640px) {
+      .page-wrapper {
+        padding: 40px 24px 80px;
+      }
+    }
+
+    .page-header {
+      background: linear-gradient(
+        135deg,
+        var(--teal-700) 0%,
+        var(--teal-500) 100%
+      );
+      border-radius: var(--radius-xl);
+      padding: 28px 24px 24px;
+      margin-bottom: 20px;
+      color: var(--white);
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+
+    .page-header::before {
+      content: "";
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    .page-header::after {
+      content: "";
+      position: absolute;
+      bottom: -20px;
+      left: 20px;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 100px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--teal-300);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(0.8);
+      }
+    }
+
+    .page-header h1 {
+      font-size: clamp(1.25rem, 4vw, 1.6rem);
+      font-weight: 700;
+      line-height: 1.25;
+      margin-bottom: 6px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .page-header p {
+      font-size: 0.875rem;
+      line-height: 1.5;
+      opacity: 0.84;
+      position: relative;
+      z-index: 1;
+    }
+
+    .event-card {
+      background: var(--white);
+      border: 1px solid var(--teal-100);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .event-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--teal-600);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .event-card-title svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .event-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 16px;
+    }
+
+    @media (max-width: 520px) {
+      .event-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+    }
+
+    .event-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .event-item.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .event-label {
+      font-size: 11px;
+      color: var(--gray-500);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .event-value {
+      font-size: 0.93rem;
+      color: var(--gray-900);
+      font-weight: 500;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--teal-700);
+      margin-bottom: 14px;
+      letter-spacing: 0.01em;
+    }
+
+    .section-label .step-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--teal-600);
+      color: var(--white);
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--teal-200);
+      border-radius: var(--radius-md);
+      background: var(--teal-50);
+      padding: 16px;
+      transition: border-color var(--transition), background var(--transition);
+    }
+
+    .upload-zone:hover {
+      border-color: var(--teal-400);
+      background: var(--teal-100);
+    }
+
+    .upload-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (max-width: 560px) {
+      .upload-btns {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .btn {
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      font-family: var(--font-sans);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform var(--transition), opacity var(--transition), background var(--transition), border-color var(--transition);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .btn-primary {
+      background: var(--teal-600);
+      color: var(--white);
+    }
+
+    .btn-primary:hover {
+      background: var(--teal-700);
+    }
+
+    .btn-secondary {
+      background: var(--white);
+      color: var(--teal-700);
+      border: 1px solid var(--teal-200);
+    }
+
+    .btn-secondary:hover {
+      background: #f8fffe;
+    }
+
+    .btn-success {
+      background: var(--green-500);
+      color: var(--white);
+    }
+
+    .btn-success:hover {
+      background: #14803d;
+    }
+
+    .btn-ghost {
+      background: var(--gray-100);
+      color: var(--gray-700);
+      border: 1px solid var(--gray-200);
+    }
+
+    .btn-ghost:hover {
+      background: var(--gray-200);
+    }
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      font-size: 0.875rem;
+      color: var(--gray-600);
+      min-height: 24px;
+      word-break: break-word;
+    }
+
+    .file-info svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .upload-hint {
+      margin-top: 10px;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      color: var(--gray-500);
+    }
+
+    .preview-card {
+      margin-top: 16px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--gray-200);
+      background: var(--gray-50);
+    }
+
+    .preview-stage {
+      position: relative;
+      width: 100%;
+      min-height: 220px;
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .preview-stage img {
+      display: none;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      max-height: 420px;
+      background: #fff;
+    }
+
+    .preview-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: var(--gray-500);
+      padding: 28px 20px;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .preview-empty svg {
+      width: 42px;
+      height: 42px;
+      opacity: 0.65;
+    }
+
+    .preview-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--gray-200);
+      background: var(--white);
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      line-height: 1;
+      border: 1px solid transparent;
+    }
+
+    .meta-pill.info {
+      background: var(--blue-100);
+      color: #1d4ed8;
+    }
+
+    .meta-pill.success {
+      background: var(--green-100);
+      color: #15803d;
+    }
+
+    .meta-pill.warning {
+      background: var(--amber-100);
+      color: #b45309;
+    }
+
+    .meta-pill.error {
+      background: var(--red-100);
+      color: #b91c1c;
+    }
+
+    .actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .loading-box,
+    .message-box {
+      display: none;
+      margin-top: 14px;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .loading-box.active {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #ecfeff;
+      color: #0f766e;
+      border: 1px solid #a5f3fc;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(15, 118, 110, 0.25);
+      border-top-color: #0f766e;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .message-box.active {
+      display: block;
+    }
+
+    .message-box.info {
+      background: var(--blue-100);
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    .message-box.success {
+      background: var(--green-100);
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+
+    .message-box.warning {
+      background: var(--amber-100);
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+
+    .message-box.error {
+      background: var(--red-100);
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 14px;
+    }
+
+    @media (max-width: 640px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .full-span {
+      grid-column: 1 / -1;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: var(--gray-700);
+      letter-spacing: 0.01em;
+    }
+
+    .req {
+      color: var(--red-500);
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius-md);
+      background: var(--white);
+      color: var(--gray-900);
+      font-family: var(--font-sans);
+      font-size: 0.94rem;
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      border-color: var(--teal-400);
+      box-shadow: 0 0 0 4px rgba(43, 191, 173, 0.12);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 120px;
+      line-height: 1.5;
+    }
+
+    .helper-text {
+      font-size: 0.78rem;
+      color: var(--gray-500);
+      line-height: 1.5;
+    }
+
+    .status-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 6px;
+      margin-bottom: 6px;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .status-chip.auto-extracted {
+      background: var(--green-100);
+      color: #15803d;
+      border-color: #bbf7d0;
+    }
+
+    .status-chip.manually-corrected {
+      background: var(--amber-100);
+      color: #b45309;
+      border-color: #fde68a;
+    }
+
+    .status-chip.pending-verification {
+      background: var(--red-100);
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
+
+    .dynamic-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .dynamic-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 10px;
+      align-items: end;
+      padding: 12px;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-md);
+      background: #fcfffe;
+    }
+
+    @media (max-width: 640px) {
+      .dynamic-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .icon-btn {
+      border: 1px solid var(--gray-300);
+      background: var(--white);
+      color: var(--gray-700);
+      border-radius: var(--radius-md);
+      padding: 11px 13px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
+    }
+
+    .icon-btn:hover {
+      background: var(--red-100);
+      color: var(--red-500);
+      border-color: #fecaca;
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--gray-200), transparent);
+      margin: 20px 0;
+    }
+
+    .camera-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(2, 6, 23, 0.92);
+      backdrop-filter: blur(4px);
+    }
+
+    .camera-modal.active {
+      display: block;
+    }
+
+    .camera-shell {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .camera-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 12px;
+      color: var(--white);
+      z-index: 30;
+    }
+
+    .camera-title-wrap {
+      min-width: 0;
+    }
+
+    .camera-title {
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .camera-subtitle {
+      font-size: 0.8125rem;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+
+    .camera-close {
+      border: 1.5px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--white);
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .camera-viewport {
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+    }
+
+    .camera-viewport video {
+      width: 100%;
+      max-width: 820px;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 18px;
+      background: #000;
+    }
+
+    .passport-frame {
+      position: absolute;
+      width: min(90vw, 560px);
+      aspect-ratio: 1.42 / 1;
+      border: 2px solid rgba(255, 255, 255, 0.75);
+      border-radius: 16px;
+      pointer-events: none;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.22);
+    }
+
+    .frame-label {
+      position: absolute;
+      top: -34px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      backdrop-filter: blur(6px);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.77rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    .frame-corner {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-radius: 2px;
+    }
+
+    .frame-corner.tl {
+      top: -2px;
+      left: -2px;
+      border-top: 5px solid #fff;
+      border-left: 5px solid #fff;
+    }
+
+    .frame-corner.tr {
+      top: -2px;
+      right: -2px;
+      border-top: 5px solid #fff;
+      border-right: 5px solid #fff;
+    }
+
+    .frame-corner.bl {
+      bottom: -2px;
+      left: -2px;
+      border-bottom: 5px solid #fff;
+      border-left: 5px solid #fff;
+    }
+
+    .frame-corner.br {
+      bottom: -2px;
+      right: -2px;
+      border-bottom: 5px solid #fff;
+      border-right: 5px solid #fff;
+    }
+
+    .camera-actions {
+      padding: 14px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+      display: flex;
+      gap: 12px;
+      z-index: 40;
+    }
+
+    .btn-camera-cancel {
+      flex: 1;
+      padding: 16px;
+      border: 1.5px solid rgba(255, 255, 255, 0.45);
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(8px);
+      color: var(--white);
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-camera-capture {
+      flex: 2;
+      padding: 16px;
+      border: none;
+      border-radius: var(--radius-md);
+      background: var(--white);
+      color: var(--teal-700);
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .success-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 3000;
+      display: none;
+    }
+
+    .success-modal.show {
+      display: block;
+    }
+
+    .success-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+      animation: fadeInModal 0.2s ease;
+    }
+
+    .success-modal-card {
+      position: relative;
+      width: min(92vw, 420px);
+      margin: 0 auto;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #ffffff;
+      border: 1px solid #d1fae5;
+      border-radius: 20px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
+      padding: 28px 20px 20px;
+      text-align: center;
+      animation: modalPopIn 0.22s ease;
+    }
+
+    .success-modal-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      color: #4b5563;
+      border-radius: 999px;
+      font-size: 1.25rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .success-modal-close:hover {
+      background: #f9fafb;
+    }
+
+    .success-modal-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 14px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #16a34a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .success-modal-icon svg {
+      width: 34px;
+      height: 34px;
+    }
+
+    .success-modal-card h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .success-modal-card p {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #4b5563;
+      margin-bottom: 18px;
+      word-break: break-word;
+    }
+
+    .success-modal-actions {
+      display: flex;
+      justify-content: center;
+    }
+
+    @keyframes fadeInModal {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes modalPopIn {
+      from {
+        opacity: 0;
+        transform: translateY(calc(-50% + 12px)) scale(0.97);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 16px;
+      }
+
+      .btn {
+        font-size: 0.875rem;
+      }
+
+      .camera-actions {
+        flex-direction: column;
+      }
+
+      .success-modal-card {
+        padding: 24px 16px 16px;
+        border-radius: 18px;
+      }
+
+      .success-modal-icon {
+        width: 64px;
+        height: 64px;
+      }
+
+      .success-modal-icon svg {
+        width: 30px;
+        height: 30px;
+      }
+
+      .success-modal-card h3 {
+        font-size: 1.1rem;
+      }
+
+      .success-modal-card p {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
 </head>
+<body>
 
-<body class="bg-gray-100 min-h-screen py-6 px-4">
+<div class="page-wrapper">
+  <header class="page-header">
+    <div class="header-badge">
+      <span class="dot"></span>
+      Non-Malaysian Attendance
+    </div>
+    <h1>Passport Registration Form</h1>
+    <p>
+      Upload or capture your passport, review the extracted details, and submit your attendance.
+    </p>
+  </header>
 
-<div class="max-w-4xl mx-auto bg-white p-6 rounded-2xl shadow-lg">
+  <div class="event-card">
+    <div class="event-card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M8 2v4"></path>
+        <path d="M16 2v4"></path>
+        <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+        <path d="M3 10h18"></path>
+      </svg>
+      Event Information
+    </div>
 
-  <h2 class="text-2xl font-bold text-center mb-2">
-    Attendance Registration Form (Non-Malaysian)
-  </h2>
+    <div class="event-grid">
+      <div class="event-item">
+        <span class="event-label">Event Name</span>
+        <span class="event-value">{{ event.name }}</span>
+      </div>
 
-  <p class="text-center text-gray-500 mb-6">
-    Upload passport image, review OCR results, and correct manually if needed
-  </p>
+      <div class="event-item">
+        <span class="event-label">Location</span>
+        <span class="event-value">{{ event.location }}</span>
+      </div>
 
-  <div class="bg-gray-50 p-4 rounded-lg mb-6 text-sm space-y-1">
-    <p><b>Event Name:</b> {{ event.name }}</p>
-    <p><b>Date:</b> {{ event.date|date:"d/m/Y" }}</p>
-    <p><b>Location:</b> {{ event.location }}</p>
-    <p><b>Description:</b> {{ event.description|default:"-" }}</p>
-    <p><b>Allowed Radius:</b> {{ event.radius_meter }} meter</p>
+      <div class="event-item">
+        <span class="event-label">Date</span>
+        <span class="event-value">
+          {% if event.start_date and event.end_date %}
+            {{ event.start_date|date:"d/m/Y" }}
+            {% if event.start_date != event.end_date %} - {{ event.end_date|date:"d/m/Y" }}{% endif %}
+          {% elif event.start_date %}
+            {{ event.start_date|date:"d/m/Y" }}
+          {% else %}
+            -
+          {% endif %}
+        </span>
+      </div>
+
+      <div class="event-item">
+        <span class="event-label">Time</span>
+        <span class="event-value">
+          {% if event.start_time %}{{ event.start_time|time:"H:i" }}{% else %}-{% endif %}
+          {% if event.end_time %} - {{ event.end_time|time:"H:i" }}{% endif %}
+        </span>
+      </div>
+
+      {% if event.description %}
+      <div class="event-item full-width">
+        <span class="event-label">Description</span>
+        <span class="event-value">{{ event.description }}</span>
+      </div>
+      {% endif %}
+    </div>
   </div>
 
-  <div class="space-y-5">
+  <div class="card">
+    <div class="section-label">
+      <span class="step-chip">1</span>
+      Upload Passport Image
+    </div>
 
-    <div>
-      <label class="font-semibold block mb-2">1. Upload Passport Image / Camera</label>
+    <div class="upload-zone">
+      <div class="upload-btns">
+        <button type="button" class="btn btn-primary" onclick="openCamera()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+          Open Camera
+        </button>
 
-      <div class="border-2 border-dashed border-gray-300 rounded-2xl p-4 bg-gray-50">
-        <div class="flex flex-col sm:flex-row gap-3">
-          <button type="button" onclick="openCamera()"
-            class="flex-1 bg-indigo-600 text-white px-4 py-3 rounded-lg hover:bg-indigo-700">
-            Open Camera
-          </button>
+        <button type="button" class="btn btn-secondary" onclick="openFilePicker()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          Choose File
+        </button>
+      </div>
 
-          <button type="button" onclick="openFilePicker()"
-            class="flex-1 bg-gray-700 text-white px-4 py-3 rounded-lg hover:bg-gray-800">
-            Choose File
-          </button>
+      <input
+        id="passport_img"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style="display:none"
+      >
+
+      <div class="file-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+        <span id="selectedFileName">No file selected</span>
+      </div>
+
+      <p class="upload-hint">
+        On mobile, “Open Camera” opens the rear camera. Ensure good lighting and align the full passport page.
+      </p>
+
+      <div class="preview-card">
+        <div class="preview-stage" id="previewStage">
+          <img id="passportPreview" alt="Passport preview">
+          <div class="preview-empty" id="noPreviewText">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <rect x="3" y="3" width="18" height="14" rx="2"></rect>
+              <path d="M3 15l5-5 4 4 3-3 4 4"></path>
+            </svg>
+            <span>No image uploaded yet</span>
+          </div>
         </div>
 
-        <input id="passport_img" type="file" accept="image/*" capture="environment" class="hidden">
-
-        <div class="mt-3 p-3 rounded-lg border bg-white text-sm text-gray-600">
-          <span class="font-medium">Selected file:</span>
-          <span id="selectedFileName">No file selected</span>
+        <div class="preview-meta">
+          <div class="meta-pill info" id="sourcePill">Source: -</div>
+          <div class="meta-pill warning" id="statusPill">Status: pending verification</div>
         </div>
+      </div>
 
-        <p class="text-xs text-gray-500 mt-3">
-          On mobile, “Open Camera” will try to open the back camera. Some browsers may still show camera/gallery choice.
-        </p>
+      <div class="actions-row">
+        <button type="button" id="scanBtn" class="btn btn-success" onclick="scanPassport()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+          Scan Passport
+        </button>
+
+        <button type="button" class="btn btn-ghost" onclick="clearUploadedImage()">
+          Reset Image
+        </button>
+      </div>
+
+      <div class="loading-box" id="loadingBox">
+        <div class="spinner"></div>
+        <span id="loadingText">Processing...</span>
+      </div>
+
+      <div class="message-box" id="messageBox"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">
+      <span class="step-chip">2</span>
+      Review Extracted Details
+    </div>
+
+    <div class="status-panel">
+      <div class="status-chip pending-verification" id="currentStatusChip">
+        Pending Verification
       </div>
     </div>
 
-    <div class="flex flex-wrap gap-3">
-      <button id="scanBtn" type="button" onclick="uploadOCR()"
-        class="bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700">
-        Scan Passport
-      </button>
-
-      <button type="button" onclick="enableManualMode()"
-        class="bg-gray-500 text-white px-5 py-3 rounded-lg hover:bg-gray-600">
-        Manual Entry
-      </button>
-    </div>
-
-    <div id="qualityNote" class="hidden p-3 rounded bg-yellow-100 text-yellow-800 text-sm"></div>
-    <div id="confidenceNote" class="hidden p-3 rounded bg-blue-100 text-blue-800 text-sm"></div>
-
-    <p class="text-xs text-gray-500">
-      Please review extracted information before submitting.
-    </p>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="bg-gray-50 p-4 rounded-xl border md:col-span-2">
-        <p class="font-semibold mb-3">Passport Image Preview</p>
-        <img id="passportPreview" src="" alt="Passport Preview"
-          class="hidden w-full max-h-80 object-contain border rounded bg-white p-2">
-        <p id="noPreviewText" class="text-sm text-gray-500">No passport image uploaded yet.</p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label" for="passport_type">Passport Type</label>
+        <input id="passport_type" type="text" class="form-input" placeholder="e.g. P">
       </div>
 
-      <div>
-        <label class="font-semibold block mb-1">2. Type</label>
-        <input id="passport_type" placeholder="e.g. P" class="w-full p-3 border rounded-lg">
+      <div class="form-group">
+        <label class="form-label" for="country_code">Country Code</label>
+        <input
+          id="country_code"
+          type="text"
+          class="form-input"
+          placeholder="e.g. JPN"
+          style="text-transform: uppercase;"
+        >
       </div>
 
-      <div>
-        <label class="font-semibold block mb-1">3. Country Code</label>
-        <input id="country_code" placeholder="e.g. JPN" class="w-full p-3 border rounded-lg uppercase">
+      <div class="form-group full-span">
+        <label class="form-label" for="passport_number">
+          Passport Number <span class="req">*</span>
+        </label>
+        <input
+          id="passport_number"
+          type="text"
+          class="form-input"
+          placeholder="e.g. AB1234567"
+        >
       </div>
 
-      <div>
-        <label class="font-semibold block mb-1">4. Passport Number</label>
-        <input id="passport_number" placeholder="Passport Number" class="w-full p-3 border rounded-lg">
+      <div class="form-group full-span">
+        <label class="form-label" for="nationality">Nationality</label>
+        <input
+          id="nationality"
+          type="text"
+          class="form-input"
+          placeholder="e.g. Japanese"
+        >
       </div>
 
-      <div>
-        <label class="font-semibold block mb-1">5. Nationality</label>
-        <input id="nationality" placeholder="Nationality" class="w-full p-3 border rounded-lg">
+      <div class="form-group">
+        <label class="form-label" for="last_name">Last Name</label>
+        <input
+          id="last_name"
+          type="text"
+          class="form-input"
+          placeholder="Family name / BIN / BINTI section"
+        >
       </div>
 
-      <div>
-        <label class="font-semibold block mb-1">6. Surname</label>
-        <input id="surname" placeholder="Surname" class="w-full p-3 border rounded-lg">
+      <div class="form-group">
+        <label class="form-label" for="first_name">First Name</label>
+        <input
+          id="first_name"
+          type="text"
+          class="form-input"
+          placeholder="Given name(s)"
+        >
       </div>
 
-      <div>
-        <label class="font-semibold block mb-1">7. Given Name</label>
-        <input id="given_name" placeholder="Given Name" class="w-full p-3 border rounded-lg">
+      <div class="form-group">
+        <label class="form-label" for="date_of_birth">Date of Birth</label>
+        <input id="date_of_birth" type="date" class="form-input">
       </div>
 
-      <div>
-        <label class="font-semibold block mb-1">8. Date of Birth</label>
-        <input id="date_of_birth" type="date" class="w-full p-3 border rounded-lg bg-white">
-      </div>
-
-      <div>
-        <label class="font-semibold block mb-1">9. Sex</label>
-        <select id="sex" class="w-full p-3 border rounded-lg bg-white">
-          <option value="">-- Select Sex --</option>
+      <div class="form-group">
+        <label class="form-label" for="sex">Sex</label>
+        <select id="sex" class="form-select">
+          <option value="">-- Select --</option>
           <option value="Male">Male</option>
           <option value="Female">Female</option>
         </select>
       </div>
 
-    <div>
-      <label class="font-semibold block mb-1">10. Date of Issue</label>
-      <input id="date_of_issue" type="date" class="w-full p-3 border rounded-lg bg-white">
+      <div class="form-group">
+        <label class="form-label" for="date_of_issue">Date of Issue</label>
+        <input id="date_of_issue" type="date" class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="date_of_expiry">Date of Expiry</label>
+        <input id="date_of_expiry" type="date" class="form-input">
+      </div>
+
+      <div class="form-group full-span">
+        <label class="form-label" for="raw_text">OCR Raw Text</label>
+        <textarea
+          id="raw_text"
+          class="form-textarea"
+          placeholder="OCR output will appear here."
+        ></textarea>
+        <div class="helper-text">
+          Keep this text if OCR extraction is incomplete. It helps manual verification and later correction.
+        </div>
+      </div>
     </div>
 
-    <div>
-      <label class="font-semibold block mb-1">11. Date of Expiry</label>
-      <input id="date_of_expiry" type="date" class="w-full p-3 border rounded-lg bg-white">
+    <div class="divider"></div>
+
+    <div class="section-label" style="margin-bottom: 10px;">
+      <span class="step-chip">3</span>
+      Additional Passport Fields
     </div>
 
-    <div id="dynamicFieldsWrapper" class="mt-6">
-      <h3 class="text-lg font-semibold mb-3">Additional Passport Fields</h3>
-      <div id="dynamicFields" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    <div class="actions-row" style="margin-top: 0; margin-bottom: 12px;">
+      <button type="button" class="btn btn-secondary" onclick="addDynamicField()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add Field
+      </button>
     </div>
 
-    <div class="mt-4">
-      <label class="font-semibold block mb-1">OCR Raw Text</label>
-      <textarea id="raw_text" rows="8" class="w-full p-3 border rounded-lg bg-gray-50"></textarea>
-    </div>
+    <div id="dynamicFields" class="dynamic-list"></div>
+  </div>
 
-    <div class="mt-4">
-      <label class="font-semibold block mb-1">Status</label>
-      <input id="status" readonly class="w-full p-3 border rounded-lg bg-gray-100" value="pending verification">
-    </div>
-
-    <button id="submitBtn" type="button" onclick="submitForm()"
-      class="mt-6 w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700">
+  <div class="card">
+    <div class="section-label">
+      <span class="step-chip">4</span>
       Submit Attendance
-    </button>
+    </div>
 
-    <p id="msg" class="mt-4 text-center text-sm font-medium"></p>
+    <div class="helper-text" style="margin-bottom: 14px;">
+      GPS/location access is required before attendance submission.
+    </div>
 
+    <div class="actions-row">
+      <button type="button" id="submitBtn" class="btn btn-success" onclick="submitForm()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        Submit Attendance
+      </button>
+
+      <button type="button" class="btn btn-ghost" onclick="clearForm()">
+        Clear Form
+      </button>
+    </div>
   </div>
 </div>
 
-<div id="scanOverlay" class="hidden fixed inset-0 bg-black/40 z-50 items-center justify-center px-4">
-  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm text-center">
-    <div class="mx-auto w-14 h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <h3 class="text-lg font-semibold text-gray-800">Scanning Passport</h3>
-    <p class="text-sm text-gray-500 mt-2">
-      Please wait while the system processes the image.
-    </p>
-  </div>
-</div>
+<div class="camera-modal" id="cameraModal">
+  <div class="camera-shell">
+    <div class="camera-topbar">
+      <div class="camera-title-wrap">
+        <div class="camera-title">Capture Passport</div>
+        <div class="camera-subtitle">Align the passport inside the guide frame.</div>
+      </div>
 
-<div id="cameraOverlay" class="hidden fixed inset-0 z-50 overflow-hidden">
-  <video
-    id="cameraPreview"
-    autoplay
-    playsinline
-    class="absolute inset-0 w-full h-full object-contain bg-black"
-  ></video>
-
-  <div class="absolute inset-0 flex flex-col items-center justify-center px-0 pt-10 pb-24 z-20">
-    <div class="mb-14 text-center z-30">
-      <p class="text-white text-5xl sm:text-5xl font-bold tracking-wide drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
-        Align passport inside the frame
-      </p>
+      <button type="button" class="camera-close" onclick="closeCamera()">
+        ✕
+      </button>
     </div>
 
-    <div
-      id="passportFrame"
-      class="relative w-full max-w-none aspect-[1.42/1] z-20"
-    >
-      <div class="absolute left-0 bottom-full w-full h-[100vh] bg-black/65"></div>
-      <div class="absolute left-0 top-full w-full h-[100vh] bg-black/65"></div>
+    <div class="camera-viewport">
+      <video id="cameraVideo" autoplay playsinline muted></video>
 
-      <div class="absolute inset-0 border-[8px] border-white rounded-2xl"></div>
-
-      <div class="absolute top-0 left-0 w-12 h-12 border-t-[8px] border-l-[8px] border-white"></div>
-      <div class="absolute top-0 right-0 w-12 h-12 border-t-[8px] border-r-[8px] border-white"></div>
-      <div class="absolute bottom-0 left-0 w-12 h-12 border-b-[8px] border-l-[8px] border-white"></div>
-      <div class="absolute bottom-0 right-0 w-12 h-12 border-b-[8px] border-r-[8px] border-white"></div>
+      <div class="passport-frame">
+        <div class="frame-label">Fit full passport page inside frame</div>
+        <div class="frame-corner tl"></div>
+        <div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div>
+        <div class="frame-corner br"></div>
+      </div>
     </div>
-  </div>
 
-  <div class="absolute bottom-20 left-1/2 -translate-x-1/2 w-full px-6 z-40">
-    <div class="flex items-center justify-center gap-4">
-      <button
-        type="button"
-        onclick="closeCameraOverlay()"
-        class="flex-1 py-10 rounded-full bg-white/20 text-white border border-white/50 text-4xl font-bold tracking-wide backdrop-blur-md"
-      >
+    <div class="camera-actions">
+      <button type="button" class="btn-camera-cancel" onclick="closeCamera()">
         Cancel
       </button>
-
-      <button
-        type="button"
-        onclick="captureImage()"
-        class="flex-1 py-10 rounded-full bg-white text-gray-900 text-4xl font-bold tracking-wide shadow-2xl"
-      >
-        Capture
+      <button type="button" class="btn-camera-capture" onclick="captureFromCamera()">
+        Capture Passport
       </button>
     </div>
   </div>
 </div>
 
+<div class="success-modal" id="successModal" aria-hidden="true">
+  <div class="success-modal-backdrop" onclick="closeSuccessModal()"></div>
+
+  <div
+    class="success-modal-card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="successModalTitle"
+    aria-describedby="successModalText"
+  >
+    <button
+      type="button"
+      class="success-modal-close"
+      onclick="closeSuccessModal()"
+      aria-label="Close success popup"
+    >
+      ×
+    </button>
+
+    <div class="success-modal-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M20 6L9 17l-5-5"></path>
+      </svg>
+    </div>
+
+    <h3 id="successModalTitle">Success</h3>
+    <p id="successModalText">Attendance submitted successfully.</p>
+
+    <div class="success-modal-actions">
+      <button type="button" class="btn btn-success" onclick="closeSuccessModal()">
+        OK
+      </button>
+    </div>
+  </div>
+</div>
+
+<canvas id="captureCanvas" class="hidden"></canvas>
+
 <script>
-let originalImageName = "";
-let processedImageName = "";
-let autoExtractedSnapshot = {};
-let cameraStream = null;
+  let originalImageName = "";
+  let processedImageName = "";
+  let autoExtractedSnapshot = {};
+  let cameraStream = null;
 
-function normalizeDateForInput(value) {
-  if (!value) return "";
-
-  let v = String(value).trim();
-  if (!v) return "";
-
-  // yyyy-mm-dd
-  const isoMatch = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoMatch) {
-    return v;
+  function getEl(id) {
+    return document.getElementById(id);
   }
 
-  // dd/mm/yyyy
-  const dmySlash = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (dmySlash) {
-    return `${dmySlash[3]}-${dmySlash[2]}-${dmySlash[1]}`;
+  function showLoading(message) {
+    const box = getEl("loadingBox");
+    const text = getEl("loadingText");
+    text.textContent = message || "Processing...";
+    box.classList.add("active");
   }
 
-  // dd-mm-yyyy
-  const dmyDash = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-  if (dmyDash) {
-    return `${dmyDash[3]}-${dmyDash[2]}-${dmyDash[1]}`;
+  function hideLoading() {
+    getEl("loadingBox").classList.remove("active");
   }
 
-  return "";
-}
-
-function normalizeDisplayDate(value) {
-  if (!value) return "";
-
-  let v = String(value).trim();
-  if (!v) return "";
-
-  // yyyy-mm-dd -> dd/mm/yyyy
-  const isoMatch = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (isoMatch) {
-    return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+  function setMessage(message, type) {
+    const box = getEl("messageBox");
+    box.textContent = message || "";
+    box.className = "message-box active " + (type || "info");
   }
 
-  // dd-mm-yyyy -> dd/mm/yyyy
-  const dashMatch = v.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-  if (dashMatch) {
-    return `${dashMatch[1]}/${dashMatch[2]}/${dashMatch[3]}`;
+  function clearMessage() {
+    const box = getEl("messageBox");
+    box.textContent = "";
+    box.className = "message-box";
   }
 
-  // mm/dd/yyyy -> dd/mm/yyyy
-  const slashUsMatch = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (slashUsMatch) {
-    const first = parseInt(slashUsMatch[1], 10);
-    const second = parseInt(slashUsMatch[2], 10);
+  function normalizeSpaces(value) {
+    return (value || "").replace(/\s+/g, " ").trim();
+  }
 
-    // kalau format nampak macam US date
-    if (first <= 12 && second <= 31) {
-      return `${slashUsMatch[2]}/${slashUsMatch[1]}/${slashUsMatch[3]}`;
+  function normalizeDateForInput(value) {
+    const text = (value || "").trim();
+    if (!text) return "";
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+      return text;
     }
-  }
 
-  return v.replace(/-/g, "/");
-}
+    const ddmmyyyy = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (ddmmyyyy) {
+      return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
+    }
 
-function sanitizeNameValue(value) {
-  if (!value) return "";
+    const ddmmyyyyDash = text.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (ddmmyyyyDash) {
+      return `${ddmmyyyyDash[3]}-${ddmmyyyyDash[2]}-${ddmmyyyyDash[1]}`;
+    }
 
-  let v = String(value)
-    .replace(/[<]+/g, " ")
-    .replace(/[^A-Za-z @'\/.-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  // buang obvious OCR garbage
-  if (v.length < 2) return "";
-  if (/\b(passport|nationality|country|date|issue|expiry|sex|male|female)\b/i.test(v)) {
     return "";
   }
 
-  return v;
-}
+  function setStatusPill(status) {
+    const pill = getEl("statusPill");
+    const chip = getEl("currentStatusChip");
 
-function setExtractedFormData(data) {
-  document.getElementById("passport_type").value = data.type || "";
-  document.getElementById("country_code").value = (data.country_code || "").toUpperCase();
-  document.getElementById("passport_number").value = data.passport_number || "";
-  document.getElementById("surname").value = sanitizeNameValue(data.surname || "");
-  document.getElementById("given_name").value = sanitizeNameValue(data.given_name || "");
-  document.getElementById("nationality").value = data.nationality || "";
-  document.getElementById("sex").value = data.sex || "";
-  document.getElementById("date_of_birth").value = normalizeDateForInput(data.date_of_birth || "");
-  document.getElementById("date_of_issue").value = normalizeDateForInput(data.date_of_issue || "");
-  document.getElementById("date_of_expiry").value = normalizeDateForInput(
-    data.date_of_expiry || data.expiry_date || ""
-  );
-  document.getElementById("raw_text").value = data.raw_text || "";
-  document.getElementById("status").value = data.status || "pending verification";
+    const normalized = (status || "pending verification").trim().toLowerCase();
 
-  renderDynamicFields(data.dynamic_fields || []);
-}
+    let pretty = "Pending Verification";
+    let className = "pending-verification";
+    let metaClass = "warning";
 
-async function openCamera() {
-  const overlay = document.getElementById("cameraOverlay");
-  const video = document.getElementById("cameraPreview");
+    if (normalized === "auto-extracted") {
+      pretty = "Auto Extracted";
+      className = "auto-extracted";
+      metaClass = "success";
+    } else if (normalized === "manually-corrected") {
+      pretty = "Manually Corrected";
+      className = "manually-corrected";
+      metaClass = "warning";
+    }
 
-  try {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      alert("Camera is not supported on this browser.");
+    pill.className = "meta-pill " + metaClass;
+    pill.textContent = "Status: " + pretty;
+
+    chip.className = "status-chip " + className;
+    chip.textContent = pretty;
+  }
+
+  function setSourcePill(sourceText) {
+    const pill = getEl("sourcePill");
+    pill.textContent = "Source: " + (sourceText || "-");
+  }
+
+  function showPreview(src) {
+    const img = getEl("passportPreview");
+    const empty = getEl("noPreviewText");
+
+    img.src = src;
+    img.style.display = "block";
+    empty.style.display = "none";
+  }
+
+  function clearPreview() {
+    const img = getEl("passportPreview");
+    const empty = getEl("noPreviewText");
+
+    img.removeAttribute("src");
+    img.style.display = "none";
+    empty.style.display = "flex";
+  }
+
+  function openFilePicker() {
+    getEl("passport_img").click();
+  }
+
+  function clearUploadedImage() {
+    getEl("passport_img").value = "";
+    getEl("selectedFileName").textContent = "No file selected";
+    originalImageName = "";
+    processedImageName = "";
+    autoExtractedSnapshot = {};
+    clearPreview();
+    setSourcePill("-");
+    setStatusPill("pending verification");
+    clearMessage();
+    hideLoading();
+  }
+
+  function clearForm() {
+    getEl("passport_type").value = "";
+    getEl("country_code").value = "";
+    getEl("passport_number").value = "";
+    getEl("nationality").value = "";
+    getEl("last_name").value = "";
+    getEl("first_name").value = "";
+    getEl("date_of_birth").value = "";
+    getEl("sex").value = "";
+    getEl("date_of_issue").value = "";
+    getEl("date_of_expiry").value = "";
+    getEl("raw_text").value = "";
+    getEl("dynamicFields").innerHTML = "";
+
+    autoExtractedSnapshot = {};
+    setStatusPill("pending verification");
+    clearMessage();
+  }
+
+  function addDynamicField(key = "", value = "") {
+    const container = getEl("dynamicFields");
+
+    const row = document.createElement("div");
+    row.className = "dynamic-row";
+    row.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Field Name</label>
+        <input type="text" class="form-input dynamic-key" placeholder="e.g. Place of Birth" value="${escapeHtml(key)}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Value</label>
+        <input type="text" class="form-input dynamic-value" placeholder="Enter value" value="${escapeHtml(value)}">
+      </div>
+
+      <button type="button" class="icon-btn" onclick="this.parentElement.remove()">Remove</button>
+    `;
+    container.appendChild(row);
+  }
+
+  function renderDynamicFields(fields) {
+    const container = getEl("dynamicFields");
+    container.innerHTML = "";
+
+    if (!Array.isArray(fields) || fields.length === 0) {
       return;
     }
 
+    fields.forEach(function(field) {
+      if (!field || typeof field !== "object") return;
+      addDynamicField(field.key || "", field.value || "");
+    });
+  }
+
+  function getDynamicFieldsPayload() {
+    const rows = Array.from(document.querySelectorAll("#dynamicFields .dynamic-row"));
+    const payload = [];
+
+    rows.forEach(function(row) {
+      const key = normalizeSpaces(row.querySelector(".dynamic-key")?.value || "");
+      const value = normalizeSpaces(row.querySelector(".dynamic-value")?.value || "");
+
+      if (!key && !value) return;
+      if (!key) return;
+
+      payload.push({ key, value });
+    });
+
+    return payload;
+  }
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function setExtractedFormData(data) {
+    getEl("passport_type").value = data.type || "";
+    getEl("country_code").value = (data.country_code || "").toUpperCase();
+    getEl("passport_number").value = data.passport_number || "";
+    getEl("nationality").value = data.nationality || "";
+    getEl("last_name").value = normalizeSpaces(data.last_name || data.surname || "");
+    getEl("first_name").value = normalizeSpaces(data.first_name || data.given_name || "");
+    getEl("date_of_birth").value = normalizeDateForInput(data.date_of_birth || "");
+    getEl("sex").value = data.sex || "";
+    getEl("date_of_issue").value = normalizeDateForInput(data.date_of_issue || "");
+    getEl("date_of_expiry").value = normalizeDateForInput(
+      data.date_of_expiry || data.expiry_date || ""
+    );
+    getEl("raw_text").value = data.raw_text || "";
+
+    renderDynamicFields(data.dynamic_fields || []);
+  }
+
+  function resolveStatusBeforeSubmit() {
+    const hadAutoData = Object.values(autoExtractedSnapshot).some(function(v) {
+      return !!v;
+    });
+
+    if (!hadAutoData) {
+      return "pending verification";
+    }
+
+    const current = {
+      type: getEl("passport_type").value.trim(),
+      country_code: getEl("country_code").value.trim(),
+      passport_number: getEl("passport_number").value.trim(),
+      nationality: getEl("nationality").value.trim(),
+      last_name: getEl("last_name").value.trim(),
+      first_name: getEl("first_name").value.trim(),
+      date_of_birth: getEl("date_of_birth").value.trim(),
+      sex: getEl("sex").value.trim(),
+      date_of_issue: getEl("date_of_issue").value.trim(),
+      date_of_expiry: getEl("date_of_expiry").value.trim()
+    };
+
+    const changed = Object.keys(current).some(function(key) {
+      return current[key] !== (autoExtractedSnapshot[key] || "");
+    });
+
+    return changed ? "manually-corrected" : "auto-extracted";
+  }
+
+  async function parseJsonResponse(response) {
+    const text = await response.text();
+    let data = {};
+
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (error) {
+      throw new Error("Server returned an invalid response.");
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || "Request failed.");
+    }
+
+    return data;
+  }
+
+  function showSuccessModal(message) {
+    const modal = getEl("successModal");
+    const text = getEl("successModalText");
+
+    text.textContent = message || "Attendance submitted successfully.";
+    modal.classList.add("show");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+  }
+
+  function closeSuccessModal() {
+    const modal = getEl("successModal");
+    modal.classList.remove("show");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
+
+    clearForm();
+    clearUploadedImage();
+
+    // scroll ke atas (smooth + optimized)
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+
+  async function uploadPassportFile(file, sourceLabel) {
+    if (!file) {
+      setMessage("Please choose an image first.", "error");
+      return;
+    }
+
+    clearMessage();
+    showLoading("Uploading and processing passport image...");
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const response = await fetch("/api/employees/passport/upload/", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await parseJsonResponse(response);
+
+      originalImageName = data.original_image_name || "";
+      processedImageName = data.processed_image_name || "";
+
+      setExtractedFormData(data);
+
+      autoExtractedSnapshot = {
+        type: getEl("passport_type").value.trim(),
+        country_code: getEl("country_code").value.trim(),
+        passport_number: getEl("passport_number").value.trim(),
+        nationality: getEl("nationality").value.trim(),
+        last_name: getEl("last_name").value.trim(),
+        first_name: getEl("first_name").value.trim(),
+        date_of_birth: getEl("date_of_birth").value.trim(),
+        sex: getEl("sex").value.trim(),
+        date_of_issue: getEl("date_of_issue").value.trim(),
+        date_of_expiry: getEl("date_of_expiry").value.trim()
+      };
+
+      setStatusPill(data.status || "auto-extracted");
+      setSourcePill(sourceLabel || "Uploaded image");
+
+      if (data.original_image_url) {
+        showPreview(data.original_image_url);
+      }
+
+      let successMessage = data.message || "Passport scanned successfully.";
+      if (!data.raw_text) {
+        successMessage += " OCR raw text is empty. Please review fields manually.";
+      }
+
+      setMessage(successMessage, "success");
+
+    } catch (error) {
+      setStatusPill("pending verification");
+      setMessage(error.message || "Failed to scan passport.", "error");
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function scanPassport() {
+    const input = getEl("passport_img");
+    const file = input.files && input.files[0];
+
+    if (!file) {
+      setMessage("Please upload or capture a passport image first.", "error");
+      return;
+    }
+
+    uploadPassportFile(file, "Selected file");
+  }
+
+  getEl("passport_img").addEventListener("change", function(event) {
+    const file = event.target.files && event.target.files[0];
+
+    if (!file) {
+      getEl("selectedFileName").textContent = "No file selected";
+      clearPreview();
+      return;
+    }
+
+    getEl("selectedFileName").textContent = file.name;
+    setSourcePill("Selected file");
+
+    const previewUrl = URL.createObjectURL(file);
+    showPreview(previewUrl);
+  });
+
+  async function openCamera() {
+    clearMessage();
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setMessage("Camera is not supported on this device.", "error");
+      return;
+    }
+
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: false
+      });
+
+      getEl("cameraVideo").srcObject = cameraStream;
+      getEl("cameraModal").classList.add("active");
+      setSourcePill("Camera");
+    } catch (error) {
+      setMessage("Unable to access camera. Please allow permission and try again.", "error");
+    }
+  }
+
+  function closeCamera() {
     if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream.getTracks().forEach(function(track) {
+        track.stop();
+      });
       cameraStream = null;
     }
 
-    overlay.classList.remove("hidden");
-    document.body.classList.add("overflow-hidden");
-
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: "environment" },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
-      },
-      audio: false
-    });
-
-    video.srcObject = cameraStream;
-    await video.play();
-
-    const track = cameraStream.getVideoTracks()[0];
-    if (track && track.getCapabilities) {
-      const caps = track.getCapabilities();
-      const advanced = [];
-
-      if (caps.focusMode && Array.isArray(caps.focusMode) && caps.focusMode.includes("continuous")) {
-        advanced.push({ focusMode: "continuous" });
-      }
-
-      if (caps.sharpness && typeof caps.sharpness.max !== "undefined") {
-        advanced.push({ sharpness: caps.sharpness.max });
-      }
-
-      if (caps.zoom && typeof caps.zoom.min !== "undefined") {
-        advanced.push({ zoom: caps.zoom.min });
-      }
-
-      if (advanced.length) {
-        try {
-          await track.applyConstraints({ advanced });
-        } catch (e) {
-          console.log("Advanced camera constraints not supported:", e);
-        }
-      }
-    }
-  } catch (err) {
-    console.error("openCamera error:", err);
-    closeCameraOverlay();
-    alert("Cannot access camera. Please allow permission and try again.");
-  }
-}
-
-function closeCameraOverlay() {
-  const overlay = document.getElementById("cameraOverlay");
-  const video = document.getElementById("cameraPreview");
-
-  overlay.classList.add("hidden");
-  document.body.classList.remove("overflow-hidden");
-
-  if (video) {
+    const video = getEl("cameraVideo");
     video.pause();
     video.srcObject = null;
+
+    getEl("cameraModal").classList.remove("active");
   }
 
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(track => track.stop());
-    cameraStream = null;
-  }
-}
+  async function captureFromCamera() {
+    const video = document.getElementById("cameraVideo");
+    const frame = document.querySelector(".passport-frame");
+    const fileInput = document.getElementById("passport_img");
 
-async function captureImage() {
-  const video = document.getElementById("cameraPreview");
-  const frame = document.getElementById("passportFrame");
-  const fileInput = document.getElementById("passport_img");
-  const preview = document.getElementById("passportPreview");
-  const noPreviewText = document.getElementById("noPreviewText");
-  const selectedFileName = document.getElementById("selectedFileName");
-
-  if (!video.videoWidth || !video.videoHeight) {
-    alert("Camera is not ready yet. Please try again.");
-    return;
-  }
-
-  if (!frame) {
-    alert("Passport frame not found.");
-    return;
-  }
-
-  try {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const videoRect = video.getBoundingClientRect();
-    const frameRect = frame.getBoundingClientRect();
-
-    const sourceVideoWidth = video.videoWidth;
-    const sourceVideoHeight = video.videoHeight;
-
-    const containerWidth = videoRect.width;
-    const containerHeight = videoRect.height;
-
-    const videoAspect = sourceVideoWidth / sourceVideoHeight;
-    const containerAspect = containerWidth / containerHeight;
-
-    let renderedWidth, renderedHeight, offsetX, offsetY;
-
-    if (videoAspect > containerAspect) {
-      renderedHeight = containerHeight;
-      renderedWidth = renderedHeight * videoAspect;
-      offsetX = (renderedWidth - containerWidth) / 2;
-      offsetY = 0;
-    } else {
-      renderedWidth = containerWidth;
-      renderedHeight = renderedWidth / videoAspect;
-      offsetX = 0;
-      offsetY = (renderedHeight - containerHeight) / 2;
-    }
-
-    const scaleX = sourceVideoWidth / renderedWidth;
-    const scaleY = sourceVideoHeight / renderedHeight;
-
-    const cropX = ((frameRect.left - videoRect.left) + offsetX) * scaleX;
-    const cropY = ((frameRect.top - videoRect.top) + offsetY) * scaleY;
-    const cropWidth = frameRect.width * scaleX;
-    const cropHeight = frameRect.height * scaleY;
-
-    const safeCropX = Math.max(0, cropX);
-    const safeCropY = Math.max(0, cropY);
-    const safeCropWidth = Math.min(sourceVideoWidth - safeCropX, cropWidth);
-    const safeCropHeight = Math.min(sourceVideoHeight - safeCropY, cropHeight);
-
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-
-    canvas.width = Math.round(safeCropWidth);
-    canvas.height = Math.round(safeCropHeight);
-
-    context.imageSmoothingEnabled = true;
-    context.imageSmoothingQuality = "high";
-
-    context.drawImage(
-      video,
-      safeCropX,
-      safeCropY,
-      safeCropWidth,
-      safeCropHeight,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-    canvas.toBlob(function(blob) {
-      if (!blob) {
-        alert("Failed to capture image.");
-        return;
-      }
-
-      const capturedFile = new File([blob], `passport_camera_${Date.now()}.jpg`, {
-        type: "image/jpeg"
-      });
-
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(capturedFile);
-      fileInput.files = dataTransfer.files;
-
-      const previewUrl = URL.createObjectURL(capturedFile);
-      preview.src = previewUrl;
-      preview.classList.remove("hidden");
-      noPreviewText.classList.add("hidden");
-      selectedFileName.textContent = capturedFile.name;
-
-      originalImageName = capturedFile.name;
-      processedImageName = "";
-
-      closeCameraOverlay();
-    }, "image/jpeg", 0.98);
-  } catch (err) {
-    console.error("captureImage error:", err);
-    alert("Failed to capture image.");
-  }
-}
-
-document.getElementById("passport_img").addEventListener("change", function(event) {
-  const file = event.target.files[0];
-  const preview = document.getElementById("passportPreview");
-  const noPreviewText = document.getElementById("noPreviewText");
-  const selectedFileName = document.getElementById("selectedFileName");
-
-  if (!file) {
-    return;
-  }
-
-  const previewUrl = URL.createObjectURL(file);
-  preview.src = previewUrl;
-  preview.classList.remove("hidden");
-  noPreviewText.classList.add("hidden");
-
-  selectedFileName.textContent = file.name;
-
-  originalImageName = file.name;
-  processedImageName = "";
-});
-
-function openFilePicker() {
-  const input = document.getElementById("passport_img");
-  input.removeAttribute("capture");
-  input.click();
-}
-
-function setMessage(message, type = "info") {
-  const msg = document.getElementById("msg");
-  msg.innerText = message;
-
-  if (type === "success") {
-    msg.className = "mt-4 text-center text-sm font-medium text-green-600";
-  } else if (type === "error") {
-    msg.className = "mt-4 text-center text-sm font-medium text-red-600";
-  } else {
-    msg.className = "mt-4 text-center text-sm font-medium text-gray-600";
-  }
-}
-
-function showOverlay() {
-  const overlay = document.getElementById("scanOverlay");
-  overlay.classList.remove("hidden");
-  overlay.classList.add("flex");
-}
-
-function hideOverlay() {
-  const overlay = document.getElementById("scanOverlay");
-  overlay.classList.add("hidden");
-  overlay.classList.remove("flex");
-}
-
-function showPreview(originalUrl) {
-  const preview = document.getElementById("passportPreview");
-  const noPreviewText = document.getElementById("noPreviewText");
-
-  preview.src = originalUrl || "";
-  if (preview.src) {
-    preview.classList.remove("hidden");
-    noPreviewText.classList.add("hidden");
-  } else {
-    preview.classList.add("hidden");
-    noPreviewText.classList.remove("hidden");
-  }
-}
-
-function renderDynamicFields(fields = []) {
-  const container = document.getElementById("dynamicFields");
-  container.innerHTML = "";
-
-  fields.forEach((field) => {
-    const wrapper = document.createElement("div");
-
-    const label = document.createElement("label");
-    label.className = "font-semibold block mb-1";
-    label.innerText = field.label || field.key;
-
-    const input = document.createElement("input");
-    input.type = "text";
-    input.className = "w-full p-3 border rounded-lg";
-
-    let value = field.value || "";
-    if ((field.type || "") === "date") {
-      value = normalizeDisplayDate(value);
-      input.placeholder = "dd/mm/yyyy";
-    }
-
-    input.value = value;
-    input.setAttribute("data-key", field.key || "");
-    input.setAttribute("data-type", field.type || "text");
-
-    wrapper.appendChild(label);
-    wrapper.appendChild(input);
-    container.appendChild(wrapper);
-  });
-}
-
-function getDynamicFieldsPayload() {
-  const inputs = document.querySelectorAll("#dynamicFields [data-key]");
-  const items = [];
-
-  inputs.forEach((input) => {
-    items.push({
-      key: input.getAttribute("data-key") || "",
-      type: input.getAttribute("data-type") || "text",
-      value: input.value || ""
-    });
-  });
-
-  return items;
-}
-
-function enableManualMode() {
-  document.getElementById("status").value = "pending verification";
-  setMessage("Manual mode enabled. You can fill in the fields manually.", "info");
-}
-
-async function parseJsonResponseSafely(res) {
-  const rawText = await res.text();
-
-  let data = {};
-  try {
-    data = rawText ? JSON.parse(rawText) : {};
-  } catch (e) {
-    if (!res.ok) {
-      throw new Error("Server returned a non-JSON response. Please check Django error log.");
-    }
-    throw new Error("Invalid JSON response from server.");
-  }
-
-  if (!res.ok) {
-    throw new Error(data.error || "Request failed");
-  }
-
-  return data;
-}
-
-async function prepareImageForOCR(file) {
-  return new Promise((resolve, reject) => {
-    if (!file) {
-      reject(new Error("No image file found."));
+    if (!video.videoWidth || !video.videoHeight) {
+      setMessage("Camera is not ready yet. Please try again.", "error");
       return;
     }
 
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
+    if (!frame) {
+      setMessage("Passport frame not found.", "error");
+      return;
+    }
 
-    img.onload = () => {
-      const maxWidth = 1400;
-      const maxHeight = 1000;
+    try {
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      let targetWidth = img.width;
-      let targetHeight = img.height;
+      const videoRect = video.getBoundingClientRect();
+      const frameRect = frame.getBoundingClientRect();
 
-      const widthRatio = maxWidth / targetWidth;
-      const heightRatio = maxHeight / targetHeight;
-      const scale = Math.min(widthRatio, heightRatio, 1);
+      const sourceVideoWidth = video.videoWidth;
+      const sourceVideoHeight = video.videoHeight;
 
-      targetWidth = Math.round(targetWidth * scale);
-      targetHeight = Math.round(targetHeight * scale);
+      const containerWidth = videoRect.width;
+      const containerHeight = videoRect.height;
 
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+      const videoAspect = sourceVideoWidth / sourceVideoHeight;
+      const containerAspect = containerWidth / containerHeight;
 
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
+      let renderedWidth;
+      let renderedHeight;
+      let offsetX;
+      let offsetY;
 
-      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+      if (videoAspect > containerAspect) {
+        renderedHeight = containerHeight;
+        renderedWidth = renderedHeight * videoAspect;
+        offsetX = (renderedWidth - containerWidth) / 2;
+        offsetY = 0;
+      } else {
+        renderedWidth = containerWidth;
+        renderedHeight = renderedWidth / videoAspect;
+        offsetX = 0;
+        offsetY = (renderedHeight - containerHeight) / 2;
+      }
 
-      canvas.toBlob((blob) => {
-        URL.revokeObjectURL(objectUrl);
+      const scaleX = sourceVideoWidth / renderedWidth;
+      const scaleY = sourceVideoHeight / renderedHeight;
 
+      const cropX = ((frameRect.left - videoRect.left) + offsetX) * scaleX;
+      const cropY = ((frameRect.top - videoRect.top) + offsetY) * scaleY;
+      const cropWidth = frameRect.width * scaleX;
+      const cropHeight = frameRect.height * scaleY;
+
+      const safeCropX = Math.max(0, cropX);
+      const safeCropY = Math.max(0, cropY);
+      const safeCropWidth = Math.min(sourceVideoWidth - safeCropX, cropWidth);
+      const safeCropHeight = Math.min(sourceVideoHeight - safeCropY, cropHeight);
+
+      const canvas = document.getElementById("captureCanvas");
+      const context = canvas.getContext("2d");
+
+      canvas.width = Math.round(safeCropWidth);
+      canvas.height = Math.round(safeCropHeight);
+
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+
+      context.drawImage(
+        video,
+        safeCropX,
+        safeCropY,
+        safeCropWidth,
+        safeCropHeight,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      canvas.toBlob(async function(blob) {
         if (!blob) {
-          reject(new Error("Failed to prepare image for OCR."));
+          setMessage("Failed to capture image from camera.", "error");
           return;
         }
 
-        const preparedFile = new File(
-          [blob],
-          file.name || "passport_prepared.jpg",
-          { type: "image/jpeg" }
-        );
+        const file = new File([blob], "passport_capture.jpg", {
+          type: "image/jpeg"
+        });
 
-        resolve(preparedFile);
-      }, "image/jpeg", 0.96);
-    };
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        fileInput.files = transfer.files;
 
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("Failed to load image."));
-    };
+        document.getElementById("selectedFileName").textContent = file.name;
+        showPreview(URL.createObjectURL(file));
+        closeCamera();
 
-    img.src = objectUrl;
-  });
-}
+        await uploadPassportFile(file, "Camera capture");
+      }, "image/jpeg", 0.95);
 
-async function uploadOCR() {
-  const fileInput = document.getElementById("passport_img");
-  const scanBtn = document.getElementById("scanBtn");
-  const originalFile = fileInput.files[0];
-
-  if (!originalFile) {
-    setMessage("Please choose a passport image first", "error");
-    return;
+    } catch (error) {
+      setMessage("Failed to capture using frame crop.", "error");
+    }
   }
 
-  scanBtn.disabled = true;
-  scanBtn.innerText = "Scanning...";
-  showOverlay();
-  setMessage("Preparing passport image for OCR...", "info");
+  async function submitForm() {
+    const submitBtn = getEl("submitBtn");
 
-  try {
-    const preparedFile = await prepareImageForOCR(originalFile);
-
-    const formData = new FormData();
-    formData.append("image", preparedFile);
-
-    setMessage("Scanning passport image...", "info");
-
-    const res = await fetch("/api/employees/passport/upload/", {
-      method: "POST",
-      body: formData
-    });
-
-    const data = await parseJsonResponseSafely(res);
-
-    originalImageName = data.original_image_name || "";
-    processedImageName = data.processed_image_name || "";
-
-    if (data.original_image_url) {
-      showPreview(`${data.original_image_url}?t=${Date.now()}`);
-    }
-    const confidenceNote = document.getElementById("confidenceNote");
-    if (typeof data.detected_rotation_angle !== "undefined") {
-      confidenceNote.innerText =
-        `Best orientation detected: ${data.detected_rotation_angle}°`;
-      confidenceNote.classList.remove("hidden");
-    }
-    setExtractedFormData(data);
-
-    if (data.image_quality_note) {
-      const qualityNote = document.getElementById("qualityNote");
-      qualityNote.innerText = data.image_quality_note;
-      qualityNote.classList.remove("hidden");
-    } else {
-      document.getElementById("qualityNote").classList.add("hidden");
+    const passportNumber = getEl("passport_number").value.trim();
+    if (!passportNumber) {
+      setMessage("Passport number cannot be empty.", "error");
+      return;
     }
 
-    if (data.confidence_score !== undefined && data.confidence_score !== null) {
-      const confidenceNote = document.getElementById("confidenceNote");
-      confidenceNote.innerText = `Confidence score: ${data.confidence_score}`;
-      confidenceNote.classList.remove("hidden");
-    } else {
-      document.getElementById("confidenceNote").classList.add("hidden");
+    if (!navigator.geolocation) {
+      setMessage("Geolocation is not supported by this browser.", "error");
+      return;
     }
 
-    autoExtractedSnapshot = {
-      type: data.type || "",
-      country_code: data.country_code || "",
-      passport_number: data.passport_number || "",
-      nationality: data.nationality || "",
-      surname: sanitizeNameValue(data.surname || ""),
-      given_name: sanitizeNameValue(data.given_name || ""),
-      date_of_birth: normalizeDisplayDate(data.date_of_birth || ""),
-      sex: data.sex || "",
-      date_of_issue: normalizeDisplayDate(data.date_of_issue || ""),
-      date_of_expiry: normalizeDisplayDate(data.date_of_expiry || data.expiry_date || ""),
-      raw_text: data.raw_text || "",
-      status: data.status || "pending verification"
-    };
+    const finalStatus = resolveStatusBeforeSubmit();
+    setStatusPill(finalStatus);
 
-    setMessage("Passport scanned successfully. Please review the details.", "success");
-  } catch (err) {
-    setMessage(err.message || "Failed to scan passport", "error");
-  } finally {
-    hideOverlay();
-    scanBtn.disabled = false;
-    scanBtn.innerText = "Scan Passport";
-  }
-}
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `
+      <div style="width:18px;height:18px;border:2.5px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;"></div>
+      Getting location...
+    `;
 
-function resolveStatusBeforeSubmit() {
-  const current = {
-    type: document.getElementById("passport_type").value.trim(),
-    country_code: document.getElementById("country_code").value.trim(),
-    passport_number: document.getElementById("passport_number").value.trim(),
-    nationality: document.getElementById("nationality").value.trim(),
-    surname: document.getElementById("surname").value.trim(),
-    given_name: document.getElementById("given_name").value.trim(),
-    date_of_birth: document.getElementById("date_of_birth").value.trim(),
-    sex: document.getElementById("sex").value.trim(),
-    date_of_issue: document.getElementById("date_of_issue").value.trim(),
-    date_of_expiry: document.getElementById("date_of_expiry").value.trim()
-  };
+    setMessage("Getting your location...", "info");
 
-  const hadAutoData = Object.keys(autoExtractedSnapshot).length > 0 &&
-    Object.values(autoExtractedSnapshot).some(v => v);
+    navigator.geolocation.getCurrentPosition(
+      async function(pos) {
+        try {
+          const lastName = getEl("last_name").value.trim();
+          const firstName = getEl("first_name").value.trim();
 
-  if (!hadAutoData) {
-    return "pending verification";
-  }
+          const payload = {
+            type: getEl("passport_type").value.trim(),
+            country_code: getEl("country_code").value.trim(),
+            passport_number: passportNumber,
+            nationality: getEl("nationality").value.trim(),
 
-  const changed =
-    current.type !== (autoExtractedSnapshot.type || "") ||
-    current.country_code !== (autoExtractedSnapshot.country_code || "") ||
-    current.passport_number !== (autoExtractedSnapshot.passport_number || "") ||
-    current.nationality !== (autoExtractedSnapshot.nationality || "") ||
-    current.surname !== (autoExtractedSnapshot.surname || "") ||
-    current.given_name !== (autoExtractedSnapshot.given_name || "") ||
-    current.date_of_birth !== (autoExtractedSnapshot.date_of_birth || "") ||
-    current.sex !== (autoExtractedSnapshot.sex || "") ||
-    current.date_of_issue !== (autoExtractedSnapshot.date_of_issue || "") ||
-    current.date_of_expiry !== (autoExtractedSnapshot.date_of_expiry || "");
+            last_name: lastName,
+            first_name: firstName,
 
-  if (changed) {
-    return "manually-corrected";
-  }
+            surname: lastName,
+            given_name: firstName,
 
-  return "auto-extracted";
-}
-
-function submitForm() {
-  const submitBtn = document.getElementById("submitBtn");
-
-  const passport_type = document.getElementById("passport_type").value.trim();
-  const country_code = document.getElementById("country_code").value.trim();
-  const passport_number = document.getElementById("passport_number").value.trim();
-  const nationality = document.getElementById("nationality").value.trim();
-  const surname = document.getElementById("surname").value.trim();
-  const given_name = document.getElementById("given_name").value.trim();
-  const date_of_birth = document.getElementById("date_of_birth").value.trim();
-  const sex = document.getElementById("sex").value.trim();
-  const date_of_issue = document.getElementById("date_of_issue").value.trim();
-  const date_of_expiry = document.getElementById("date_of_expiry").value.trim();
-  const raw_text = document.getElementById("raw_text").value.trim();
-
-  if (!passport_number) {
-    setMessage("Passport number cannot be empty", "error");
-    return;
-  }
-
-  if (!navigator.geolocation) {
-    setMessage("Geolocation is not supported by this browser", "error");
-    return;
-  }
-
-  const finalStatus = resolveStatusBeforeSubmit();
-  document.getElementById("status").value = finalStatus;
-
-  submitBtn.disabled = true;
-  submitBtn.innerText = "Submitting...";
-  setMessage("Getting your location...", "info");
-
-  navigator.geolocation.getCurrentPosition(
-    async function(pos) {
-      try {
-        const res = await fetch(window.location.pathname.replace("passport-attendance", "passport/submit"), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            type: passport_type,
-            country_code: country_code,
-            passport_number: passport_number,
-            nationality: nationality,
-            surname: surname,
-            given_name: given_name,
-            date_of_birth: date_of_birth,
-            sex: sex,
-            date_of_issue: date_of_issue,
-            date_of_expiry: date_of_expiry,
-            raw_text: raw_text,
+            date_of_birth: getEl("date_of_birth").value.trim(),
+            sex: getEl("sex").value.trim(),
+            date_of_issue: getEl("date_of_issue").value.trim(),
+            date_of_expiry: getEl("date_of_expiry").value.trim(),
+            raw_text: getEl("raw_text").value.trim(),
             status: finalStatus,
             original_image_name: originalImageName,
             processed_image_name: processedImageName,
             dynamic_fields: getDynamicFieldsPayload(),
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude
-          })
-        });
+          };
 
-        const data = await parseJsonResponseSafely(res);
+          const submitUrl = window.location.pathname.replace(
+            "passport-attendance",
+            "passport/submit"
+          );
 
-        document.getElementById("status").value = data.status || finalStatus;
-        setMessage(data.message || "Successfully registered", "success");
-      } catch (err) {
-        setMessage(err.message || "Failed to submit attendance", "error");
-      } finally {
+          const response = await fetch(submitUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          });
+
+          const data = await parseJsonResponse(response);
+
+          setStatusPill(data.status || finalStatus);
+          setMessage(data.message || "Successfully registered.", "success");
+          showSuccessModal(data.message || "Attendance submitted successfully.");
+
+        } catch (error) {
+          setMessage(error.message || "Failed to submit attendance.", "error");
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Submit Attendance
+          `;
+        }
+      },
+      function(error) {
+        const messages = {
+          1: "Location permission denied. Please allow access.",
+          2: "Location unavailable.",
+          3: "Location request timed out."
+        };
+
+        setMessage(messages[error.code] || "Unable to get your location.", "error");
+
         submitBtn.disabled = false;
-        submitBtn.innerText = "Submit Attendance";
+        submitBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Submit Attendance
+        `;
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
       }
-    },
-    function(error) {
-      let msg = "Unable to get your location.";
-      if (error.code === 1) msg = "Location permission denied.";
-      if (error.code === 2) msg = "Location unavailable.";
-      if (error.code === 3) msg = "Location request timed out.";
+    );
+  }
 
-      setMessage(msg, "error");
-      submitBtn.disabled = false;
-      submitBtn.innerText = "Submit Attendance";
-    },
-    {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0
+  document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") {
+      closeSuccessModal();
     }
-  );
-}
+  });
+
+  window.addEventListener("beforeunload", function() {
+    closeCamera();
+  });
 </script>
 
 </body>
