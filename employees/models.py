@@ -165,3 +165,95 @@ class PassportAttendance(models.Model):
 
     def __str__(self):
         return f"{self.passport_visitor.full_name} - {self.event.name}"
+
+
+# =========================
+# NEW: EVENT STAFF ASSIGNMENT
+# =========================
+class EventAssignment(models.Model):
+    STATUS_CHOICES = [
+        ('assigned', 'Assigned'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name='assignments'
+    )
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name='event_assignments'
+    )
+
+    task_title = models.CharField(max_length=150)
+    task_description = models.TextField(blank=True, null=True)
+    assignment_status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='assigned'
+    )
+
+    qr_code = models.ImageField(
+        upload_to='assignment_qr_codes/',
+        null=True,
+        blank=True
+    )
+
+    assigned_by = models.ForeignKey(
+        Employee,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_assignments'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['event', 'employee', 'task_title'],
+                name='unique_event_employee_task'
+            )
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.employee.full_name} - {self.task_title} ({self.event.name})"
+
+
+class AssignmentAttendance(models.Model):
+    assignment = models.OneToOneField(
+        EventAssignment,
+        on_delete=models.CASCADE,
+        related_name='attendance'
+    )
+
+    phone_number = models.CharField(max_length=20)
+    email = models.EmailField()
+    notes = models.TextField(blank=True, null=True)
+
+    ipv4_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        protocol='IPv4'
+    )
+    ipv6_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        protocol='IPv6'
+    )
+
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
+    date = models.DateField(auto_now_add=True)
+    time = models.TimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.assignment.employee.full_name} - {self.assignment.task_title}"

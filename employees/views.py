@@ -29,7 +29,7 @@ from django.contrib.auth.models import User
 from django.core.files import File
 from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_exempt
@@ -38,9 +38,11 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
 from .models import (
+    AssignmentAttendance,
     Attendance,
     Employee,
     Event,
+    EventAssignment,
     PassportAttendance,
     PassportVisitor,
     Visitor,
@@ -2063,11 +2065,43 @@ def event_detail(request, id):
             else ""
         )
 
+    # =========================
+    # STAFF ASSIGNMENTS
+    # =========================
+    assignment_search = request.GET.get('assignment_search', '').strip()
+    assignment_status = request.GET.get('assignment_status', '').strip()
+    assignment_page_num = request.GET.get('assignment_page', 1)
+
+    assignment_qs = EventAssignment.objects.filter(event=event).select_related(
+        'employee',
+        'assigned_by'
+    )
+
+    if assignment_search:
+        assignment_qs = assignment_qs.filter(
+            Q(employee__full_name__icontains=assignment_search) |
+            Q(task_title__icontains=assignment_search)
+        )
+
+    if assignment_status:
+        assignment_qs = assignment_qs.filter(assignment_status=assignment_status)
+
+    assignment_qs = assignment_qs.order_by('-created_at')
+
+    assignment_paginator = Paginator(assignment_qs, 5)
+    assignment_page_obj = assignment_paginator.get_page(assignment_page_num)
+
+    available_employees = Employee.objects.all().order_by('full_name')
+
+    for assignment in assignment_page_obj.object_list:
+        assignment.qr_code_url = assignment.qr_code.url if assignment.qr_code else ''
+        assignment.has_attendance = hasattr(assignment, 'attendance')
 
     total_attendance = (
         staff_qs.count()
         + visitor_qs.count()
         + passport_qs.count()
+        + assignment_qs.count()
     )
 
     context = {
@@ -2094,6 +2128,12 @@ def event_detail(request, id):
         'passport_search': passport_search,
         'passport_country': passport_country,
         'passport_sort': passport_sort,
+        
+        'assignment_page_obj': assignment_page_obj,
+        'event_assignments': assignment_page_obj.object_list,
+        'available_employees': available_employees,
+        'assignment_search': assignment_search,
+        'assignment_status_filter': assignment_status,
     }
     context.update(role_context(request))
 
@@ -3760,3 +3800,259 @@ def merge_passport_results(primary_result, fallback_result):
         final_result["extra_data"] = merged_extra
 
     return final_result
+
+def generate_assignment_qr(assignment):
+    qr_url = f"{NGROK_BASE_URL}/api/employees/assignment-attendance/{assignment.id}/"
+
+    qr_image = qrcode.make(qr_url)
+    qr_buffer = BytesIO()
+    qr_image.save(qr_buffer, format='PNG')
+    qr_content = ContentFile(qr_buffer.getvalue())
+
+    file_name = f'assignment_{assignment.id}.png'
+    assignment.qr_code.save(file_name, qr_content, save=False)
+    assignment.save(update_fields=['qr_code'])
+
+
+@csrf_exempt
+def create_event_assignment(request, event_id):
+    permission_check = require_manage_api(request)
+    if permission_check:
+        return permission_check
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+
+        event = get_object_or_404(Event, id=event_id)
+        employee_id = data.get('employee_id')
+        task_title = (data.get('task_title') or '').strip()
+        task_description = (data.get('task_description') or '').strip()
+        assignment_status = (data.get('assignment_status') or 'assigned').strip()
+
+        if not employee_id or not task_title:
+            return JsonResponse({'error': 'Employee and task title are required'}, status=400)
+
+        if assignment_status not in ['assigned', 'in_progress', 'completed', 'cancelled']:
+            return JsonResponse({'error': 'Invalid assignment status'}, status=400)
+
+        employee = get_object_or_404(Employee, id=employee_id)
+        current_employee = get_current_employee(request)
+
+        if EventAssignment.objects.filter(
+            event=event,
+            employee=employee,
+            task_title__iexact=task_title
+        ).exists():
+            return JsonResponse({
+                'error': 'This staff is already assigned to the same task for this event'
+            }, status=400)
+
+        assignment = EventAssignment.objects.create(
+            event=event,
+            employee=employee,
+            task_title=task_title,
+            task_description=task_description,
+            assignment_status=assignment_status,
+            assigned_by=current_employee
+        )
+
+        generate_assignment_qr(assignment)
+
+        return JsonResponse({
+            'message': 'Staff assignment created successfully'
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def update_event_assignment(request, id):
+    permission_check = require_manage_api(request)
+    if permission_check:
+        return permission_check
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+
+        assignment = EventAssignment.objects.select_related('event', 'employee').get(id=id)
+
+        employee_id = data.get('employee_id')
+        task_title = (data.get('task_title') or '').strip()
+        task_description = (data.get('task_description') or '').strip()
+        assignment_status = (data.get('assignment_status') or assignment.assignment_status).strip()
+
+        if not employee_id or not task_title:
+            return JsonResponse({'error': 'Employee and task title are required'}, status=400)
+
+        if assignment_status not in ['assigned', 'in_progress', 'completed', 'cancelled']:
+            return JsonResponse({'error': 'Invalid assignment status'}, status=400)
+
+        employee = get_object_or_404(Employee, id=employee_id)
+
+        duplicate_exists = EventAssignment.objects.exclude(id=assignment.id).filter(
+            event=assignment.event,
+            employee=employee,
+            task_title__iexact=task_title
+        ).exists()
+
+        if duplicate_exists:
+            return JsonResponse({
+                'error': 'This staff is already assigned to the same task for this event'
+            }, status=400)
+
+        assignment.employee = employee
+        assignment.task_title = task_title
+        assignment.task_description = task_description
+        assignment.assignment_status = assignment_status
+        assignment.save()
+
+        if not assignment.qr_code:
+            generate_assignment_qr(assignment)
+
+        return JsonResponse({
+            'message': 'Staff assignment updated successfully'
+        })
+
+    except EventAssignment.DoesNotExist:
+        return JsonResponse({'error': 'Assignment not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def delete_event_assignment(request, id):
+    permission_check = require_manage_api(request)
+    if permission_check:
+        return permission_check
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        assignment = EventAssignment.objects.get(id=id)
+        assignment.delete()
+        return JsonResponse({'message': 'Staff assignment deleted successfully'})
+    except EventAssignment.DoesNotExist:
+        return JsonResponse({'error': 'Assignment not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+def assignment_attendance_page(request, assignment_id):
+    assignment = get_object_or_404(
+        EventAssignment.objects.select_related('event', 'employee'),
+        id=assignment_id
+    )
+    return render(request, 'assignment_attendance_form.html', {
+        'assignment': assignment,
+        'event': assignment.event,
+        'employee': assignment.employee,
+    })
+
+
+@csrf_exempt
+def submit_assignment_attendance(request, assignment_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        assignment = get_object_or_404(
+            EventAssignment.objects.select_related('event', 'employee'),
+            id=assignment_id
+        )
+
+        data = json.loads(request.body)
+
+        full_name = (data.get('full_name') or '').strip()
+        employee_id = (data.get('employee_id') or '').strip()
+        phone_number = (data.get('phone_number') or '').strip()
+        email = (data.get('email') or '').strip().lower()
+        notes = (data.get('notes') or '').strip()
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+
+        ipv4_address, ipv6_address = get_client_ips(request)
+        submitted_ipv4 = (data.get('ipv4_address') or '').strip()
+
+        if not ipv4_address and submitted_ipv4:
+            try:
+                parsed = ipaddress.ip_address(submitted_ipv4)
+                if parsed.version == 4:
+                    ipv4_address = str(parsed)
+            except ValueError:
+                pass
+
+        if not full_name or not employee_id or not phone_number or not email:
+            return JsonResponse({'error': 'All fields are required'}, status=400)
+
+        if not phone_number.isdigit() or len(phone_number) < 9:
+            return JsonResponse({'error': 'Invalid phone number'}, status=400)
+
+        if latitude in [None, ''] or longitude in [None, '']:
+            return JsonResponse({'error': 'Please enable GPS/location first'}, status=400)
+
+        assigned_employee = assignment.employee
+        event = assignment.event
+
+        if employee_id != assigned_employee.employee_id:
+            return JsonResponse({
+                'error': 'This QR is only valid for the assigned staff'
+            }, status=400)
+
+        if email.lower() != assigned_employee.email.lower():
+            return JsonResponse({
+                'error': 'Email does not match the assigned staff record'
+            }, status=400)
+
+        if full_name.lower() != assigned_employee.full_name.lower():
+            return JsonResponse({
+                'error': 'Full name does not match the assigned staff record'
+            }, status=400)
+
+        if event.latitude is None or event.longitude is None:
+            return JsonResponse({'error': 'Event location not configured by admin'}, status=400)
+
+        distance = calculate_distance_meters(
+            latitude,
+            longitude,
+            event.latitude,
+            event.longitude
+        )
+
+        if distance > event.radius_meter:
+            return JsonResponse({
+                'error': f'Attendance rejected. Outside allowed area ({round(distance, 2)}m)'
+            }, status=400)
+
+        if AssignmentAttendance.objects.filter(assignment=assignment).exists():
+            return JsonResponse({
+                'error': 'Attendance for this assignment has already been recorded'
+            }, status=400)
+
+        AssignmentAttendance.objects.create(
+            assignment=assignment,
+            phone_number=phone_number,
+            email=email,
+            notes=notes,
+            ipv4_address=ipv4_address,
+            ipv6_address=ipv6_address,
+            latitude=latitude,
+            longitude=longitude,
+        )
+
+        return JsonResponse({
+            'message': 'Assignment attendance recorded successfully',
+            'distance_meter': round(distance, 2),
+            'event': event.name,
+            'task_title': assignment.task_title,
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

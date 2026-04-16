@@ -623,6 +623,51 @@
     display: none !important;
   }
 
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .status-assigned {
+    background: #e3f2fd;
+    color: #1565c0;
+  }
+
+  .status-in-progress {
+    background: #fff3e0;
+    color: #ef6c00;
+  }
+
+  .status-completed {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .status-cancelled {
+    background: #ffebee;
+    color: #c62828;
+  }
+
+  .assignment-qr-img {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    display: block;
+    margin: 0 auto;
+  }
+
   @media (max-width: 900px) {
     .info-grid {
       grid-template-columns: 1fr 1fr;
@@ -1109,6 +1154,161 @@
   </div>
 </div>
 
+
+<div class="section-label">Staff Assignment</div>
+
+<form method="GET" class="sub-filter">
+  <div class="filter-grid-4">
+    <input
+      type="text"
+      name="assignment_search"
+      placeholder="Search staff or task"
+      value="{{ assignment_search|default:'' }}"
+      class="filter-input"
+    >
+
+    <select name="assignment_status" class="filter-select">
+      <option value="">All Status</option>
+      <option value="assigned" {% if assignment_status_filter == 'assigned' %}selected{% endif %}>Assigned</option>
+      <option value="in_progress" {% if assignment_status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+      <option value="completed" {% if assignment_status_filter == 'completed' %}selected{% endif %}>Completed</option>
+      <option value="cancelled" {% if assignment_status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+    </select>
+
+    <div></div>
+
+    <div class="filter-actions-inline">
+      <button class="btn btn-ocean btn-sm" type="submit">
+        <i data-lucide="search"></i>
+        Search
+      </button>
+      <a href="/events/{{ event.id }}/" class="btn btn-ghost btn-sm">Reset</a>
+      {% if can_manage %}
+      <button type="button" class="btn btn-blue btn-sm" onclick="openAssignmentModal()">
+        <i data-lucide="user-plus"></i>
+        Add Assignment
+      </button>
+      {% endif %}
+    </div>
+  </div>
+</form>
+
+<div class="table-card">
+  <div class="tbl-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Employee ID</th>
+          <th>Department</th>
+          <th>Task</th>
+          <th>Status</th>
+          <th>Attendance</th>
+          <th>QR</th>
+          {% if can_manage %}<th>Action</th>{% endif %}
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for item in event_assignments %}
+        <tr>
+          <td class="text-strong cell-name">{{ item.employee.full_name|default:"—" }}</td>
+          <td class="mono-text cell-empid">{{ item.employee.employee_id|default:"—" }}</td>
+          <td class="break-cell cell-dept">{{ item.employee.department|default:"—" }}</td>
+          <td class="break-cell">
+            <div class="text-strong">{{ item.task_title|default:"—" }}</div>
+            <div class="card-sub">{{ item.task_description|default:"No description" }}</div>
+          </td>
+          <td>
+            {% if item.assignment_status == 'assigned' %}
+              <span class="status-pill status-assigned">Assigned</span>
+            {% elif item.assignment_status == 'in_progress' %}
+              <span class="status-pill status-in-progress">In Progress</span>
+            {% elif item.assignment_status == 'completed' %}
+              <span class="status-pill status-completed">Completed</span>
+            {% else %}
+              <span class="status-pill status-cancelled">Cancelled</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.attendance %}
+              <div class="text-strong">Present</div>
+              <div class="card-sub">{{ item.attendance.date|date:"d/m/Y" }} {{ item.attendance.time }}</div>
+            {% else %}
+              <div class="card-sub">Not yet attended</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.qr_code %}
+              <img src="{{ item.qr_code.url }}" class="assignment-qr-img" alt="Assignment QR">
+            {% else %}
+              <span class="card-sub">No QR</span>
+            {% endif %}
+          </td>
+          {% if can_manage %}
+          <td class="cell-actions">
+            <div class="action-group">
+              <button
+                type="button"
+                class="btn btn-sm btn-blue"
+                data-id="{{ item.id }}"
+                data-employee-id="{{ item.employee.id }}"
+                data-task-title="{{ item.task_title|default:''|escapejs }}"
+                data-task-description="{{ item.task_description|default:''|escapejs }}"
+                data-status="{{ item.assignment_status|default:''|escapejs }}"
+                onclick="openAssignmentEditModalFromButton(this)"
+              >
+                <i data-lucide="pencil"></i>
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-red"
+                onclick="deleteAssignment('{{ item.id }}')"
+              >
+                <i data-lucide="trash-2"></i>
+              </button>
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{% if can_manage %}8{% else %}7{% endif %}" class="td-empty">
+            No staff assignment.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if assignment_page_obj %}
+<div class="pagination">
+  {% if assignment_page_obj.has_previous %}
+    <a
+      href="?assignment_page={{ assignment_page_obj.previous_page_number }}&assignment_search={{ assignment_search|default:'' }}&assignment_status={{ assignment_status_filter|default:'' }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&staff_page={{ staff_page_obj.number }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&visitor_page={{ visitor_page_obj.number }}&passport_search={{ passport_search }}&passport_country={{ passport_country }}&passport_sort={{ passport_sort }}&passport_page={{ passport_page_obj.number }}"
+      class="page-btn page-btn-ghost"
+    >
+      ← Previous
+    </a>
+  {% endif %}
+
+  <span class="page-info">
+    Page {{ assignment_page_obj.number }} of {{ assignment_page_obj.paginator.num_pages }}
+  </span>
+
+  {% if assignment_page_obj.has_next %}
+    <a
+      href="?assignment_page={{ assignment_page_obj.next_page_number }}&assignment_search={{ assignment_search|default:'' }}&assignment_status={{ assignment_status_filter|default:'' }}&staff_search={{ staff_search }}&staff_department={{ staff_department }}&staff_sort={{ staff_sort }}&staff_page={{ staff_page_obj.number }}&visitor_search={{ visitor_search }}&visitor_organization={{ visitor_organization }}&visitor_sort={{ visitor_sort }}&visitor_page={{ visitor_page_obj.number }}&passport_search={{ passport_search }}&passport_country={{ passport_country }}&passport_sort={{ passport_sort }}&passport_page={{ passport_page_obj.number }}"
+      class="page-btn page-btn-active"
+    >
+      Next →
+    </a>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="section-label">Employee / Staff Attendance</div>
 
 <form method="GET" class="sub-filter">
@@ -1576,6 +1776,62 @@
 </div>
 
 {% if can_manage %}
+
+
+<div id="assignmentModal" class="modal-overlay" onclick="if(event.target===this)closeAssignmentModal()">
+  <div style="width:100%;max-width:720px">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="assignmentModalTitle">Add Staff Assignment</div>
+        <button class="modal-close" type="button" onclick="closeAssignmentModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="assignment_id">
+
+        <div class="form-grid-2">
+          <div class="col-span-2">
+            <label class="form-label">Staff</label>
+            <select id="assignment_employee" class="form-select">
+              <option value="">-- Select staff --</option>
+              {% for emp in available_employees %}
+              <option value="{{ emp.id }}">{{ emp.full_name }} — {{ emp.employee_id }} — {{ emp.department }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-span-2">
+            <label class="form-label">Task Title</label>
+            <input id="assignment_task_title" class="form-input" placeholder="Example: PA System, Registration Counter, Technical Support">
+          </div>
+
+          <div class="col-span-2">
+            <label class="form-label">Task Description</label>
+            <textarea id="assignment_task_description" rows="4" class="form-textarea" placeholder="Enter task description"></textarea>
+          </div>
+
+          <div>
+            <label class="form-label">Status</label>
+            <select id="assignment_status" class="form-select">
+              <option value="assigned">Assigned</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeAssignmentModal()">Cancel</button>
+        <button type="button" class="btn btn-ocean" onclick="saveAssignment()">
+          <i data-lucide="save"></i>
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="staffViewModal" class="modal-overlay" onclick="if(event.target===this)closeStaffViewModal()">
   <div style="width:100%;max-width:640px">
@@ -2262,6 +2518,97 @@
     }
   }
 
+
+  function closeAssignmentModal() {
+    getEl('assignmentModal').classList.remove('open');
+  }
+
+  function openAssignmentModal() {
+    getEl('assignmentModalTitle').textContent = 'Add Staff Assignment';
+    getEl('assignment_id').value = '';
+    getEl('assignment_employee').value = '';
+    getEl('assignment_task_title').value = '';
+    getEl('assignment_task_description').value = '';
+    getEl('assignment_status').value = 'assigned';
+    getEl('assignmentModal').classList.add('open');
+  }
+
+  function openAssignmentEditModal(id, employeeId, taskTitle, taskDescription, status) {
+    getEl('assignmentModalTitle').textContent = 'Edit Staff Assignment';
+    getEl('assignment_id').value = id || '';
+    getEl('assignment_employee').value = employeeId || '';
+    getEl('assignment_task_title').value = taskTitle || '';
+    getEl('assignment_task_description').value = taskDescription || '';
+    getEl('assignment_status').value = status || 'assigned';
+    getEl('assignmentModal').classList.add('open');
+  }
+
+  function openAssignmentEditModalFromButton(button) {
+    openAssignmentEditModal(
+      button.dataset.id || '',
+      button.dataset.employeeId || '',
+      button.dataset.taskTitle || '',
+      button.dataset.taskDescription || '',
+      button.dataset.status || 'assigned'
+    );
+  }
+
+  function saveAssignment() {
+    const id = getEl('assignment_id').value;
+    const employeeId = getEl('assignment_employee').value;
+    const taskTitle = getEl('assignment_task_title').value.trim();
+    const taskDescription = getEl('assignment_task_description').value.trim();
+    const status = getEl('assignment_status').value;
+
+    if (!employeeId || !taskTitle) {
+      alert('Staff and task title are required');
+      return;
+    }
+
+    const url = id
+      ? '/api/employees/event-assignment/update/' + id + '/'
+      : '/api/employees/event-assignment/create/{{ event.id }}/';
+
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        employee_id: employeeId,
+        task_title: taskTitle,
+        task_description: taskDescription,
+        assignment_status: status
+      })
+    })
+    .then(function (response) { return response.json(); })
+    .then(function (data) {
+      alert(data.message || data.error);
+      if (data.message) {
+        location.reload();
+      }
+    })
+    .catch(function () {
+      alert('Error saving assignment');
+    });
+  }
+
+  function deleteAssignment(id) {
+    if (!confirm('Delete this assignment?')) return;
+
+    fetch('/api/employees/event-assignment/delete/' + id + '/', {
+      method: 'POST'
+    })
+    .then(function (response) { return response.json(); })
+    .then(function (data) {
+      alert(data.message || data.error);
+      if (data.message) {
+        location.reload();
+      }
+    })
+    .catch(function () {
+      alert('Error deleting assignment');
+    });
+  }
+
   function closeStaffViewModal() {
     getEl('staffViewModal').classList.remove('open');
   }
@@ -2744,6 +3091,7 @@
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') {
       [
+        'assignmentModal',
         'staffViewModal',
         'staffEditModal',
         'visitorViewModal',
