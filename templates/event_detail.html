@@ -668,6 +668,83 @@
     margin: 0 auto;
   }
 
+
+  .assignment-desc {
+    white-space: pre-line;
+    line-height: 1.55;
+    word-break: break-word;
+    margin-top: 4px;
+  }
+
+  .assignment-qr-lg {
+    width: 240px;
+    height: 240px;
+    max-width: 100%;
+    object-fit: contain;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .assignment-view-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .assignment-view-box {
+    background: #f7f9fa;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .assignment-view-box.full {
+    grid-column: span 2;
+  }
+
+  .assignment-view-key {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+
+  .assignment-view-value {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.55;
+    word-break: break-word;
+    white-space: pre-line;
+  }
+
+  .assignment-att-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .assignment-att-pill.present {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  .assignment-att-pill.pending {
+    background: #fff3e0;
+    color: #ef6c00;
+  }
+
   @media (max-width: 900px) {
     .info-grid {
       grid-template-columns: 1fr 1fr;
@@ -1205,7 +1282,7 @@
           <th>Status</th>
           <th>Attendance</th>
           <th>QR</th>
-          {% if can_manage %}<th>Action</th>{% endif %}
+          <th>Action</th>
         </tr>
       </thead>
 
@@ -1217,7 +1294,7 @@
           <td class="break-cell cell-dept">{{ item.employee.department|default:"—" }}</td>
           <td class="break-cell">
             <div class="text-strong">{{ item.task_title|default:"—" }}</div>
-            <div class="card-sub">{{ item.task_description|default:"No description" }}</div>
+            <div class="card-sub assignment-desc">{{ item.task_description|default:"No description" }}</div>
           </td>
           <td>
             {% if item.assignment_status == 'assigned' %}
@@ -1232,10 +1309,10 @@
           </td>
           <td>
             {% if item.attendance %}
-              <div class="text-strong">Present</div>
-              <div class="card-sub">{{ item.attendance.date|date:"d/m/Y" }} {{ item.attendance.time }}</div>
+              <span class="assignment-att-pill present">Submitted</span>
+              <div class="card-sub" style="margin-top:6px;">{{ item.attendance.date|date:"d/m/Y" }} {{ item.attendance.time }}</div>
             {% else %}
-              <div class="card-sub">Not yet attended</div>
+              <span class="assignment-att-pill pending">Not Submitted</span>
             {% endif %}
           </td>
           <td>
@@ -1245,9 +1322,47 @@
               <span class="card-sub">No QR</span>
             {% endif %}
           </td>
-          {% if can_manage %}
           <td class="cell-actions">
             <div class="action-group">
+              <button
+                type="button"
+                class="btn btn-sm btn-green"
+                data-id="{{ item.id }}"
+                data-staff-name="{{ item.employee.full_name|default:''|escapejs }}"
+                data-staff-empid="{{ item.employee.employee_id|default:''|escapejs }}"
+                data-staff-email="{{ item.employee.email|default:''|escapejs }}"
+                data-staff-department="{{ item.employee.department|default:''|escapejs }}"
+                data-task-title="{{ item.task_title|default:''|escapejs }}"
+                data-task-description="{{ item.task_description|default:''|escapejs }}"
+                data-status="{{ item.assignment_status|default:''|escapejs }}"
+                data-qr-url="{% if item.qr_code %}{{ item.qr_code.url }}{% endif %}"
+                data-has-attendance="{% if item.attendance %}1{% else %}0{% endif %}"
+                data-phone="{% if item.attendance %}{{ item.attendance.phone_number|default:''|escapejs }}{% endif %}"
+                data-att-email="{% if item.attendance %}{{ item.attendance.email|default:''|escapejs }}{% endif %}"
+                data-ipv4="{% if item.attendance %}{{ item.attendance.ipv4_address|default:''|escapejs }}{% endif %}"
+                data-ipv6="{% if item.attendance %}{{ item.attendance.ipv6_address|default:''|escapejs }}{% endif %}"
+                data-latitude="{% if item.attendance %}{{ item.attendance.latitude|default:''|escapejs }}{% endif %}"
+                data-longitude="{% if item.attendance %}{{ item.attendance.longitude|default:''|escapejs }}{% endif %}"
+                data-date="{% if item.attendance %}{{ item.attendance.date|date:'d/m/Y'|escapejs }}{% endif %}"
+                data-time="{% if item.attendance %}{{ item.attendance.time|time:'h:i A'|escapejs }}{% endif %}"
+                data-notes="{% if item.attendance %}{{ item.attendance.notes|default:''|escapejs }}{% endif %}"
+                onclick="openAssignmentViewModal(this)"
+              >
+                <i data-lucide="eye"></i>
+              </button>
+
+              {% if item.qr_code %}
+              <a
+                href="{{ item.qr_code.url }}"
+                download="assignment_{{ item.id }}_qr.png"
+                class="btn btn-sm btn-ocean"
+                title="Download QR"
+              >
+                <i data-lucide="download"></i>
+              </a>
+              {% endif %}
+
+              {% if can_manage %}
               <button
                 type="button"
                 class="btn btn-sm btn-blue"
@@ -1267,13 +1382,13 @@
               >
                 <i data-lucide="trash-2"></i>
               </button>
+              {% endif %}
             </div>
           </td>
-          {% endif %}
         </tr>
         {% empty %}
         <tr>
-          <td colspan="{% if can_manage %}8{% else %}7{% endif %}" class="td-empty">
+          <td colspan="8" class="td-empty">
             No staff assignment.
           </td>
         </tr>
@@ -1773,6 +1888,107 @@
       Next →
     </a>
   {% endif %}
+</div>
+
+<div id="assignmentViewModal" class="modal-overlay" onclick="if(event.target===this)closeAssignmentViewModal()">
+  <div style="width:100%;max-width:900px">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">Assignment Details</div>
+        <button class="modal-close" type="button" onclick="closeAssignmentViewModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="assignment-view-grid">
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">Staff Name</div>
+            <div id="assignment_view_staff_name" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">Employee ID</div>
+            <div id="assignment_view_staff_empid" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">Staff Email</div>
+            <div id="assignment_view_staff_email" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">Department</div>
+            <div id="assignment_view_staff_department" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box full">
+            <div class="assignment-view-key">Task Title</div>
+            <div id="assignment_view_task_title" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box full">
+            <div class="assignment-view-key">Task Description</div>
+            <div id="assignment_view_task_description" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">Status</div>
+            <div id="assignment_view_status" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">Attendance Status</div>
+            <div id="assignment_view_attendance_status" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">Phone Number</div>
+            <div id="assignment_view_phone" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">Attendance Email</div>
+            <div id="assignment_view_att_email" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">IPv4</div>
+            <div id="assignment_view_ipv4" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">IPv6</div>
+            <div id="assignment_view_ipv6" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">Latitude</div>
+            <div id="assignment_view_latitude" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">Longitude</div>
+            <div id="assignment_view_longitude" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">Date</div>
+            <div id="assignment_view_date" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box">
+            <div class="assignment-view-key">Time</div>
+            <div id="assignment_view_time" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box full">
+            <div class="assignment-view-key">Notes</div>
+            <div id="assignment_view_notes" class="assignment-view-value">—</div>
+          </div>
+          <div class="assignment-view-box full">
+            <div class="assignment-view-key">QR Code</div>
+            <div class="passport-preview-box" style="text-align:center;">
+              <img id="assignment_view_qr" class="assignment-qr-lg hidden" src="" alt="Assignment QR">
+              <div id="assignment_view_qr_empty" class="qr-empty">No QR available</div>
+              <div style="margin-top:12px;">
+                <a id="assignment_view_qr_download" href="#" download="assignment_qr.png" class="btn btn-ocean hidden">
+                  <i data-lucide="download"></i>
+                  Download QR
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeAssignmentViewModal()">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 {% if can_manage %}
@@ -2518,6 +2734,85 @@
     }
   }
 
+  function decodeEscapedUnicode(value) {
+    if (!value && value !== '') return '';
+
+    let text = String(value);
+
+    text = text.replace(/\\u([0-9a-fA-F]{4})/g, function (_, hex) {
+      return String.fromCharCode(parseInt(hex, 16));
+    });
+
+    text = text.replace(/\\n/g, '\n');
+    text = text.replace(/\\r/g, '\r');
+    text = text.replace(/\\t/g, '\t');
+    text = text.replace(/\\\\/g, '\\');
+
+    return text;
+  }
+
+  function assignmentValue(value) {
+    const decoded = decodeEscapedUnicode(value);
+    return decoded && String(decoded).trim() ? String(decoded).trim() : '—';
+  }
+
+  function formatAssignmentStatusText(value) {
+    if (value === 'assigned') return 'Assigned';
+    if (value === 'in_progress') return 'In Progress';
+    if (value === 'completed') return 'Completed';
+    if (value === 'cancelled') return 'Cancelled';
+    return assignmentValue(value);
+  }
+
+  function openAssignmentViewModal(button) {
+    getEl('assignment_view_staff_name').textContent = assignmentValue(button.dataset.staffName);
+    getEl('assignment_view_staff_empid').textContent = assignmentValue(button.dataset.staffEmpid);
+    getEl('assignment_view_staff_email').textContent = assignmentValue(button.dataset.staffEmail);
+    getEl('assignment_view_staff_department').textContent = assignmentValue(button.dataset.staffDepartment);
+    getEl('assignment_view_task_title').textContent = assignmentValue(button.dataset.taskTitle);
+    getEl('assignment_view_task_description').textContent = assignmentValue(button.dataset.taskDescription);
+    getEl('assignment_view_status').textContent = formatAssignmentStatusText(button.dataset.status);
+    getEl('assignment_view_attendance_status').textContent = button.dataset.hasAttendance === '1' ? 'Submitted' : 'Not Submitted';
+    getEl('assignment_view_phone').textContent = assignmentValue(button.dataset.phone);
+    getEl('assignment_view_att_email').textContent = assignmentValue(button.dataset.attEmail);
+    getEl('assignment_view_ipv4').textContent = assignmentValue(button.dataset.ipv4);
+    getEl('assignment_view_ipv6').textContent = assignmentValue(button.dataset.ipv6);
+    getEl('assignment_view_latitude').textContent = assignmentValue(button.dataset.latitude);
+    getEl('assignment_view_longitude').textContent = assignmentValue(button.dataset.longitude);
+    getEl('assignment_view_date').textContent = assignmentValue(button.dataset.date);
+    getEl('assignment_view_time').textContent = assignmentValue(button.dataset.time);
+    getEl('assignment_view_notes').textContent = assignmentValue(button.dataset.notes);
+
+    const qrUrl = button.dataset.qrUrl || '';
+    const qrImg = getEl('assignment_view_qr');
+    const qrEmpty = getEl('assignment_view_qr_empty');
+    const qrDownload = getEl('assignment_view_qr_download');
+
+    if (qrUrl) {
+      qrImg.src = qrUrl;
+      qrImg.classList.remove('hidden');
+      qrEmpty.classList.add('hidden');
+      qrDownload.href = qrUrl;
+      qrDownload.setAttribute('download', 'assignment_' + (button.dataset.id || 'qr') + '_qr.png');
+      qrDownload.classList.remove('hidden');
+    } else {
+      qrImg.src = '';
+      qrImg.classList.add('hidden');
+      qrEmpty.classList.remove('hidden');
+      qrDownload.href = '#';
+      qrDownload.classList.add('hidden');
+    }
+
+    getEl('assignmentViewModal').classList.add('open');
+
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  }
+
+  function closeAssignmentViewModal() {
+    getEl('assignmentViewModal').classList.remove('open');
+  }
 
   function closeAssignmentModal() {
     getEl('assignmentModal').classList.remove('open');
@@ -3091,6 +3386,7 @@
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') {
       [
+        'assignmentViewModal',
         'assignmentModal',
         'staffViewModal',
         'staffEditModal',
