@@ -48,6 +48,7 @@ class Event(models.Model):
     def __str__(self):
         return self.name
 
+
 class Attendance(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
 
@@ -71,6 +72,8 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f"{self.full_name} - {self.event}"
+
+
 class Visitor(models.Model):
     full_name = models.CharField(max_length=150)
     phone_number = models.CharField(max_length=20)

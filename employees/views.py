@@ -1872,53 +1872,44 @@ def update_passport_attendance(request, id):
         sex = (data.get("sex") or data.get("gender") or "").strip()
         date_of_issue = (data.get("date_of_issue") or "").strip()
         date_of_expiry = (data.get("date_of_expiry") or data.get("expiry_date") or "").strip()
-        raw_text = data.get("raw_text") or ""
-        status = (data.get("status") or "pending verification").strip()
-
-        dynamic_fields = data.get("dynamic_fields", [])
-        if not isinstance(dynamic_fields, list):
-            dynamic_fields = []
+        raw_text = (data.get("raw_text") or data.get("ocr_raw_text") or "").strip()
+        status = (data.get("status") or visitor.status or "pending verification").strip()
 
         if not passport_number:
             return JsonResponse({"error": "Passport number cannot be empty"}, status=400)
 
         valid, passport_error = validate_passport_number_by_country(
             passport_number,
-            country_code or nationality,
+            country_code or nationality
         )
         if not valid:
             return JsonResponse({"error": passport_error}, status=400)
 
-        if (
-            passport_number != visitor.passport_number
-            and PassportVisitor.objects.filter(passport_number=passport_number).exists()
-        ):
-            return JsonResponse({"error": "Passport number already exists"}, status=400)
-
-        visitor.passport_number = passport_number
         visitor.full_name = full_name or visitor.full_name
+        visitor.passport_number = passport_number
         visitor.country = nationality or country_code_to_name(country_code) or visitor.country
-        visitor.date_of_birth = date_of_birth or visitor.date_of_birth
-        visitor.expiry_date = date_of_expiry or visitor.expiry_date
-        visitor.gender = sex or visitor.gender
+        visitor.date_of_birth = date_of_birth or ""
+        visitor.expiry_date = date_of_expiry or ""
+        visitor.gender = sex or ""
         visitor.ocr_raw_text = raw_text
         visitor.status = status
 
-        merged_extra = visitor.extra_data or {}
-        merged_extra.update({
+        existing_extra = visitor.extra_data or {}
+        visitor.extra_data = {
+            **existing_extra,
             "type": passport_type,
             "country_code": country_code,
             "nationality": nationality,
             "first_name": first_name,
             "last_name": last_name,
             "date_of_issue": date_of_issue,
-            "dynamic_fields": dynamic_fields,
-        })
-        visitor.extra_data = merged_extra
+        }
 
         visitor.save()
 
-        return JsonResponse({"message": "Passport attendance updated successfully"})
+        return JsonResponse({
+            "message": "Non-Malaysian visitor updated successfully"
+        })
 
     except PassportAttendance.DoesNotExist:
         return JsonResponse({"error": "Passport attendance not found"}, status=404)
@@ -1994,7 +1985,7 @@ def event_detail(request, id):
     staff_page_obj = staff_paginator.get_page(staff_page_num)
 
     # =========================
-    # VISITOR (MALAYSIAN)
+    # VISITOR ATTENDANCE (MALAYSIAN)
     # =========================
     visitor_search = request.GET.get('visitor_search', '').strip()
     visitor_organization = request.GET.get('visitor_organization', '').strip()
@@ -2018,7 +2009,6 @@ def event_detail(request, id):
 
     visitor_organizations = (
         VisitorAttendance.objects.filter(event=event)
-        .select_related('visitor')
         .exclude(visitor__organization__isnull=True)
         .exclude(visitor__organization__exact='')
         .values_list('visitor__organization', flat=True)
@@ -2030,7 +2020,7 @@ def event_detail(request, id):
     visitor_page_obj = visitor_paginator.get_page(visitor_page_num)
 
     # =========================
-    # VISITOR (NON-MALAYSIAN)
+    # PASSPORT ATTENDANCE (NON-MALAYSIAN)
     # =========================
     passport_search = request.GET.get('passport_search', '').strip()
     passport_country = request.GET.get('passport_country', '').strip()
@@ -2054,7 +2044,6 @@ def event_detail(request, id):
 
     passport_countries = (
         PassportAttendance.objects.filter(event=event)
-        .select_related('passport_visitor')
         .exclude(passport_visitor__country__isnull=True)
         .exclude(passport_visitor__country__exact='')
         .values_list('passport_visitor__country', flat=True)
@@ -2065,13 +2054,27 @@ def event_detail(request, id):
     passport_paginator = Paginator(passport_qs, 5)
     passport_page_obj = passport_paginator.get_page(passport_page_num)
 
-    # =========================
-    # TOTAL
-    # =========================
+    for att in passport_page_obj.object_list:
+        extra_data = att.passport_visitor.extra_data or {}
+        att.type_value = extra_data.get("type", "P")
+        att.country_code_value = extra_data.get("country_code", "")
+        att.nationality_value = extra_data.get(
+            "nationality",
+            att.passport_visitor.country or ""
+        )
+        att.first_name_value = extra_data.get("first_name", "")
+        att.last_name_value = extra_data.get("last_name", "")
+        att.date_of_issue_value = extra_data.get("date_of_issue", "")
+        att.original_image_url = (
+            att.passport_visitor.image.url
+            if att.passport_visitor.image
+            else ""
+        )
+
     total_attendance = (
-        Attendance.objects.filter(event=event).count()
-        + VisitorAttendance.objects.filter(event=event).count()
-        + PassportAttendance.objects.filter(event=event).count()
+        staff_qs.count()
+        + visitor_qs.count()
+        + passport_qs.count()
     )
 
     context = {
@@ -2102,6 +2105,7 @@ def event_detail(request, id):
     context.update(role_context(request))
 
     return render(request, 'event_detail.html', context)
+
 def export_attendance_csv(request, id):
     manage_check = require_manage_page(request)
     if manage_check:
@@ -3256,7 +3260,6 @@ def upload_passport(request):
             "date_of_expiry": normalize_display_date(
                 ui_result.get("date_of_expiry", "")
             ),
-            "dynamic_fields": ui_result.get("dynamic_fields", []),
             "raw_text": ui_result.get("raw_text", ""),
             "status": final_status,
             "confidence_score": ui_result.get("confidence_score", 0),
@@ -3322,10 +3325,7 @@ def submit_passport_attendance(request, event_id):
         latitude = data.get("latitude")
         longitude = data.get("longitude")
 
-        dynamic_fields = data.get("dynamic_fields", [])
-        if not isinstance(dynamic_fields, list):
-            dynamic_fields = []
-
+        # VALIDATION
         if not passport_number:
             return JsonResponse({"error": "Passport number cannot be empty"}, status=400)
 
@@ -3356,6 +3356,7 @@ def submit_passport_attendance(request, event_id):
                 "error": f"Attendance rejected. Outside allowed area ({round(distance, 2)}m)"
             }, status=400)
 
+        # CREATE / UPDATE VISITOR
         visitor, created = PassportVisitor.objects.get_or_create(
             passport_number=passport_number,
             defaults={
@@ -3365,7 +3366,7 @@ def submit_passport_attendance(request, event_id):
                 "expiry_date": date_of_expiry,
                 "gender": sex,
                 "ocr_raw_text": raw_text,
-                "status": status or "pending verification",
+                "status": status,
                 "extra_data": {
                     "type": passport_type,
                     "country_code": country_code,
@@ -3373,7 +3374,6 @@ def submit_passport_attendance(request, event_id):
                     "first_name": first_name,
                     "last_name": last_name,
                     "date_of_issue": date_of_issue,
-                    "dynamic_fields": dynamic_fields,
                 },
             },
         )
@@ -3387,32 +3387,33 @@ def submit_passport_attendance(request, event_id):
             visitor.ocr_raw_text = raw_text or visitor.ocr_raw_text
             visitor.status = status or visitor.status
 
-            merged_extra = visitor.extra_data or {}
-            merged_extra.update({
-                "type": passport_type,
-                "country_code": country_code,
-                "nationality": nationality,
-                "first_name": first_name,
-                "last_name": last_name,
-                "date_of_issue": date_of_issue,
-                "dynamic_fields": dynamic_fields,
-            })
-            visitor.extra_data = merged_extra
+        # ✅ FIXED JSON STRUCTURE
+        merged_extra = dict(visitor.extra_data or {})
+        merged_extra.update({
+            "type": passport_type,
+            "country_code": country_code,
+            "nationality": nationality,
+            "first_name": first_name,
+            "last_name": last_name,
+            "date_of_issue": date_of_issue,
+        })
 
+        visitor.extra_data = merged_extra
+
+        # IMAGE
         if original_image_name:
             original_path = os.path.join(settings.MEDIA_ROOT, "passport_images", original_image_name)
             if os.path.exists(original_path):
-                relative_original = os.path.join("passport_images", original_image_name).replace("\\", "/")
-                visitor.image.name = relative_original
+                visitor.image.name = f"passport_images/{original_image_name}"
 
         if processed_image_name:
             processed_path = os.path.join(settings.MEDIA_ROOT, "passport_processed", processed_image_name)
             if os.path.exists(processed_path):
-                relative_processed = os.path.join("passport_processed", processed_image_name).replace("\\", "/")
-                visitor.extracted_image.name = relative_processed
+                visitor.extracted_image.name = f"passport_processed/{processed_image_name}"
 
         visitor.save()
 
+        # ATTENDANCE
         attendance, attendance_created = PassportAttendance.objects.get_or_create(
             passport_visitor=visitor,
             event=event,
@@ -3453,7 +3454,6 @@ def mrz_check_digit(data):
     return str(total % 10)
 
 def build_universal_passport_fields(extracted):
-    dynamic_fields = []
     name_parts = resolve_passport_name_parts(extracted)
 
     raw_text = get_safe_raw_text(extracted)
@@ -3483,17 +3483,7 @@ def build_universal_passport_fields(extracted):
         "confidence_score": extracted.get("confidence_score", 0),
         "image_quality_note": extracted.get("image_quality_note", ""),
         "detected_rotation_angle": extracted.get("detected_rotation_angle", 0),
-        "dynamic_fields": dynamic_fields,
     }
-
-    extra_data = extracted.get("extra_data") or {}
-    for key, value in extra_data.items():
-        if key in result:
-            continue
-        dynamic_fields.append({
-            "key": key,
-            "value": value,
-        })
 
     return result
 
@@ -3553,9 +3543,5 @@ def merge_passport_results(primary_result, fallback_result):
         merged_extra = dict(fallback_extra)
         merged_extra.update(primary_extra)
         final_result["extra_data"] = merged_extra
-
-    # merge dynamic_fields safely
-    if not final_result.get("dynamic_fields") and fallback_result.get("dynamic_fields"):
-        final_result["dynamic_fields"] = fallback_result.get("dynamic_fields")
 
     return final_result

@@ -619,26 +619,6 @@
     padding: 8px;
   }
 
-  .dynamic-row {
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px;
-    background: #f7f9fa;
-    position: relative;
-  }
-
-  .dynamic-remove {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: none;
-    border: none;
-    color: #c62828;
-    font-size: 17px;
-    cursor: pointer;
-    line-height: 1;
-  }
-
   .hidden {
     display: none !important;
   }
@@ -1217,7 +1197,6 @@
                 data-dateofexpiry="{{ att.passport_visitor.expiry_date|default:'' }}"
                 data-status="{{ att.passport_visitor.status|default:'' }}"
                 data-rawtext-id="passport_raw_text_{{ att.id }}"
-                data-dynamicfields='{{ extra.dynamic_fields|default:"[]"|escapejs }}'
               >
                 <i data-lucide="eye"></i>
               </button>
@@ -1240,7 +1219,6 @@
                 data-dateofexpiry="{{ att.passport_visitor.expiry_date|default:'' }}"
                 data-status="{{ att.passport_visitor.status|default:'' }}"
                 data-rawtext-id="passport_raw_text_{{ att.id }}"
-                data-dynamicfields='{{ extra.dynamic_fields|default:"[]"|escapejs }}'
               >
                 <i data-lucide="pencil"></i>
               </button>
@@ -1617,11 +1595,6 @@
           </div>
         </div>
 
-        <div class="section-divider" style="margin-top:14px">
-          <div class="section-divider-title">Dynamic Fields</div>
-          <div id="viewDynamicFields" class="form-grid-2"></div>
-        </div>
-
         <div style="margin-top:14px">
           <label class="form-label">OCR Raw Text</label>
           <textarea id="view_raw_text" rows="6" class="form-textarea" style="resize:vertical" readonly></textarea>
@@ -1779,18 +1752,6 @@
           </div>
         </div>
 
-        <div class="section-divider" style="margin-top:14px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div class="section-divider-title" style="margin-bottom:0">Dynamic Fields</div>
-            <button type="button" onclick="addEditDynamicField()" class="btn btn-sm btn-ocean">
-              <i data-lucide="plus"></i>
-              Add Field
-            </button>
-          </div>
-
-          <div id="editDynamicFields" class="form-grid-2" style="gap:10px"></div>
-        </div>
-
         <div style="margin-top:14px">
           <label class="form-label">OCR Raw Text</label>
           <textarea id="edit_raw_text" rows="6" class="form-textarea" style="resize:vertical"></textarea>
@@ -1876,16 +1837,6 @@
     });
   }
 
-  function safeParseDynamicFields(value) {
-    if (!value) return [];
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      return [];
-    }
-  }
-
   function setImagePreview(imgId, emptyId, url) {
     const img = getEl(imgId);
     const empty = getEl(emptyId);
@@ -1923,77 +1874,16 @@
     return '';
   }
 
-  function renderViewDynamicFields(fields) {
-    const wrapper = getEl('viewDynamicFields');
-    wrapper.innerHTML = '';
 
-    if (!fields.length) {
-      wrapper.innerHTML = '<div class="col-span-2" style="font-size:12.5px;color:var(--hint)">No dynamic fields available.</div>';
-      return;
+  function safeParseJsonArray(value) {
+    if (!value) return [];
+
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
     }
-
-    fields.forEach(function (field) {
-      const row = document.createElement('div');
-      row.className = 'dynamic-row col-span-2';
-      row.innerHTML = `
-        <div class="form-grid-2">
-          <div>
-            <label class="form-label">Field Name</label>
-            <input class="form-input" value="${field.key || ''}" readonly>
-          </div>
-          <div>
-            <label class="form-label">Value</label>
-            <input class="form-input" value="${field.value || ''}" readonly>
-          </div>
-        </div>
-      `;
-      wrapper.appendChild(row);
-    });
-  }
-
-  function renderEditDynamicFields(fields) {
-    const wrapper = getEl('editDynamicFields');
-    wrapper.innerHTML = '';
-
-    fields.forEach(function (field) {
-      addEditDynamicField(
-        field.key || '',
-        field.value || ''
-      );
-    });
-  }
-
-  function addEditDynamicField(key = '', value = '') {
-    const wrapper = getEl('editDynamicFields');
-    const row = document.createElement('div');
-    row.className = 'dynamic-row col-span-2';
-    row.innerHTML = `
-      <button type="button" class="dynamic-remove" onclick="this.parentElement.remove()">×</button>
-      <div class="form-grid-2">
-        <div>
-          <label class="form-label">Field Name</label>
-          <input class="dynamic-key form-input" placeholder="e.g. Place of Birth" value="${key}">
-        </div>
-        <div>
-          <label class="form-label">Value</label>
-          <input class="dynamic-value form-input" placeholder="Enter value" value="${value}">
-        </div>
-      </div>
-    `;
-    wrapper.appendChild(row);
-  }
-
-  function getEditDynamicFieldsPayload() {
-    return Array.from(document.querySelectorAll('#editDynamicFields > .dynamic-row'))
-      .map(function (row) {
-        return {
-          key: row.querySelector('.dynamic-key')?.value?.trim() || '',
-          value: row.querySelector('.dynamic-value')?.value?.trim() || ''
-        };
-      })
-      .filter(function (field) {
-        return field.key || field.value;
-      });
   }
 
   function closeStaffViewModal() {
@@ -2093,8 +1983,7 @@
         date_of_issue: getEl('edit_date_of_issue').value,
         date_of_expiry: getEl('edit_date_of_expiry').value,
         status: getEl('edit_status').value,
-        raw_text: getEl('edit_raw_text').value,
-        dynamic_fields: getEditDynamicFieldsPayload()
+        raw_text: getEl('edit_raw_text').value
       })
     })
     .then(function (response) {
@@ -2224,10 +2113,6 @@
         this.dataset.originalimage || ''
       );
 
-      renderViewDynamicFields(
-        safeParseDynamicFields(this.dataset.dynamicfields)
-      );
-
       getEl('passportViewModal').classList.add('open');
     });
   });
@@ -2252,10 +2137,6 @@
         'editPassportPreview',
         'editPassportNoPreview',
         this.dataset.originalimage || ''
-      );
-
-      renderEditDynamicFields(
-        safeParseDynamicFields(this.dataset.dynamicfields)
       );
 
       getEl('passportEditModal').classList.add('open');

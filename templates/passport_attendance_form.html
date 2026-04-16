@@ -678,29 +678,6 @@
       border-color: #fecaca;
     }
 
-    .dynamic-list {
-      display: grid;
-      gap: 10px;
-      margin-top: 8px;
-    }
-
-    .dynamic-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr auto;
-      gap: 10px;
-      align-items: end;
-      padding: 12px;
-      border: 1px solid var(--gray-200);
-      border-radius: var(--radius-md);
-      background: #fcfffe;
-    }
-
-    @media (max-width: 640px) {
-      .dynamic-row {
-        grid-template-columns: 1fr;
-      }
-    }
-
     .icon-btn {
       border: 1px solid var(--gray-300);
       background: var(--white);
@@ -1313,29 +1290,11 @@
       </div>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="section-label" style="margin-bottom: 10px;">
-      <span class="step-chip">3</span>
-      Additional Passport Fields
-    </div>
-
-    <div class="actions-row" style="margin-top: 0; margin-bottom: 12px;">
-      <button type="button" class="btn btn-secondary" onclick="addDynamicField()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Add Field
-      </button>
-    </div>
-
-    <div id="dynamicFields" class="dynamic-list"></div>
   </div>
 
   <div class="card">
     <div class="section-label">
-      <span class="step-chip">4</span>
+      <span class="step-chip">3</span>
       Submit Attendance
     </div>
 
@@ -1569,63 +1528,10 @@
     getEl("date_of_issue").value = "";
     getEl("date_of_expiry").value = "";
     getEl("raw_text").value = "";
-    getEl("dynamicFields").innerHTML = "";
 
     autoExtractedSnapshot = {};
     setStatusPill("pending verification");
     clearMessage();
-  }
-
-  function addDynamicField(key = "", value = "") {
-    const container = getEl("dynamicFields");
-
-    const row = document.createElement("div");
-    row.className = "dynamic-row";
-    row.innerHTML = `
-      <div class="form-group">
-        <label class="form-label">Field Name</label>
-        <input type="text" class="form-input dynamic-key" placeholder="e.g. Place of Birth" value="${escapeHtml(key)}">
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Value</label>
-        <input type="text" class="form-input dynamic-value" placeholder="Enter value" value="${escapeHtml(value)}">
-      </div>
-
-      <button type="button" class="icon-btn" onclick="this.parentElement.remove()">Remove</button>
-    `;
-    container.appendChild(row);
-  }
-
-  function renderDynamicFields(fields) {
-    const container = getEl("dynamicFields");
-    container.innerHTML = "";
-
-    if (!Array.isArray(fields) || fields.length === 0) {
-      return;
-    }
-
-    fields.forEach(function(field) {
-      if (!field || typeof field !== "object") return;
-      addDynamicField(field.key || "", field.value || "");
-    });
-  }
-
-  function getDynamicFieldsPayload() {
-    const rows = Array.from(document.querySelectorAll("#dynamicFields .dynamic-row"));
-    const payload = [];
-
-    rows.forEach(function(row) {
-      const key = normalizeSpaces(row.querySelector(".dynamic-key")?.value || "");
-      const value = normalizeSpaces(row.querySelector(".dynamic-value")?.value || "");
-
-      if (!key && !value) return;
-      if (!key) return;
-
-      payload.push({ key, value });
-    });
-
-    return payload;
   }
 
   function escapeHtml(value) {
@@ -1652,7 +1558,6 @@
     );
     getEl("raw_text").value = data.raw_text || "";
 
-    renderDynamicFields(data.dynamic_fields || []);
   }
 
   function resolveStatusBeforeSubmit() {
@@ -2014,7 +1919,6 @@
             status: finalStatus,
             original_image_name: originalImageName,
             processed_image_name: processedImageName,
-            dynamic_fields: getDynamicFieldsPayload(),
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude
           };
