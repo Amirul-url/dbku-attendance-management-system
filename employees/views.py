@@ -2099,52 +2099,171 @@ def event_detail(request, id):
 
     return render(request, 'event_detail.html', context)
 
+def format_csv_date(value):
+    if not value:
+        return ""
+
+    if hasattr(value, "strftime"):
+        return value.strftime("%d/%m/%Y")
+
+    text = str(value).strip()
+    if not text:
+        return ""
+
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", text)
+    if m:
+        return f"{m.group(3)}/{m.group(2)}/{m.group(1)}"
+
+    m = re.match(r"^(\d{2})/(\d{2})/(\d{4})$", text)
+    if m:
+        return text
+
+    m = re.match(r"^(\d{2})-(\d{2})-(\d{4})$", text)
+    if m:
+        return f"{m.group(1)}/{m.group(2)}/{m.group(3)}"
+
+    return text
+
 def export_attendance_csv(request, id):
     manage_check = require_manage_page(request)
     if manage_check:
         return manage_check
 
     event = Event.objects.get(id=id)
+
     employee_attendances = Attendance.objects.filter(event=event)
     visitor_attendances = VisitorAttendance.objects.filter(event=event).select_related('visitor')
+    passport_attendances = PassportAttendance.objects.filter(event=event).select_related('passport_visitor')
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="{event.name}_attendance.csv"'
 
     writer = csv.writer(response)
 
+    # =========================
+    # EMPLOYEE ATTENDANCE
+    # =========================
     writer.writerow(['EMPLOYEE ATTENDANCE'])
-    writer.writerow(['Name', 'Employee ID', 'Phone', 'Email', 'Department', 'IPv4', 'IPv6', 'Date', 'Time', 'Latitude', 'Longitude'])
+    writer.writerow([
+        'Name',
+        'Employee ID',
+        'Phone',
+        'Email',
+        'Department',
+        'IPv4',
+        'IPv6',
+        'Date',
+        'Time',
+        'Latitude',
+        'Longitude',
+    ])
 
     for att in employee_attendances:
         writer.writerow([
             att.full_name,
             att.employee_id,
-            f"'{att.phone_number}",
+            f"'{att.phone_number}" if att.phone_number else '',
             att.email,
             att.department,
-            att.ipv4_address or '-',
-            att.ipv6_address or '-',
-            att.date.strftime("%d/%m/%Y"),
-            att.time.strftime("%H:%M:%S"),
+            getattr(att, 'ipv4_address', ''),
+            getattr(att, 'ipv6_address', ''),
+            att.date.strftime("%d/%m/%Y") if att.date else '',
+            att.time.strftime("%H:%M:%S") if att.time else '',
             att.latitude,
-            att.longitude
+            att.longitude,
         ])
 
     writer.writerow([])
+
+    # =========================
+    # VISITOR ATTENDANCE (MALAYSIAN)
+    # =========================
     writer.writerow(['VISITOR ATTENDANCE (MALAYSIAN)'])
-    writer.writerow(['Name', 'Phone', 'Email', 'Organization', 'Date', 'Time', 'Latitude', 'Longitude'])
+    writer.writerow([
+        'Name',
+        'Phone',
+        'Email',
+        'Organization',
+        'Date',
+        'Time',
+        'Latitude',
+        'Longitude',
+    ])
 
     for att in visitor_attendances:
         writer.writerow([
             att.visitor.full_name,
-            f"'{att.visitor.phone_number}",
+            f"'{att.visitor.phone_number}" if att.visitor.phone_number else '',
             att.visitor.email,
             att.visitor.organization,
-            att.date.strftime("%d/%m/%Y"),
-            att.time.strftime("%H:%M:%S"),
+            att.date.strftime("%d/%m/%Y") if att.date else '',
+            att.time.strftime("%H:%M:%S") if att.time else '',
             att.latitude,
-            att.longitude
+            att.longitude,
+        ])
+
+    writer.writerow([])
+
+    # =========================
+    # VISITOR ATTENDANCE (NON-MALAYSIAN / PASSPORT)
+    # =========================
+    writer.writerow(['VISITOR ATTENDANCE (NON-MALAYSIAN / PASSPORT)'])
+    writer.writerow([
+        'Full Name',
+        'First Name',
+        'Last Name',
+        'Passport Type',
+        'Country Code',
+        'Passport Number',
+        'Nationality',
+        'Country',
+        'Date of Birth',
+        'Sex',
+        'Date of Issue',
+        'Date of Expiry',
+        'Status',
+        'OCR Raw Text',
+        'Additional Passport Fields',
+        'Date',
+        'Time',
+        'Latitude',
+        'Longitude',
+    ])
+
+    for att in passport_attendances:
+        visitor = att.passport_visitor
+        extra_data = visitor.extra_data or {}
+
+        additional_source = extra_data.get('additional_fields')
+        if not additional_source:
+            additional_source = extra_data.get('additional_fields_text', '')
+
+        cleaned_additional_fields = parse_additional_fields_text_to_list(additional_source)
+
+        additional_fields_text = '; '.join(
+            [f"{item.get('label', '')}: {item.get('value', '')}" for item in cleaned_additional_fields]
+        )
+
+        writer.writerow([
+            visitor.full_name,
+            extra_data.get('first_name', ''),
+            extra_data.get('last_name', ''),
+            extra_data.get('type', 'P'),
+            extra_data.get('country_code', ''),
+            visitor.passport_number,
+            extra_data.get('nationality', visitor.country or ''),
+            visitor.country,
+            format_csv_date(visitor.date_of_birth),
+            visitor.gender,
+            format_csv_date(extra_data.get('date_of_issue', '')),
+            format_csv_date(visitor.expiry_date),
+            visitor.status,
+            (visitor.ocr_raw_text or '').replace('\n', ' ').replace('\r', ' '),
+            additional_fields_text,
+            att.date.strftime("%d/%m/%Y") if att.date else '',
+            att.time.strftime("%H:%M:%S") if att.time else '',
+            att.latitude,
+            att.longitude,
         ])
 
     return response
