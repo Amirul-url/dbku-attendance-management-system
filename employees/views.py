@@ -120,19 +120,6 @@ COUNTRY_CODE_MAP = {
 # For global passports: keep validation generic
 GENERIC_PASSPORT_PATTERN = r"^[A-Z0-9]{6,12}$"
 
-COUNTRY_PASSPORT_PATTERNS = {
-    "JPN": r"^[A-Z]{2}\d{7}$",
-    "KOR": r"^[A-Z]{1}[A-Z0-9]{8}$",
-    "USA": r"^\d{9}$",
-    "GBR": r"^\d{9}$",
-    "IND": r"^[A-Z]{1}\d{7}$",
-    "IDN": r"^[A-Z]{1,2}\d{6,8}$",
-    "MYS": r"^[A-Z]{1}\d{8}$",
-    "CHN": r"^[A-Z0-9]{8,9}$",
-    "SGP": r"^[A-Z]\d{7}[A-Z]?$",
-    "THA": r"^[A-Z]{1,2}\d{6,7}$",
-}
-
 
 def country_code_to_name(code):
     code = (code or "").strip().upper()
@@ -141,30 +128,12 @@ def country_code_to_name(code):
 
 def validate_passport_number_by_country(passport_number, country_code_or_name):
     passport_number = re.sub(r'[^A-Z0-9]', '', (passport_number or '').upper())
-    country_value = (country_code_or_name or '').strip()
 
     if not passport_number:
         return False, "Passport number cannot be empty"
 
-    # generic minimum validation dulu
     if not re.match(GENERIC_PASSPORT_PATTERN, passport_number):
         return False, "Passport number format is invalid"
-
-    # tukar country name → code kalau perlu
-    country_code = ""
-    upper_value = country_value.upper()
-
-    if upper_value in COUNTRY_CODE_MAP:
-        country_code = upper_value
-    else:
-        reverse_map = {v.upper(): k for k, v in COUNTRY_CODE_MAP.items()}
-        country_code = reverse_map.get(upper_value, "")
-
-    # country-specific validation
-    pattern = COUNTRY_PASSPORT_PATTERNS.get(country_code)
-    if pattern and not re.match(pattern, passport_number):
-        country_label = COUNTRY_CODE_MAP.get(country_code, country_code)
-        return False, f"Invalid passport format for {country_label}"
 
     return True, ""
 
