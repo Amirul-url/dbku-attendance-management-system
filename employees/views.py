@@ -2295,6 +2295,21 @@ def export_event_summary_csv(request, id):
         .order_by('-total', 'visitor__organization')
     )
 
+    passport_group = (
+        PassportAttendance.objects.filter(event=event)
+        .select_related('passport_visitor')
+        .exclude(passport_visitor__country__isnull=True)
+        .exclude(passport_visitor__country__exact='')
+        .values('passport_visitor__country')
+        .annotate(total=Count('id'))
+        .order_by('-total', 'passport_visitor__country')
+    )
+
+    total_staff = Attendance.objects.filter(event=event).count()
+    total_visitors = VisitorAttendance.objects.filter(event=event).count()
+    total_passports = PassportAttendance.objects.filter(event=event).count()
+    total_all = total_staff + total_visitors + total_passports
+
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="{event.name}_summary.csv"'
 
@@ -2302,27 +2317,52 @@ def export_event_summary_csv(request, id):
 
     writer.writerow(['EVENT SUMMARY'])
     writer.writerow(['Event Name', event.name])
-    writer.writerow(['Start Date', event.start_date.strftime("%d/%m/%Y")])
-    writer.writerow(['End Date', event.end_date.strftime("%d/%m/%Y")])
+    writer.writerow(['Start Date', format_csv_date(event.start_date)])
+    writer.writerow(['End Date', format_csv_date(event.end_date)])
     writer.writerow(['Start Time', event.start_time.strftime("%H:%M") if event.start_time else '-'])
     writer.writerow(['End Time', event.end_time.strftime("%H:%M") if event.end_time else '-'])
-    writer.writerow(['Location', event.location])
+    writer.writerow(['Location', event.location or '-'])
     writer.writerow(['Description', event.description if event.description else '-'])
     writer.writerow(['Latitude', event.latitude if event.latitude is not None else '-'])
     writer.writerow(['Longitude', event.longitude if event.longitude is not None else '-'])
-    writer.writerow(['Radius (meter)', event.radius_meter])
+    writer.writerow(['Radius (meter)', event.radius_meter if event.radius_meter is not None else '-'])
+    writer.writerow([])
+
+    writer.writerow(['ATTENDANCE TOTALS'])
+    writer.writerow(['Category', 'Total'])
+    writer.writerow(['Staff / Employee', total_staff])
+    writer.writerow(['Visitor (Malaysian)', total_visitors])
+    writer.writerow(['Visitor (Non-Malaysian / Passport)', total_passports])
+    writer.writerow(['Overall Total', total_all])
     writer.writerow([])
 
     writer.writerow(['STAFF / EMPLOYEE BY DEPARTMENT'])
     writer.writerow(['Department', 'Total'])
-    for item in staff_group:
-        writer.writerow([item['department'], item['total']])
+    if staff_group:
+        for item in staff_group:
+            writer.writerow([item['department'], item['total']])
+    else:
+        writer.writerow(['-', 0])
 
     writer.writerow([])
-    writer.writerow(['VISITOR BY ORGANIZATION'])
+
+    writer.writerow(['VISITOR (MALAYSIAN) BY ORGANIZATION'])
     writer.writerow(['Organization', 'Total'])
-    for item in visitor_group:
-        writer.writerow([item['visitor__organization'], item['total']])
+    if visitor_group:
+        for item in visitor_group:
+            writer.writerow([item['visitor__organization'], item['total']])
+    else:
+        writer.writerow(['-', 0])
+
+    writer.writerow([])
+
+    writer.writerow(['VISITOR (NON-MALAYSIAN / PASSPORT) BY COUNTRY'])
+    writer.writerow(['Country', 'Total'])
+    if passport_group:
+        for item in passport_group:
+            writer.writerow([item['passport_visitor__country'], item['total']])
+    else:
+        writer.writerow(['-', 0])
 
     return response
 
