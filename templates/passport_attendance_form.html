@@ -1292,9 +1292,38 @@
 
   </div>
 
-  <div class="card">
+  <!-- STEP 3: Additional Fields -->
+  <div class="card" id="additionalFieldsCard">
     <div class="section-label">
       <span class="step-chip">3</span>
+      Additional Passport Fields
+      <span style="font-size:11px;font-weight:400;color:var(--gray-500);margin-left:4px;">(Optional)</span>
+    </div>
+
+    <div class="helper-text" style="margin-bottom:14px;">
+      Use one line for each field in this format: <strong>Field Name: Value</strong>
+    </div>
+
+    <div class="form-group full-span">
+      <label class="form-label" for="additional_fields_text">Additional Passport Fields</label>
+      <textarea
+        id="additional_fields_text"
+        class="form-textarea"
+        rows="6"
+        placeholder="Height: 153&#10;Place of Birth: Tokyo&#10;Hair Color: Black"
+      ></textarea>
+      <div class="helper-text">
+        Example:<br>
+        Height: 153<br>
+        Place of Birth: Tokyo
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: Submit Attendance -->
+  <div class="card">
+    <div class="section-label">
+      <span class="step-chip">4</span>
       Submit Attendance
     </div>
 
@@ -1316,6 +1345,7 @@
     </div>
   </div>
 </div>
+
 
 <div class="camera-modal" id="cameraModal">
   <div class="camera-shell">
@@ -1529,18 +1559,11 @@
     getEl("date_of_expiry").value = "";
     getEl("raw_text").value = "";
 
+    getEl("additional_fields_text").value = "";
+
     autoExtractedSnapshot = {};
     setStatusPill("pending verification");
     clearMessage();
-  }
-
-  function escapeHtml(value) {
-    return String(value || "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
   }
 
   function setExtractedFormData(data) {
@@ -1920,7 +1943,8 @@
             original_image_name: originalImageName,
             processed_image_name: processedImageName,
             latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude
+            longitude: pos.coords.longitude,
+            additional_fields_text: getEl("additional_fields_text").value.trim()
           };
 
           const submitUrl = window.location.pathname.replace(
@@ -1979,9 +2003,112 @@
     );
   }
 
+  // ─── ADDITIONAL FIELDS ────────────────────────────────────────────────────
+  let additionalFields = [];
+
+  function openAddFieldModal() {
+    getEl("newFieldLabel").value = "";
+    getEl("newFieldValue").value = "";
+    getEl("addFieldModal").style.display = "flex";
+    setTimeout(function() { getEl("newFieldLabel").focus(); }, 80);
+  }
+
+  function closeAddFieldModal() {
+    getEl("addFieldModal").style.display = "none";
+  }
+
+  function confirmAddField() {
+    const label = getEl("newFieldLabel").value.trim();
+    const value = getEl("newFieldValue").value.trim();
+
+    if (!label) {
+      getEl("newFieldLabel").focus();
+      getEl("newFieldLabel").style.borderColor = "var(--red-500)";
+      return;
+    }
+    if (!value) {
+      getEl("newFieldValue").focus();
+      getEl("newFieldValue").style.borderColor = "var(--red-500)";
+      return;
+    }
+
+    getEl("newFieldLabel").style.borderColor = "";
+    getEl("newFieldValue").style.borderColor = "";
+
+    additionalFields.push({ label: label, value: value });
+    renderAdditionalFields();
+    closeAddFieldModal();
+  }
+
+  function removeAdditionalField(index) {
+    additionalFields.splice(index, 1);
+    renderAdditionalFields();
+  }
+
+  function renderAdditionalFields() {
+    const container = getEl("additionalFieldsList");
+    if (!container) return;
+
+    if (additionalFields.length === 0) {
+      container.innerHTML = "";
+      return;
+    }
+
+    container.innerHTML = additionalFields.map(function(field, i) {
+      return `
+        <div style="
+          display:flex;align-items:flex-start;gap:10px;
+          background:var(--teal-50);border:1px solid var(--teal-100);
+          border-radius:var(--radius-md);padding:10px 12px;
+        ">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;font-weight:700;color:var(--teal-700);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px;">${escapeHtml(field.label)}</div>
+            <div style="font-size:0.9rem;color:var(--gray-900);word-break:break-word;">${escapeHtml(field.value)}</div>
+          </div>
+          <button
+            type="button"
+            onclick="removeAdditionalField(${i})"
+            title="Remove field"
+            style="
+              flex-shrink:0;width:28px;height:28px;border-radius:6px;
+              border:1px solid var(--gray-200);background:var(--white);
+              color:var(--gray-500);cursor:pointer;font-size:1rem;
+              display:flex;align-items:center;justify-content:center;
+              transition:background .15s,color .15s;
+            "
+            onmouseover="this.style.background='#fee2e2';this.style.color='#ef4444';"
+            onmouseout="this.style.background='var(--white)';this.style.color='var(--gray-500)';"
+          >×</button>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // Close modal on backdrop click
+  getEl("addFieldModal").addEventListener("click", function(e) {
+    if (e.target === this) closeAddFieldModal();
+  });
+
+  // Enter key confirm inside modal
+  ["newFieldLabel", "newFieldValue"].forEach(function(id) {
+    getEl(id).addEventListener("keydown", function(e) {
+      if (e.key === "Enter") { e.preventDefault(); confirmAddField(); }
+    });
+  });
+  // ─── END ADDITIONAL FIELDS ────────────────────────────────────────────────
+
   document.addEventListener("keydown", function(event) {
     if (event.key === "Escape") {
       closeSuccessModal();
+      closeAddFieldModal();
     }
   });
 

@@ -130,6 +130,25 @@ class PassportVisitor(models.Model):
     def __str__(self):
         return f"{self.full_name} ({self.passport_number})"
 
+    def get_additional_fields(self):
+        extra = self.extra_data or {}
+        additional_fields = extra.get("additional_fields", [])
+        if not isinstance(additional_fields, list):
+            return []
+
+        cleaned_fields = []
+        for field in additional_fields:
+            if not isinstance(field, dict):
+                continue
+            label = str(field.get("label", "")).strip()
+            value = str(field.get("value", "")).strip()
+            if label and value:
+                cleaned_fields.append({
+                    "label": label,
+                    "value": value,
+                })
+        return cleaned_fields
+
 
 class PassportAttendance(models.Model):
     passport_visitor = models.ForeignKey(PassportVisitor, on_delete=models.CASCADE)

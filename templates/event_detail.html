@@ -1197,6 +1197,8 @@
                 data-dateofexpiry="{{ att.passport_visitor.expiry_date|default:'' }}"
                 data-status="{{ att.passport_visitor.status|default:'' }}"
                 data-rawtext-id="passport_raw_text_{{ att.id }}"
+                data-additionalfields="{{ att.additional_fields_json|default:'[]'|escapejs }}"
+                data-additionalfieldstext="{{ att.additional_fields_text|default:''|escapejs }}"
               >
                 <i data-lucide="eye"></i>
               </button>
@@ -1219,6 +1221,8 @@
                 data-dateofexpiry="{{ att.passport_visitor.expiry_date|default:'' }}"
                 data-status="{{ att.passport_visitor.status|default:'' }}"
                 data-rawtext-id="passport_raw_text_{{ att.id }}"
+                data-additionalfields="{{ att.additional_fields_json|default:'[]'|escapejs }}"
+                data-additionalfieldstext="{{ att.additional_fields_text|default:''|escapejs }}"
               >
                 <i data-lucide="pencil"></i>
               </button>
@@ -1599,6 +1603,11 @@
           <label class="form-label">OCR Raw Text</label>
           <textarea id="view_raw_text" rows="6" class="form-textarea" style="resize:vertical" readonly></textarea>
         </div>
+
+        <div style="margin-top:14px">
+          <label class="form-label">Additional Passport Fields</label>
+          <textarea id="view_additional_fields_text" rows="6" class="form-textarea" style="resize:vertical" readonly></textarea>
+        </div>
       </div>
 
       <div class="modal-footer">
@@ -1755,6 +1764,18 @@
         <div style="margin-top:14px">
           <label class="form-label">OCR Raw Text</label>
           <textarea id="edit_raw_text" rows="6" class="form-textarea" style="resize:vertical"></textarea>
+        </div>
+
+        <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:16px;">
+          <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:4px;">Additional Passport Fields</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">One line = one field. Example: Height: 153</div>
+          <textarea
+            id="edit_additional_fields_text"
+            rows="6"
+            class="form-textarea"
+            style="resize:vertical"
+            placeholder="Height: 153&#10;Place of Birth: Tokyo"
+          ></textarea>
         </div>
       </div>
 
@@ -1983,7 +2004,8 @@
         date_of_issue: getEl('edit_date_of_issue').value,
         date_of_expiry: getEl('edit_date_of_expiry').value,
         status: getEl('edit_status').value,
-        raw_text: getEl('edit_raw_text').value
+        raw_text: getEl('edit_raw_text').value,
+        additional_fields_text: getEl('edit_additional_fields_text').value
       })
     })
     .then(function (response) {
@@ -2106,6 +2128,7 @@
       getEl('view_date_of_expiry').value = normalizeDateForInput(this.dataset.dateofexpiry || '');
       getEl('view_status').value = this.dataset.status || '';
       getEl('view_raw_text').value = getExactPassportRawText(this.dataset);
+      getEl('view_additional_fields_text').value = this.dataset.additionalfieldstext || '';
 
       setImagePreview(
         'passportViewPreview',
@@ -2132,6 +2155,7 @@
       getEl('edit_date_of_expiry').value = normalizeDateForInput(this.dataset.dateofexpiry || '');
       getEl('edit_status').value = this.dataset.status || 'pending verification';
       getEl('edit_raw_text').value = getExactPassportRawText(this.dataset);
+      getEl('edit_additional_fields_text').value = this.dataset.additionalfieldstext || '';
 
       setImagePreview(
         'editPassportPreview',

@@ -27,6 +27,7 @@ from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.core.files import File
+from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
@@ -1340,43 +1341,39 @@ def create_event(request):
                 radius_meter=radius
             )
 
-            visitor_qr_data = f"{NGROK_BASE_URL}/api/employees/visitor-attendance/{event.id}/"
-            visitor_qr = qrcode.make(visitor_qr_data)
-            visitor_buffer = BytesIO()
-            visitor_qr.save(visitor_buffer, format='PNG')
-            visitor_buffer.seek(0)
-            event.visitor_qr_code.save(
-                f'visitor_event_{event.id}.png',
-                File(visitor_buffer),
-                save=True
-            )
+            qr_configs = [
+                (
+                    'visitor_qr_code',
+                    f'visitor_event_{event.id}.png',
+                    f"{NGROK_BASE_URL}/api/employees/visitor-attendance/{event.id}/",
+                ),
+                (
+                    'staff_qr_code',
+                    f'staff_event_{event.id}.png',
+                    f"{NGROK_BASE_URL}/api/employees/staff-attendance/{event.id}/",
+                ),
+                (
+                    'passport_qr_code',
+                    f'passport_event_{event.id}.png',
+                    f"{NGROK_BASE_URL}/api/employees/passport-attendance/{event.id}/",
+                ),
+            ]
 
-            staff_qr_data = f"{NGROK_BASE_URL}/api/employees/staff-attendance/{event.id}/"
-            staff_qr = qrcode.make(staff_qr_data)
-            staff_buffer = BytesIO()
-            staff_qr.save(staff_buffer, format='PNG')
-            staff_buffer.seek(0)
-            event.staff_qr_code.save(
-                f'staff_event_{event.id}.png',
-                File(staff_buffer),
-                save=True
-            )
+            for field_name, file_name, qr_data in qr_configs:
+                qr_image = qrcode.make(qr_data)
+                qr_buffer = BytesIO()
+                qr_image.save(qr_buffer, format='PNG')
+                qr_content = ContentFile(qr_buffer.getvalue())
+                getattr(event, field_name).save(file_name, qr_content, save=False)
 
-            passport_qr_data = f"{NGROK_BASE_URL}/api/employees/passport-attendance/{event.id}/"
-            passport_qr = qrcode.make(passport_qr_data)
-            passport_buffer = BytesIO()
-            passport_qr.save(passport_buffer, format='PNG')
-            passport_buffer.seek(0)
-            event.passport_qr_code.save(
-                f'passport_event_{event.id}.png',
-                File(passport_buffer),
-                save=True
-            )
+            event.save()
+            event.refresh_from_db()
 
             return JsonResponse({
                 'message': 'Event created successfully',
                 'visitor_qr_url': event.visitor_qr_code.url if event.visitor_qr_code else '',
-                'staff_qr_url': event.staff_qr_code.url if event.staff_qr_code else ''
+                'staff_qr_url': event.staff_qr_code.url if event.staff_qr_code else '',
+                'passport_qr_url': event.passport_qr_code.url if event.passport_qr_code else '',
             })
 
         except ValueError:
@@ -1866,7 +1863,7 @@ def update_passport_attendance(request, id):
 
         first_name = resolved_names["first_name"]
         last_name = resolved_names["last_name"]
-        full_name = resolved_names["full_name"]
+        full_name = resolved_names["full_name"] or visitor.full_name
 
         date_of_birth = (data.get("date_of_birth") or "").strip()
         sex = (data.get("sex") or data.get("gender") or "").strip()
@@ -1885,6 +1882,13 @@ def update_passport_attendance(request, id):
         if not valid:
             return JsonResponse({"error": passport_error}, status=400)
 
+        additional_fields_text = normalize_additional_fields_text(
+            data.get("additional_fields_text", "")
+        )
+        additional_fields_list = parse_additional_fields_text_to_list(additional_fields_text)
+
+        existing_extra = dict(visitor.extra_data or {})
+
         visitor.full_name = full_name or visitor.full_name
         visitor.passport_number = passport_number
         visitor.country = nationality or country_code_to_name(country_code) or visitor.country
@@ -1894,7 +1898,6 @@ def update_passport_attendance(request, id):
         visitor.ocr_raw_text = raw_text
         visitor.status = status
 
-        existing_extra = visitor.extra_data or {}
         visitor.extra_data = {
             **existing_extra,
             "type": passport_type,
@@ -1903,6 +1906,8 @@ def update_passport_attendance(request, id):
             "first_name": first_name,
             "last_name": last_name,
             "date_of_issue": date_of_issue,
+            "additional_fields_text": additional_fields_text,
+            "additional_fields": additional_fields_list,
         }
 
         visitor.save()
@@ -2056,6 +2061,22 @@ def event_detail(request, id):
 
     for att in passport_page_obj.object_list:
         extra_data = att.passport_visitor.extra_data or {}
+        additional_fields = extra_data.get("additional_fields", [])
+        if not isinstance(additional_fields, list):
+            additional_fields = []
+
+        cleaned_additional_fields = []
+        for field in additional_fields:
+            if not isinstance(field, dict):
+                continue
+            label = str(field.get("label", "")).strip()
+            value = str(field.get("value", "")).strip()
+            if label and value:
+                cleaned_additional_fields.append({
+                    "label": label,
+                    "value": value,
+                })
+
         att.type_value = extra_data.get("type", "P")
         att.country_code_value = extra_data.get("country_code", "")
         att.nationality_value = extra_data.get(
@@ -2065,11 +2086,14 @@ def event_detail(request, id):
         att.first_name_value = extra_data.get("first_name", "")
         att.last_name_value = extra_data.get("last_name", "")
         att.date_of_issue_value = extra_data.get("date_of_issue", "")
+        att.additional_fields_text = extra_data.get("additional_fields_text", "")
+        att.additional_fields_json = json.dumps(cleaned_additional_fields, ensure_ascii=False)
         att.original_image_url = (
             att.passport_visitor.image.url
             if att.passport_visitor.image
             else ""
         )
+
 
     total_attendance = (
         staff_qs.count()
@@ -3277,6 +3301,52 @@ def upload_passport(request):
             "status": "pending verification",
         }, status=500)
 
+
+
+def normalize_additional_fields_text(value):
+    if value is None:
+        return ""
+
+    text = str(value).replace("\r\n", "\n").replace("\r", "\n")
+    lines = []
+
+    for raw_line in text.split("\n"):
+        line = raw_line.strip()
+        if line:
+            lines.append(line)
+
+    return "\n".join(lines)
+
+
+def parse_additional_fields_text_to_list(value):
+    text = normalize_additional_fields_text(value)
+    if not text:
+        return []
+
+    result = []
+
+    for raw_line in text.split("\n"):
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        if ":" in line:
+            label, field_value = line.split(":", 1)
+            label = label.strip()
+            field_value = field_value.strip()
+
+            if label and field_value:
+                result.append({
+                    "label": label,
+                    "value": field_value,
+                })
+        else:
+            result.append({
+                "label": "Note",
+                "value": line,
+            })
+
+    return result
 @csrf_exempt
 def submit_passport_attendance(request, event_id):
     try:
@@ -3389,6 +3459,14 @@ def submit_passport_attendance(request, event_id):
 
         # ✅ FIXED JSON STRUCTURE
         merged_extra = dict(visitor.extra_data or {})
+
+        additional_fields_text = normalize_additional_fields_text(
+            data.get("additional_fields_text", "")
+        )
+        submit_additional = parse_additional_fields_text_to_list(
+            additional_fields_text
+        )
+
         merged_extra.update({
             "type": passport_type,
             "country_code": country_code,
@@ -3396,6 +3474,8 @@ def submit_passport_attendance(request, event_id):
             "first_name": first_name,
             "last_name": last_name,
             "date_of_issue": date_of_issue,
+            "additional_fields_text": additional_fields_text,
+            "additional_fields": submit_additional,
         })
 
         visitor.extra_data = merged_extra
