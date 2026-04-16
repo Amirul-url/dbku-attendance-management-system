@@ -658,6 +658,306 @@
       grid-template-columns: 1fr;
     }
   }
+
+  /* ── ADDITIONAL PASSPORT FIELDS – redesigned ─────────────────── */
+
+  .addfield-section {
+    margin-top: 18px;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+
+  .addfield-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .addfield-section-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .addfield-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .addfield-section-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: #e0f2f1;
+    border: 1px solid #b2dfdb;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ocean);
+  }
+
+  .addfield-section-sub {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .btn-addfield-sm {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--ocean);
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    font-family: inherit;
+  }
+
+  .btn-addfield-sm:hover {
+    background: #e0edf0;
+    border-color: var(--ocean);
+  }
+
+  .btn-addfield-sm svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+  }
+
+  /* View mode: two-column key/value rows */
+  .addfield-view-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .addfield-view-row {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr;
+    gap: 8px 14px;
+    align-items: center;
+    padding: 9px 12px;
+    background: #f7f9fa;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+  }
+
+  .addfield-view-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .addfield-view-value {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    word-break: break-word;
+  }
+
+  /* Edit mode: editable rows */
+  .addfield-edit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .addfield-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    background: #f7f9fa;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    transition: border-color .15s;
+  }
+
+  .addfield-edit-row:hover {
+    border-color: #b0c4c8;
+  }
+
+  .addfield-edit-inner {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 6px 12px;
+    align-items: center;
+  }
+
+  @media (max-width: 600px) {
+    .addfield-edit-inner {
+      grid-template-columns: 1fr;
+      gap: 3px;
+    }
+    .addfield-view-row {
+      grid-template-columns: 1fr;
+      gap: 2px;
+    }
+  }
+
+  .addfield-edit-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ocean);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .addfield-edit-value {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    word-break: break-word;
+  }
+
+  .addfield-edit-remove {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s, color .15s, border-color .15s;
+    font-family: inherit;
+  }
+
+  .addfield-edit-remove:hover {
+    background: #fdecea;
+    color: #c62828;
+    border-color: #ef9a9a;
+  }
+
+  .addfield-edit-remove svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  /* Empty state */
+  .addfield-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 22px 12px;
+    border: 1.5px dashed var(--border);
+    border-radius: 9px;
+    color: var(--hint);
+    text-align: center;
+  }
+
+  .addfield-empty-state svg {
+    width: 20px;
+    height: 20px;
+    opacity: 0.45;
+  }
+
+  .addfield-empty-state p {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  /* Inline add-field modal (inside edit modal) */
+  .addfield-inline-modal {
+    display: none;
+    margin-top: 10px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  }
+
+  .addfield-inline-modal.open {
+    display: block;
+  }
+
+  .addfield-inline-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  .addfield-inline-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  @media (max-width: 600px) {
+    .addfield-inline-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .addfield-inline-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .addfield-inline-label {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .addfield-inline-input {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text);
+    background: #fff;
+    outline: none;
+    transition: border .15s;
+  }
+
+  .addfield-inline-input:focus {
+    border-color: var(--ocean);
+  }
+
+  .addfield-inline-input.input-error {
+    border-color: #c62828;
+  }
+
+  .addfield-inline-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  /* ─────────────────────────────────────────────────────────── */
 </style>
 
 <a href="/events/" class="back-link">
@@ -1604,10 +1904,19 @@
           <textarea id="view_raw_text" rows="6" class="form-textarea" style="resize:vertical" readonly></textarea>
         </div>
 
-        <div style="margin-top:14px">
-          <label class="form-label">Additional Passport Fields</label>
-          <textarea id="view_additional_fields_text" rows="6" class="form-textarea" style="resize:vertical" readonly></textarea>
+        <!-- Additional Passport Fields – View Mode -->
+        <div class="addfield-section">
+          <div class="addfield-section-header">
+            <div class="addfield-section-title-group">
+              <span class="addfield-section-title">Additional Passport Fields</span>
+              <span class="addfield-section-count" id="view_addfield_count">0</span>
+            </div>
+          </div>
+          <div id="view_addfield_list"></div>
         </div>
+
+        <!-- Hidden textarea preserved for any backend reads -->
+        <textarea id="view_additional_fields_text" style="display:none" aria-hidden="true"></textarea>
       </div>
 
       <div class="modal-footer">
@@ -1766,17 +2075,63 @@
           <textarea id="edit_raw_text" rows="6" class="form-textarea" style="resize:vertical"></textarea>
         </div>
 
-        <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:16px;">
-          <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:4px;">Additional Passport Fields</div>
-          <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">One line = one field. Example: Height: 153</div>
-          <textarea
-            id="edit_additional_fields_text"
-            rows="6"
-            class="form-textarea"
-            style="resize:vertical"
-            placeholder="Height: 153&#10;Place of Birth: Tokyo"
-          ></textarea>
+        <!-- Additional Passport Fields – Edit Mode -->
+        <div class="addfield-section">
+          <div class="addfield-section-header">
+            <div class="addfield-section-title-group">
+              <span class="addfield-section-title">Additional Passport Fields</span>
+              <span class="addfield-section-count" id="edit_addfield_count">0</span>
+            </div>
+            <button
+              type="button"
+              class="btn-addfield-sm"
+              onclick="openEditAddFieldInline()"
+              id="editAddFieldToggleBtn"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Field
+            </button>
+          </div>
+
+          <div id="edit_addfield_list"></div>
+
+          <!-- Inline add panel -->
+          <div class="addfield-inline-modal" id="editAddFieldInlinePanel">
+            <div class="addfield-inline-title">New Field</div>
+            <div class="addfield-inline-grid">
+              <div class="addfield-inline-group">
+                <label class="addfield-inline-label">Field Label</label>
+                <input
+                  id="edit_new_field_label"
+                  type="text"
+                  class="addfield-inline-input"
+                  placeholder="e.g. Height"
+                  autocomplete="off"
+                >
+              </div>
+              <div class="addfield-inline-group">
+                <label class="addfield-inline-label">Value</label>
+                <input
+                  id="edit_new_field_value"
+                  type="text"
+                  class="addfield-inline-input"
+                  placeholder="e.g. 153 cm"
+                  autocomplete="off"
+                >
+              </div>
+            </div>
+            <div class="addfield-inline-footer">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="closeEditAddFieldInline()">Cancel</button>
+              <button type="button" class="btn btn-ocean btn-sm" onclick="confirmEditAddField()">Add</button>
+            </div>
+          </div>
         </div>
+
+        <!-- Hidden textarea to carry serialised data for savePassportEdit() -->
+        <textarea id="edit_additional_fields_text" style="display:none" aria-hidden="true"></textarea>
       </div>
 
       <div class="modal-footer">
@@ -2114,6 +2469,183 @@
     });
   });
 
+  // ─── ADDITIONAL FIELDS HELPERS ───────────────────────────────────────────
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // Parse "Label: Value\n..." text into [{label, value}] array
+  function parseAdditionalFieldsText(text) {
+      if (!text || !text.trim()) return [];
+      // Decode escaped newlines dari Django escapejs dalam HTML data-* attribute
+      var normalised = text
+        .replace(/\\u000[aA]/g, '\n')  // literal \u000a → newline
+        .replace(/\\r\\n/g, '\n')      // literal \r\n → newline  
+        .replace(/\\n/g, '\n');        // literal \n (2 chars) → newline
+      return normalised.trim().split('\n').reduce(function(acc, line) {
+        line = line.trim();
+        if (!line) return acc;
+        const colonIdx = line.indexOf(':');
+        if (colonIdx > 0) {
+          const label = line.slice(0, colonIdx).trim();
+          const value = line.slice(colonIdx + 1).trim();
+          if (label && value) acc.push({ label: label, value: value });
+        }
+        return acc;
+      }, []);
+    }
+
+  // Serialise [{label, value}] back to "Label: Value\n..." for backend
+  function serialiseAdditionalFields(fields) {
+    return fields.map(function(f) { return f.label + ': ' + f.value; }).join('\n');
+  }
+
+  // Render view-only list inside passportViewModal
+  function renderViewAdditionalFields(fields) {
+    const list = getEl('view_addfield_list');
+    const count = getEl('view_addfield_count');
+    if (!list) return;
+    count.textContent = fields.length;
+
+    if (!fields.length) {
+      list.innerHTML = `
+        <div class="addfield-empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+            <line x1="7" y1="9" x2="17" y2="9"></line>
+            <line x1="7" y1="13" x2="13" y2="13"></line>
+          </svg>
+          <p>No additional fields recorded.</p>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = '<div class="addfield-view-list">' +
+      fields.map(function(f) {
+        return `<div class="addfield-view-row">
+          <span class="addfield-view-label">${escapeHtml(f.label)}</span>
+          <span class="addfield-view-value">${escapeHtml(f.value)}</span>
+        </div>`;
+      }).join('') +
+    '</div>';
+  }
+
+  // Edit-modal additional fields state
+  let editModalAdditionalFields = [];
+
+  function syncEditAdditionalFieldsText() {
+    const el = getEl('edit_additional_fields_text');
+    if (el) el.value = serialiseAdditionalFields(editModalAdditionalFields);
+  }
+
+  function renderEditAdditionalFields() {
+    const list = getEl('edit_addfield_list');
+    const count = getEl('edit_addfield_count');
+    if (!list) return;
+    count.textContent = editModalAdditionalFields.length;
+
+    if (!editModalAdditionalFields.length) {
+      list.innerHTML = `
+        <div class="addfield-empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+            <line x1="7" y1="9" x2="17" y2="9"></line>
+            <line x1="7" y1="13" x2="13" y2="13"></line>
+          </svg>
+          <p>No additional fields. Click "Add Field" to add one.</p>
+        </div>`;
+      syncEditAdditionalFieldsText();
+      return;
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'addfield-edit-list';
+
+    editModalAdditionalFields.forEach(function(f, i) {
+      const row = document.createElement('div');
+      row.className = 'addfield-edit-row';
+      row.innerHTML = `
+        <div class="addfield-edit-inner">
+          <span class="addfield-edit-label">${escapeHtml(f.label)}</span>
+          <span class="addfield-edit-value">${escapeHtml(f.value)}</span>
+        </div>
+        <button
+          type="button"
+          class="addfield-edit-remove"
+          onclick="removeEditAdditionalField(${i})"
+          title="Remove"
+          aria-label="Remove ${escapeHtml(f.label)}"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      `;
+      wrapper.appendChild(row);
+    });
+
+    list.innerHTML = '';
+    list.appendChild(wrapper);
+    syncEditAdditionalFieldsText();
+  }
+
+  function removeEditAdditionalField(index) {
+    editModalAdditionalFields.splice(index, 1);
+    renderEditAdditionalFields();
+  }
+
+  function openEditAddFieldInline() {
+    const panel = getEl('editAddFieldInlinePanel');
+    if (!panel) return;
+    panel.classList.add('open');
+    getEl('edit_new_field_label').value = '';
+    getEl('edit_new_field_value').value = '';
+    getEl('edit_new_field_label').classList.remove('input-error');
+    getEl('edit_new_field_value').classList.remove('input-error');
+    setTimeout(function() { getEl('edit_new_field_label').focus(); }, 60);
+  }
+
+  function closeEditAddFieldInline() {
+    const panel = getEl('editAddFieldInlinePanel');
+    if (panel) panel.classList.remove('open');
+  }
+
+  function confirmEditAddField() {
+    const labelInput = getEl('edit_new_field_label');
+    const valueInput = getEl('edit_new_field_value');
+    const label = labelInput.value.trim();
+    const value = valueInput.value.trim();
+    let valid = true;
+
+    if (!label) { labelInput.classList.add('input-error'); labelInput.focus(); valid = false; }
+    else { labelInput.classList.remove('input-error'); }
+
+    if (!value) { valueInput.classList.add('input-error'); if (valid) valueInput.focus(); valid = false; }
+    else { valueInput.classList.remove('input-error'); }
+
+    if (!valid) return;
+
+    editModalAdditionalFields.push({ label: label, value: value });
+    renderEditAdditionalFields();
+    closeEditAddFieldInline();
+  }
+
+  // Enter key in inline inputs
+  ['edit_new_field_label', 'edit_new_field_value'].forEach(function(id) {
+    const el = getEl(id);
+    if (el) el.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); confirmEditAddField(); }
+    });
+  });
+
+  // ─── END ADDITIONAL FIELDS HELPERS ───────────────────────────────────────
+
   document.querySelectorAll('.passport-view-btn').forEach(function (button) {
     button.addEventListener('click', function () {
       getEl('view_passport_type').value = this.dataset.type || '';
@@ -2128,7 +2660,12 @@
       getEl('view_date_of_expiry').value = normalizeDateForInput(this.dataset.dateofexpiry || '');
       getEl('view_status').value = this.dataset.status || '';
       getEl('view_raw_text').value = getExactPassportRawText(this.dataset);
-      getEl('view_additional_fields_text').value = this.dataset.additionalfieldstext || '';
+
+      // Render Additional Fields as structured view list
+      const rawText = this.dataset.additionalfieldstext || '';
+      const fields = parseAdditionalFieldsText(rawText);
+      renderViewAdditionalFields(fields);
+      getEl('view_additional_fields_text').value = rawText;
 
       setImagePreview(
         'passportViewPreview',
@@ -2155,7 +2692,12 @@
       getEl('edit_date_of_expiry').value = normalizeDateForInput(this.dataset.dateofexpiry || '');
       getEl('edit_status').value = this.dataset.status || 'pending verification';
       getEl('edit_raw_text').value = getExactPassportRawText(this.dataset);
-      getEl('edit_additional_fields_text').value = this.dataset.additionalfieldstext || '';
+
+      // Load additional fields into edit state
+      const rawText = this.dataset.additionalfieldstext || '';
+      editModalAdditionalFields = parseAdditionalFieldsText(rawText);
+      closeEditAddFieldInline();
+      renderEditAdditionalFields();
 
       setImagePreview(
         'editPassportPreview',

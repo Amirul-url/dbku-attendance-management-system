@@ -3307,9 +3307,16 @@ def normalize_additional_fields_text(value):
     if value is None:
         return ""
 
-    text = str(value).replace("\r\n", "\n").replace("\r", "\n")
-    lines = []
+    text = str(value)
 
+    # Handle literal escaped sequences yang mungkin tersimpan dalam DB
+    text = text.replace("\\u000A", "\n").replace("\\u000a", "\n")
+    text = text.replace("\\r\\n", "\n").replace("\\n", "\n")
+
+    # Normalise carriage returns
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+    lines = []
     for raw_line in text.split("\n"):
         line = raw_line.strip()
         if line:
