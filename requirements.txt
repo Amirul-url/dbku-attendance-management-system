@@ -1,0 +1,12 @@
+Django==5.2.12
+gunicorn
+psycopg2-binary
+Pillow
+qrcode
+opencv-python-headless
+pytesseract
+paddleocr
+numpy
+openpyxl
+django-cors-headers
+whitenoise

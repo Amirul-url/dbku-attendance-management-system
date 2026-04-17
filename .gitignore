@@ -1,11 +1,7 @@
+.env
 venv/
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-.env
 media/
 staticfiles/
-*.log
-.DS_Store
-Thumbs.db
+.vscode/

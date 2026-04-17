@@ -49,10 +49,10 @@ from .models import (
     VisitorAttendance,
 )
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+if os.name == 'nt':
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-
-NGROK_BASE_URL = "https://exospherical-kimberlie-unrefulgent.ngrok-free.dev"
+BASE_APP_URL = os.environ.get("BASE_APP_URL", "http://127.0.0.1:8000").rstrip("/")
 
 PADDLE_OCR = PaddleOCR(
     use_doc_orientation_classify=False,
@@ -1316,17 +1316,17 @@ def create_event(request):
                 (
                     'visitor_qr_code',
                     f'visitor_event_{event.id}.png',
-                    f"{NGROK_BASE_URL}/api/employees/visitor-attendance/{event.id}/",
+                    f"{BASE_APP_URL}/api/employees/visitor-attendance/{event.id}/"
                 ),
                 (
                     'staff_qr_code',
                     f'staff_event_{event.id}.png',
-                    f"{NGROK_BASE_URL}/api/employees/staff-attendance/{event.id}/",
+                    f"{BASE_APP_URL}/api/employees/staff-attendance/{event.id}/"
                 ),
                 (
                     'passport_qr_code',
                     f'passport_event_{event.id}.png',
-                    f"{NGROK_BASE_URL}/api/employees/passport-attendance/{event.id}/",
+                    f"{BASE_APP_URL}/api/employees/passport-attendance/{event.id}/"
                 ),
             ]
 
@@ -3917,7 +3917,7 @@ def build_assignment_conflict_payload(event, employee, current_assignment_id=Non
 
 
 def generate_assignment_qr(assignment):
-    qr_url = f"{NGROK_BASE_URL}/api/employees/assignment-attendance/{assignment.id}/"
+    qr_url = f"{BASE_APP_URL}/api/employees/assignment-attendance/{assignment.id}/"
 
     qr_image = qrcode.make(qr_url)
     qr_buffer = BytesIO()
