@@ -2839,13 +2839,18 @@
   }
 
   function openAssignmentEditModalFromButton(button) {
-    openAssignmentEditModal(
-      button.dataset.id || '',
-      button.dataset.employeeId || '',
-      button.dataset.taskTitle || '',
-      button.dataset.taskDescription || '',
-      button.dataset.status || 'assigned'
-    );
+    getEl('assignmentModalTitle').textContent = 'Edit Staff Assignment';
+    getEl('assignment_id').value = button.dataset.id || '';
+    getEl('assignment_employee').value = button.dataset.employeeId || '';
+    getEl('assignment_task_title').value = decodeEscapedUnicode(button.dataset.taskTitle || '');
+    getEl('assignment_task_description').value = decodeEscapedUnicode(button.dataset.taskDescription || '');
+    getEl('assignment_status').value = button.dataset.status || 'assigned';
+
+    getEl('assignmentModal').classList.add('open');
+
+    if (window.lucide) {
+      lucide.createIcons();
+    }
   }
 
   function saveAssignment() {
