@@ -342,6 +342,118 @@
     color: var(--muted);
   }
 
+
+  .assignment-form-section {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    background: #fbfcfd;
+    margin-bottom: 14px;
+  }
+
+  .assignment-form-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .assignment-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: var(--hint);
+    margin-bottom: 12px;
+  }
+
+  .assignment-conflict-box {
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    background: #f8fbfc;
+  }
+
+  .assignment-conflict-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .assignment-conflict-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .assignment-conflict-message {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+  .assignment-conflict-list {
+    margin-top: 10px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .assignment-conflict-item {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+
+  .assignment-conflict-item-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .assignment-conflict-item-meta {
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .assignment-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 6px 10px;
+  }
+
+  .assignment-status-chip.available {
+    background: #e8f5e9;
+    color: #1b5e20;
+  }
+
+  .assignment-status-chip.conflict {
+    background: #ffebee;
+    color: #b71c1c;
+  }
+
+  .assignment-status-chip.potential {
+    background: #fff8e1;
+    color: #8d6e00;
+  }
+
+  .assignment-status-chip.neutral {
+    background: #eceff1;
+    color: #455a64;
+  }
+
+  .assignment-readonly-note {
+    font-size: 11px;
+    color: var(--hint);
+    margin-top: 6px;
+  }
+
   .tbl-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -1232,6 +1344,8 @@
 </div>
 
 
+<script id="assignmentEmployeeDirectoryData" type="application/json">{{ assignment_employee_directory_json|safe }}</script>
+
 <div class="section-label">Staff Assignment</div>
 
 <form method="GET" class="sub-filter">
@@ -1995,7 +2109,7 @@
 
 
 <div id="assignmentModal" class="modal-overlay" onclick="if(event.target===this)closeAssignmentModal()">
-  <div style="width:100%;max-width:720px">
+  <div style="width:100%;max-width:840px">
     <div class="modal-box">
       <div class="modal-header">
         <div class="modal-title" id="assignmentModalTitle">Add Staff Assignment</div>
@@ -2005,35 +2119,75 @@
       <div class="modal-body">
         <input type="hidden" id="assignment_id">
 
-        <div class="form-grid-2">
-          <div class="col-span-2">
-            <label class="form-label">Staff</label>
-            <select id="assignment_employee" class="form-select">
-              <option value="">-- Select staff --</option>
-              {% for emp in available_employees %}
-              <option value="{{ emp.id }}">{{ emp.full_name }} — {{ emp.employee_id }} — {{ emp.department }}</option>
-              {% endfor %}
-            </select>
-          </div>
+        <div class="assignment-form-section">
+          <div class="assignment-section-title">1. Staff Selection</div>
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label">Department</label>
+              <select id="assignment_department" class="form-select" onchange="handleAssignmentDepartmentChange()">
+                <option value="">-- Select department --</option>
+                {% for dept in assignment_departments %}
+                <option value="{{ dept|escape }}">{{ dept }}</option>
+                {% endfor %}
+              </select>
+            </div>
 
-          <div class="col-span-2">
-            <label class="form-label">Task Title</label>
-            <input id="assignment_task_title" class="form-input" placeholder="Example: PA System, Registration Counter, Technical Support">
-          </div>
+            <div>
+              <label class="form-label">Staff Name</label>
+              <select id="assignment_employee" class="form-select" onchange="handleAssignmentEmployeeChange()">
+                <option value="">-- Select staff name --</option>
+              </select>
+            </div>
 
-          <div class="col-span-2">
-            <label class="form-label">Task Description</label>
-            <textarea id="assignment_task_description" rows="4" class="form-textarea" placeholder="Enter task description"></textarea>
-          </div>
+            <div>
+              <label class="form-label">Staff ID</label>
+              <input id="assignment_employee_id_display" class="form-input" readonly placeholder="Auto display after staff selection">
+            </div>
 
-          <div>
-            <label class="form-label">Status</label>
-            <select id="assignment_status" class="form-select">
-              <option value="assigned">Assigned</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+            <div>
+              <label class="form-label">Staff Email</label>
+              <input id="assignment_employee_email_display" class="form-input" readonly placeholder="Auto display after staff selection">
+            </div>
+          </div>
+          <div class="assignment-readonly-note">Choose department first, then choose staff name. Staff ID and email will display automatically.</div>
+        </div>
+
+        <div class="assignment-form-section">
+          <div class="assignment-section-title">2. Assignment Details</div>
+          <div class="form-grid-2">
+            <div class="col-span-2">
+              <label class="form-label">Task Title</label>
+              <input id="assignment_task_title" class="form-input" placeholder="Example: PA System, Registration Counter, Technical Support">
+            </div>
+
+            <div class="col-span-2">
+              <label class="form-label">Task Description</label>
+              <textarea id="assignment_task_description" rows="4" class="form-textarea" placeholder="Enter task description"></textarea>
+            </div>
+
+            <div>
+              <label class="form-label">Assignment Status</label>
+              <select id="assignment_status" class="form-select">
+                <option value="assigned">Assigned</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="assignment-form-section">
+          <div class="assignment-section-title">3. Conflict Check</div>
+          <div id="assignment_conflict_box" class="assignment-conflict-box">
+            <div class="assignment-conflict-head">
+              <div class="assignment-conflict-title">Assignment Availability</div>
+              <span id="assignment_conflict_badge" class="assignment-status-chip neutral">Select staff first</span>
+            </div>
+            <div id="assignment_conflict_message" class="assignment-conflict-message">
+              The system will check whether the selected staff already has another overlapping assignment.
+            </div>
+            <div id="assignment_conflict_list" class="assignment-conflict-list"></div>
           </div>
         </div>
       </div>
@@ -2814,39 +2968,209 @@
     getEl('assignmentViewModal').classList.remove('open');
   }
 
+  const assignmentEmployeeDirectory = (() => {
+    const el = getEl('assignmentEmployeeDirectoryData');
+    if (!el) return [];
+    try {
+      const parsed = JSON.parse(el.textContent || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  })();
+
+  function findAssignmentEmployee(employeeId) {
+    const normalized = String(employeeId || '');
+    return assignmentEmployeeDirectory.find(function (item) {
+      return String(item.id) === normalized;
+    }) || null;
+  }
+
+  function clearAssignmentEmployeeMeta() {
+    getEl('assignment_employee_id_display').value = '';
+    getEl('assignment_employee_email_display').value = '';
+  }
+
+  function renderAssignmentEmployeeOptions(selectedDepartment, selectedEmployeeId) {
+    const employeeSelect = getEl('assignment_employee');
+    const department = (selectedDepartment || '').trim();
+    const selectedId = String(selectedEmployeeId || '');
+
+    employeeSelect.innerHTML = '<option value="">-- Select staff name --</option>';
+
+    const filteredEmployees = assignmentEmployeeDirectory.filter(function (item) {
+      if (!department) return true;
+      return (item.department || '') === department;
+    });
+
+    filteredEmployees.forEach(function (item) {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.full_name;
+      option.dataset.employeeId = item.employee_id || '';
+      option.dataset.department = item.department || '';
+      option.dataset.email = item.email || '';
+      if (String(item.id) === selectedId) {
+        option.selected = true;
+      }
+      employeeSelect.appendChild(option);
+    });
+  }
+
+  function renderAssignmentConflict(payload) {
+    const badge = getEl('assignment_conflict_badge');
+    const message = getEl('assignment_conflict_message');
+    const list = getEl('assignment_conflict_list');
+
+    badge.className = 'assignment-status-chip neutral';
+    badge.textContent = payload && payload.label ? payload.label : 'Select staff first';
+    message.textContent = payload && payload.message
+      ? payload.message
+      : 'The system will check whether the selected staff already has another overlapping assignment.';
+    list.innerHTML = '';
+
+    if (!payload || !payload.status) {
+      return;
+    }
+
+    if (payload.status === 'available') {
+      badge.className = 'assignment-status-chip available';
+    } else if (payload.status === 'conflict') {
+      badge.className = 'assignment-status-chip conflict';
+    } else if (payload.status === 'potential') {
+      badge.className = 'assignment-status-chip potential';
+    }
+
+    (payload.items || []).forEach(function (item) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'assignment-conflict-item';
+
+      const title = document.createElement('div');
+      title.className = 'assignment-conflict-item-title';
+      title.textContent = (item.event_name || 'Other event') + ' — ' + (item.task_title || 'Assigned task');
+
+      const meta = document.createElement('div');
+      meta.className = 'assignment-conflict-item-meta';
+      meta.textContent = [
+        item.start_date && item.end_date ? ('Date: ' + item.start_date + ' to ' + item.end_date) : '',
+        item.start_time && item.end_time ? ('Time: ' + item.start_time + ' to ' + item.end_time) : 'Time: Not fully set',
+        item.location ? ('Location: ' + item.location) : '',
+        item.assignment_status ? ('Status: ' + item.assignment_status.replace('_', ' ')) : ''
+      ].filter(Boolean).join(' • ');
+
+      wrapper.appendChild(title);
+      wrapper.appendChild(meta);
+      list.appendChild(wrapper);
+    });
+  }
+
+  function checkAssignmentConflict() {
+    const employeeId = getEl('assignment_employee').value;
+    const assignmentId = getEl('assignment_id').value;
+
+    if (!employeeId) {
+      renderAssignmentConflict(null);
+      return;
+    }
+
+    fetch('/api/employees/event-assignment/conflict-check/{{ event.id }}/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        employee_id: employeeId,
+        assignment_id: assignmentId || null,
+      })
+    })
+    .then(function (response) { return response.json(); })
+    .then(function (data) {
+      renderAssignmentConflict(data);
+    })
+    .catch(function () {
+      renderAssignmentConflict({
+        status: 'potential',
+        label: 'Potential conflict detected',
+        message: 'Conflict check could not be completed. Please review manually before saving.',
+        items: []
+      });
+    });
+  }
+
+  function handleAssignmentDepartmentChange() {
+    const department = getEl('assignment_department').value;
+    renderAssignmentEmployeeOptions(department, '');
+    clearAssignmentEmployeeMeta();
+    renderAssignmentConflict(null);
+  }
+
+  function handleAssignmentEmployeeChange() {
+    const employee = findAssignmentEmployee(getEl('assignment_employee').value);
+
+    if (!employee) {
+      clearAssignmentEmployeeMeta();
+      renderAssignmentConflict(null);
+      return;
+    }
+
+    getEl('assignment_department').value = employee.department || '';
+    getEl('assignment_employee_id_display').value = employee.employee_id || '';
+    getEl('assignment_employee_email_display').value = employee.email || '';
+
+    checkAssignmentConflict();
+  }
+
   function closeAssignmentModal() {
     getEl('assignmentModal').classList.remove('open');
   }
 
-  function openAssignmentModal() {
-    getEl('assignmentModalTitle').textContent = 'Add Staff Assignment';
+  function resetAssignmentModalState() {
     getEl('assignment_id').value = '';
+    getEl('assignment_department').value = '';
+    renderAssignmentEmployeeOptions('', '');
     getEl('assignment_employee').value = '';
+    clearAssignmentEmployeeMeta();
     getEl('assignment_task_title').value = '';
     getEl('assignment_task_description').value = '';
     getEl('assignment_status').value = 'assigned';
+    renderAssignmentConflict(null);
+  }
+
+  function openAssignmentModal() {
+    getEl('assignmentModalTitle').textContent = 'Add Staff Assignment';
+    resetAssignmentModalState();
     getEl('assignmentModal').classList.add('open');
   }
 
   function openAssignmentEditModal(id, employeeId, taskTitle, taskDescription, status) {
+    const employee = findAssignmentEmployee(employeeId);
+
     getEl('assignmentModalTitle').textContent = 'Edit Staff Assignment';
     getEl('assignment_id').value = id || '';
+    getEl('assignment_department').value = employee && employee.department ? employee.department : '';
+    renderAssignmentEmployeeOptions(getEl('assignment_department').value, employeeId || '');
     getEl('assignment_employee').value = employeeId || '';
     getEl('assignment_task_title').value = taskTitle || '';
     getEl('assignment_task_description').value = taskDescription || '';
     getEl('assignment_status').value = status || 'assigned';
+
+    if (employee) {
+      getEl('assignment_employee_id_display').value = employee.employee_id || '';
+      getEl('assignment_employee_email_display').value = employee.email || '';
+    } else {
+      clearAssignmentEmployeeMeta();
+    }
+
+    checkAssignmentConflict();
     getEl('assignmentModal').classList.add('open');
   }
 
   function openAssignmentEditModalFromButton(button) {
-    getEl('assignmentModalTitle').textContent = 'Edit Staff Assignment';
-    getEl('assignment_id').value = button.dataset.id || '';
-    getEl('assignment_employee').value = button.dataset.employeeId || '';
-    getEl('assignment_task_title').value = decodeEscapedUnicode(button.dataset.taskTitle || '');
-    getEl('assignment_task_description').value = decodeEscapedUnicode(button.dataset.taskDescription || '');
-    getEl('assignment_status').value = button.dataset.status || 'assigned';
-
-    getEl('assignmentModal').classList.add('open');
+    openAssignmentEditModal(
+      button.dataset.id || '',
+      button.dataset.employeeId || '',
+      decodeEscapedUnicode(button.dataset.taskTitle || ''),
+      decodeEscapedUnicode(button.dataset.taskDescription || ''),
+      button.dataset.status || 'assigned'
+    );
 
     if (window.lucide) {
       lucide.createIcons();
@@ -2861,7 +3185,7 @@
     const status = getEl('assignment_status').value;
 
     if (!employeeId || !taskTitle) {
-      alert('Staff and task title are required');
+      alert('Staff name and task title are required');
       return;
     }
 

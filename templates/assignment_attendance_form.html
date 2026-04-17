@@ -18,10 +18,14 @@
       --muted: #6B8A93;
       --success: #16A34A;
       --error: #DC2626;
+      --info-bg: #E0F2FE;
+      --info-text: #075985;
       --radius: 16px;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
@@ -145,11 +149,18 @@
       font-family: inherit;
       outline: none;
       background: #fff;
+      color: var(--text);
     }
 
     .form-input:focus,
     .form-textarea:focus {
       border-color: var(--ocean);
+    }
+
+    .form-input[readonly] {
+      background: #F3F6F8;
+      color: #4b6470;
+      cursor: not-allowed;
     }
 
     .form-textarea {
@@ -175,6 +186,7 @@
       font-weight: 700;
       cursor: pointer;
       transition: 0.15s ease;
+      font-family: inherit;
     }
 
     .btn:hover {
@@ -208,6 +220,13 @@
       background: #FEE2E2;
       color: #991B1B;
       border: 1px solid #FECACA;
+    }
+
+    .message.info {
+      display: block;
+      background: var(--info-bg);
+      color: var(--info-text);
+      border: 1px solid #BAE6FD;
     }
 
     @media (max-width: 640px) {
@@ -257,7 +276,13 @@
 
           <div class="form-group info-box">
             <label class="form-label" for="phone_number">Phone Number</label>
-            <input id="phone_number" class="form-input" placeholder="Enter your phone number" inputmode="numeric">
+            <input
+              id="phone_number"
+              class="form-input"
+              placeholder="Enter your phone number"
+              inputmode="numeric"
+              autocomplete="tel"
+            >
           </div>
 
           <div class="info-box">
@@ -272,14 +297,51 @@
         </div>
 
         <div class="form-group">
+          <label class="form-label" for="full_name">Full Name</label>
+          <input
+            id="full_name"
+            class="form-input"
+            value="{{ employee.full_name }}"
+            readonly
+          >
+          <div class="helper-text">
+            Auto-filled from assigned staff record.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="employee_id">Employee ID</label>
+          <input
+            id="employee_id"
+            class="form-input"
+            value="{{ employee.employee_id }}"
+            readonly
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <input
+            id="email"
+            class="form-input"
+            value="{{ employee.email }}"
+            readonly
+          >
+        </div>
+
+        <div class="form-group">
           <label class="form-label" for="notes">Notes (Optional)</label>
-          <textarea id="notes" class="form-textarea" placeholder="Example: PA system ready, registration desk opened, etc."></textarea>
+          <textarea
+            id="notes"
+            class="form-textarea"
+            placeholder="Example: PA system ready, registration desk opened, etc."
+          ></textarea>
           <div class="helper-text">
             Add any short update about the assigned task if needed.
           </div>
         </div>
 
-        <button id="submitBtn" class="btn" type="button" onclick="submitAssignmentAttendance()">
+        <button id="submitBtn" type="button" class="btn">
           Submit Attendance
         </button>
 
@@ -289,99 +351,166 @@
   </div>
 
   <script>
-    let detectedIPv4 = "";
+    const submitBtn = document.getElementById('submitBtn');
+    const messageBox = document.getElementById('messageBox');
+    const phoneInput = document.getElementById('phone_number');
+    const notesInput = document.getElementById('notes');
+    const fullNameInput = document.getElementById('full_name');
+    const employeeIdInput = document.getElementById('employee_id');
+    const emailInput = document.getElementById('email');
+
+    let detectedIPv4 = '';
 
     async function detectIPv4() {
       try {
-        const res = await fetch("https://api.ipify.org?format=json");
-        const data = await res.json();
-        detectedIPv4 = data.ip || "";
-      } catch (err) {
-        detectedIPv4 = "";
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        detectedIPv4 = data.ip || '';
+      } catch (error) {
+        detectedIPv4 = '';
       }
     }
 
     function showMessage(text, type) {
-      const box = document.getElementById("messageBox");
-      box.className = "message " + type;
-      box.textContent = text;
+      messageBox.className = `message ${type}`;
+      messageBox.textContent = text;
+      messageBox.style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function clearMessage() {
-      const box = document.getElementById("messageBox");
-      box.className = "message";
-      box.textContent = "";
+      messageBox.className = 'message';
+      messageBox.textContent = '';
+      messageBox.style.display = 'none';
     }
 
     function setButtonLoading(isLoading) {
-      const btn = document.getElementById("submitBtn");
-      btn.disabled = isLoading;
-      btn.textContent = isLoading ? "Processing..." : "Submit Attendance";
+      submitBtn.disabled = isLoading;
+      submitBtn.textContent = isLoading ? 'Processing...' : 'Submit Attendance';
     }
 
-    function submitAssignmentAttendance() {
-      clearMessage();
+    function validateForm() {
+      const phone = phoneInput.value.trim();
 
-      const phone_number = document.getElementById("phone_number").value.trim();
-      const notes = document.getElementById("notes").value.trim();
+      if (!fullNameInput.value.trim() || !employeeIdInput.value.trim() || !emailInput.value.trim()) {
+        showMessage('Assigned staff information is incomplete.', 'error');
+        return false;
+      }
 
-      if (!phone_number) {
-        showMessage("Phone number is required.", "error");
-        return;
+      if (!phone) {
+        showMessage('Phone number is required.', 'error');
+        phoneInput.focus();
+        return false;
+      }
+
+      if (!/^\d{9,15}$/.test(phone)) {
+        showMessage('Phone number must contain only digits and be at least 9 digits.', 'error');
+        phoneInput.focus();
+        return false;
       }
 
       if (!navigator.geolocation) {
-        showMessage("Please enable GPS/location and try again.", "error");
+        showMessage('Please enable GPS/location and try again.', 'error');
+        return false;
+      }
+
+      return true;
+    }
+
+    function requestPosition() {
+      return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        });
+      });
+    }
+
+    function buildSubmitUrl() {
+      return '/api/employees/assignment-attendance/submit/{{ assignment.id }}/';
+    }
+
+    function getPayload(position) {
+      return {
+        full_name: fullNameInput.value.trim(),
+        employee_id: employeeIdInput.value.trim(),
+        email: emailInput.value.trim(),
+        phone_number: phoneInput.value.trim(),
+        notes: notesInput.value.trim(),
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        ipv4_address: detectedIPv4,
+      };
+    }
+
+    async function parseJsonSafely(response) {
+      try {
+        return await response.json();
+      } catch (error) {
+        return { error: 'Invalid server response' };
+      }
+    }
+
+    async function submitAssignmentAttendance() {
+      clearMessage();
+
+      if (!validateForm()) {
         return;
       }
 
       setButtonLoading(true);
+      showMessage('Getting your location...', 'info');
 
-      navigator.geolocation.getCurrentPosition(
-        function (position) {
-          fetch("/api/employees/assignment-attendance/submit/{{ assignment.id }}/", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              phone_number: phone_number,
-              notes: notes,
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              ipv4_address: detectedIPv4
-            })
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (data.error) {
-              showMessage(data.error, "error");
-            } else {
-              showMessage(
-                data.message + "\n\nAssigned Staff: " + data.assigned_staff + "\nTask: " + data.task_title + "\nDistance: " + data.distance_meter + " m",
-                "success"
-              );
-              document.getElementById("notes").value = "";
-            }
-            setButtonLoading(false);
-          })
-          .catch(() => {
-            showMessage("Server error. Please try again.", "error");
-            setButtonLoading(false);
-          });
-        },
-        function () {
-          showMessage("Please enable GPS/location and try again.", "error");
-          setButtonLoading(false);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
+      try {
+        const position = await requestPosition();
+
+        showMessage('Submitting attendance...', 'info');
+
+        const response = await fetch(buildSubmitUrl(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(getPayload(position)),
+        });
+
+        const data = await parseJsonSafely(response);
+
+        if (!response.ok) {
+          showMessage(data.error || 'Failed to submit attendance.', 'error');
+          return;
         }
-      );
+
+        showMessage(
+          `${data.message || 'Assignment attendance recorded successfully'}\nDistance: ${data.distance_meter ?? '-'} m`,
+          'success'
+        );
+
+        phoneInput.value = '';
+        notesInput.value = '';
+      } catch (error) {
+        const isGeoError = typeof error.code !== 'undefined';
+
+        if (isGeoError) {
+          if (error.code === 1) {
+            showMessage('Location permission denied. Please allow GPS/location.', 'error');
+          } else if (error.code === 2) {
+            showMessage('Location unavailable. Please try again.', 'error');
+          } else if (error.code === 3) {
+            showMessage('Location request timed out. Please try again.', 'error');
+          } else {
+            showMessage('Failed to get your current location.', 'error');
+          }
+        } else {
+          showMessage('Server error. Please try again.', 'error');
+        }
+      } finally {
+        setButtonLoading(false);
+      }
     }
 
+    submitBtn.addEventListener('click', submitAssignmentAttendance);
     detectIPv4();
   </script>
 </body>

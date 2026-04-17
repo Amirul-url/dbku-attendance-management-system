@@ -2091,7 +2091,25 @@ def event_detail(request, id):
     assignment_paginator = Paginator(assignment_qs, 5)
     assignment_page_obj = assignment_paginator.get_page(assignment_page_num)
 
-    available_employees = Employee.objects.all().order_by('full_name')
+    available_employees = Employee.objects.all().order_by('department', 'full_name')
+    assignment_departments = (
+        Employee.objects.exclude(department__isnull=True)
+        .exclude(department__exact='')
+        .values_list('department', flat=True)
+        .distinct()
+        .order_by('department')
+    )
+    assignment_employee_directory = [
+        {
+            'id': emp.id,
+            'full_name': emp.full_name or '',
+            'employee_id': emp.employee_id or '',
+            'email': emp.email or '',
+            'department': emp.department or '',
+            'role': emp.role or 'viewer',
+        }
+        for emp in available_employees
+    ]
 
     for assignment in assignment_page_obj.object_list:
         assignment.qr_code_url = assignment.qr_code.url if assignment.qr_code else ''
@@ -2128,10 +2146,15 @@ def event_detail(request, id):
         'passport_search': passport_search,
         'passport_country': passport_country,
         'passport_sort': passport_sort,
-        
+
         'assignment_page_obj': assignment_page_obj,
         'event_assignments': assignment_page_obj.object_list,
         'available_employees': available_employees,
+        'assignment_departments': assignment_departments,
+        'assignment_employee_directory_json': json.dumps(
+            assignment_employee_directory,
+            ensure_ascii=False,
+        ),
         'assignment_search': assignment_search,
         'assignment_status_filter': assignment_status,
     }
@@ -3801,6 +3824,98 @@ def merge_passport_results(primary_result, fallback_result):
 
     return final_result
 
+def events_date_range_overlap(event_a, event_b):
+    if not event_a.start_date or not event_a.end_date or not event_b.start_date or not event_b.end_date:
+        return False
+
+    return not (
+        event_a.end_date < event_b.start_date or event_b.end_date < event_a.start_date
+    )
+
+
+def events_time_overlap(event_a, event_b):
+    if not event_a.start_time or not event_a.end_time or not event_b.start_time or not event_b.end_time:
+        return None
+
+    latest_start = max(event_a.start_time, event_b.start_time)
+    earliest_end = min(event_a.end_time, event_b.end_time)
+    return latest_start < earliest_end
+
+
+def build_assignment_conflict_payload(event, employee, current_assignment_id=None):
+    overlapping_assignments = []
+    exact_conflicts = []
+    potential_conflicts = []
+
+    employee_assignments = (
+        EventAssignment.objects.select_related('event')
+        .filter(employee=employee)
+        .exclude(event=event)
+    )
+
+    if current_assignment_id:
+        employee_assignments = employee_assignments.exclude(id=current_assignment_id)
+
+    for assignment in employee_assignments:
+        other_event = assignment.event
+
+        if not events_date_range_overlap(event, other_event):
+            continue
+
+        overlap_type = 'potential'
+        time_overlap = events_time_overlap(event, other_event)
+
+        if time_overlap is True:
+            overlap_type = 'exact'
+        elif time_overlap is False:
+            overlap_type = 'none'
+
+        if overlap_type == 'none':
+            continue
+
+        item = {
+            'assignment_id': assignment.id,
+            'task_title': assignment.task_title,
+            'assignment_status': assignment.assignment_status,
+            'event_id': other_event.id,
+            'event_name': other_event.name,
+            'start_date': str(other_event.start_date) if other_event.start_date else '',
+            'end_date': str(other_event.end_date) if other_event.end_date else '',
+            'start_time': other_event.start_time.strftime('%H:%M') if other_event.start_time else '',
+            'end_time': other_event.end_time.strftime('%H:%M') if other_event.end_time else '',
+            'location': other_event.location or '',
+        }
+        overlapping_assignments.append(item)
+
+        if overlap_type == 'exact':
+            exact_conflicts.append(item)
+        else:
+            potential_conflicts.append(item)
+
+    if exact_conflicts:
+        return {
+            'status': 'conflict',
+            'label': 'Already assigned to another event on the same date/time',
+            'message': 'This staff already has another assignment that overlaps with the selected event date and time.',
+            'items': exact_conflicts,
+        }
+
+    if potential_conflicts:
+        return {
+            'status': 'potential',
+            'label': 'Potential conflict detected',
+            'message': 'This staff has another assignment in an overlapping event period. Please review before saving.',
+            'items': potential_conflicts,
+        }
+
+    return {
+        'status': 'available',
+        'label': 'Available',
+        'message': 'No overlapping assignment was found for this staff.',
+        'items': [],
+    }
+
+
 def generate_assignment_qr(assignment):
     qr_url = f"{NGROK_BASE_URL}/api/employees/assignment-attendance/{assignment.id}/"
 
@@ -3812,6 +3927,45 @@ def generate_assignment_qr(assignment):
     file_name = f'assignment_{assignment.id}.png'
     assignment.qr_code.save(file_name, qr_content, save=False)
     assignment.save(update_fields=['qr_code'])
+
+
+@csrf_exempt
+def check_event_assignment_conflict(request, event_id):
+    permission_check = require_manage_api(request)
+    if permission_check:
+        return permission_check
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        employee_id = data.get('employee_id')
+        current_assignment_id = data.get('assignment_id')
+
+        if not employee_id:
+            return JsonResponse({'error': 'Employee is required'}, status=400)
+
+        event = get_object_or_404(Event, id=event_id)
+        employee = get_object_or_404(Employee, id=employee_id)
+
+        payload = build_assignment_conflict_payload(
+            event=event,
+            employee=employee,
+            current_assignment_id=current_assignment_id,
+        )
+        payload['employee'] = {
+            'id': employee.id,
+            'full_name': employee.full_name,
+            'employee_id': employee.employee_id,
+            'email': employee.email,
+            'department': employee.department,
+        }
+
+        return JsonResponse(payload)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @csrf_exempt
@@ -3860,9 +4014,13 @@ def create_event_assignment(request, event_id):
         )
 
         generate_assignment_qr(assignment)
+        conflict_payload = build_assignment_conflict_payload(event, employee)
 
         return JsonResponse({
-            'message': 'Staff assignment created successfully'
+            'message': 'Staff assignment created successfully',
+            'conflict_status': conflict_payload.get('status'),
+            'conflict_label': conflict_payload.get('label'),
+            'conflict_items': conflict_payload.get('items', []),
         })
 
     except Exception as e:
@@ -3916,8 +4074,17 @@ def update_event_assignment(request, id):
         if not assignment.qr_code:
             generate_assignment_qr(assignment)
 
+        conflict_payload = build_assignment_conflict_payload(
+            assignment.event,
+            employee,
+            current_assignment_id=assignment.id,
+        )
+
         return JsonResponse({
-            'message': 'Staff assignment updated successfully'
+            'message': 'Staff assignment updated successfully',
+            'conflict_status': conflict_payload.get('status'),
+            'conflict_label': conflict_payload.get('label'),
+            'conflict_items': conflict_payload.get('items', []),
         })
 
     except EventAssignment.DoesNotExist:
