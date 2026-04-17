@@ -10,3 +10,4 @@ numpy
 openpyxl
 django-cors-headers
 whitenoise
+paddlepaddle
