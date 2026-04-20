@@ -1461,12 +1461,6 @@
       Total: {{ total_attendance }}
     </div>
 
-    {% if can_manage %}
-    <a href="/events/{{ event.id }}/export/" class="btn btn-green">
-      <i data-lucide="download"></i>
-      Export CSV
-    </a>
-    {% endif %}
   </div>
 </div>
 
@@ -1502,6 +1496,10 @@
       </button>
       <a href="/events/{{ event.id }}/" class="btn btn-ghost btn-sm">Reset</a>
       {% if can_manage %}
+      <a href="/events/{{ event.id }}/export/assignment/" class="btn btn-green btn-sm">
+        <i data-lucide="download"></i>
+        Export CSV
+      </a>
       <button type="button" class="btn btn-blue btn-sm" onclick="openAssignmentModal()">
         <i data-lucide="user-plus"></i>
         Add Assignment
@@ -1685,6 +1683,12 @@
         Search
       </button>
       <a href="/events/{{ event.id }}/" class="btn btn-ghost btn-sm">Reset</a>
+      {% if can_manage %}
+      <a href="/events/{{ event.id }}/export/staff/" class="btn btn-green btn-sm">
+        <i data-lucide="download"></i>
+        Export CSV
+      </a>
+      {% endif %}
     </div>
   </div>
 </form>
@@ -1843,6 +1847,12 @@
         Search
       </button>
       <a href="/events/{{ event.id }}/" class="btn btn-ghost btn-sm">Reset</a>
+      {% if can_manage %}
+      <a href="/events/{{ event.id }}/export/visitor/" class="btn btn-green btn-sm">
+        <i data-lucide="download"></i>
+        Export CSV
+      </a>
+      {% endif %}
     </div>
   </div>
 </form>
@@ -1997,6 +2007,12 @@
         Search
       </button>
       <a href="/events/{{ event.id }}/" class="btn btn-ghost btn-sm">Reset</a>
+      {% if can_manage %}
+      <a href="/events/{{ event.id }}/export/passport/" class="btn btn-green btn-sm">
+        <i data-lucide="download"></i>
+        Export CSV
+      </a>
+      {% endif %}
     </div>
   </div>
 </form>

@@ -2197,6 +2197,234 @@ def format_csv_date(value):
 
     return text
 
+
+def export_assignment_attendance_csv(request, id):
+    manage_check = require_manage_page(request)
+    if manage_check:
+        return manage_check
+
+    event = get_object_or_404(Event, id=id)
+
+    records = EventAssignment.objects.filter(event=event).select_related(
+        'employee',
+        'assigned_by',
+    ).prefetch_related('attendance').order_by('-created_at', '-id')
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{event.name}_staff_assignment.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'Name',
+        'Employee ID',
+        'Department',
+        'Task Title',
+        'Task Description',
+        'Assignment Status',
+        'Attendance Status',
+        'Phone',
+        'Email',
+        'Notes',
+        'IPv4',
+        'IPv6',
+        'Date',
+        'Time',
+        'Latitude',
+        'Longitude',
+        'Assigned By',
+        'Created At',
+        'Updated At',
+    ])
+
+    for item in records:
+        attendance = getattr(item, 'attendance', None)
+
+        writer.writerow([
+            item.employee.full_name if item.employee else '',
+            item.employee.employee_id if item.employee else '',
+            item.employee.department if item.employee else '',
+            item.task_title,
+            (item.task_description or '').replace('\\r\\n', '\\n').replace('\\r', '\\n').strip(),
+            item.assignment_status,
+            'Present' if attendance else 'Pending',
+            attendance.phone_number if attendance else '',
+            attendance.email if attendance else '',
+            (attendance.notes or '').replace('\\r\\n', '\\n').replace('\\r', '\\n').strip() if attendance else '',
+            getattr(attendance, 'ipv4_address', '') if attendance else '',
+            getattr(attendance, 'ipv6_address', '') if attendance else '',
+            attendance.date.strftime("%d/%m/%Y") if attendance and attendance.date else '',
+            attendance.time.strftime("%H:%M:%S") if attendance and attendance.time else '',
+            attendance.latitude if attendance and attendance.latitude is not None else '',
+            attendance.longitude if attendance and attendance.longitude is not None else '',
+            item.assigned_by.full_name if item.assigned_by else '',
+            item.created_at.strftime("%d/%m/%Y %H:%M:%S") if item.created_at else '',
+            item.updated_at.strftime("%d/%m/%Y %H:%M:%S") if item.updated_at else '',
+        ])
+
+    return response
+
+
+def export_staff_attendance_csv(request, id):
+    manage_check = require_manage_page(request)
+    if manage_check:
+        return manage_check
+
+    event = get_object_or_404(Event, id=id)
+    records = Attendance.objects.filter(event=event).order_by('-date', '-time', '-id')
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{event.name}_staff_attendance.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'Name',
+        'Employee ID',
+        'Phone',
+        'Email',
+        'Department',
+        'IPv4',
+        'IPv6',
+        'Date',
+        'Time',
+        'Latitude',
+        'Longitude',
+    ])
+
+    for att in records:
+        writer.writerow([
+            att.full_name,
+            att.employee_id,
+            f"'{att.phone_number}" if att.phone_number else '',
+            att.email,
+            att.department,
+            getattr(att, 'ipv4_address', '') or '',
+            getattr(att, 'ipv6_address', '') or '',
+            att.date.strftime("%d/%m/%Y") if att.date else '',
+            att.time.strftime("%H:%M:%S") if att.time else '',
+            att.latitude if att.latitude is not None else '',
+            att.longitude if att.longitude is not None else '',
+        ])
+
+    return response
+
+
+def export_visitor_attendance_csv(request, id):
+    manage_check = require_manage_page(request)
+    if manage_check:
+        return manage_check
+
+    event = get_object_or_404(Event, id=id)
+    records = VisitorAttendance.objects.filter(event=event).select_related('visitor').order_by('-date', '-time', '-id')
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{event.name}_visitor_attendance_malaysian.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'Name',
+        'Phone',
+        'Email',
+        'Organization',
+        'IPv4',
+        'IPv6',
+        'Date',
+        'Time',
+        'Latitude',
+        'Longitude',
+    ])
+
+    for att in records:
+        writer.writerow([
+            att.visitor.full_name,
+            f"'{att.visitor.phone_number}" if att.visitor.phone_number else '',
+            att.visitor.email,
+            att.visitor.organization,
+            getattr(att, 'ipv4_address', '') or '',
+            getattr(att, 'ipv6_address', '') or '',
+            att.date.strftime("%d/%m/%Y") if att.date else '',
+            att.time.strftime("%H:%M:%S") if att.time else '',
+            att.latitude if att.latitude is not None else '',
+            att.longitude if att.longitude is not None else '',
+        ])
+
+    return response
+
+
+def export_passport_attendance_csv(request, id):
+    manage_check = require_manage_page(request)
+    if manage_check:
+        return manage_check
+
+    event = get_object_or_404(Event, id=id)
+    records = PassportAttendance.objects.filter(event=event).select_related('passport_visitor').order_by('-date', '-time', '-id')
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{event.name}_visitor_attendance_non_malaysian.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'Full Name',
+        'First Name',
+        'Last Name',
+        'Passport Type',
+        'Country Code',
+        'Passport Number',
+        'Nationality',
+        'Country',
+        'Date of Birth',
+        'Sex',
+        'Date of Issue',
+        'Date of Expiry',
+        'Status',
+        'OCR Raw Text',
+        'Additional Passport Fields',
+        'IPv4',
+        'IPv6',
+        'Date',
+        'Time',
+        'Latitude',
+        'Longitude',
+    ])
+
+    for att in records:
+        visitor = att.passport_visitor
+        extra_data = visitor.extra_data or {}
+
+        additional_source = extra_data.get('additional_fields')
+        if not additional_source:
+            additional_source = extra_data.get('additional_fields_text', '')
+
+        cleaned_additional_fields = parse_additional_fields_text_to_list(additional_source)
+        additional_fields_text = '; '.join(
+            [f"{item.get('label', '')}: {item.get('value', '')}" for item in cleaned_additional_fields]
+        )
+
+        writer.writerow([
+            visitor.full_name,
+            extra_data.get('first_name', ''),
+            extra_data.get('last_name', ''),
+            extra_data.get('type', 'P'),
+            extra_data.get('country_code', ''),
+            visitor.passport_number,
+            extra_data.get('nationality', visitor.country or ''),
+            visitor.country,
+            format_csv_date(visitor.date_of_birth),
+            visitor.gender,
+            format_csv_date(extra_data.get('date_of_issue', '')),
+            format_csv_date(visitor.expiry_date),
+            visitor.status,
+            (visitor.ocr_raw_text or '').replace('\\n', ' ').replace('\\r', ' '),
+            additional_fields_text,
+            getattr(att, 'ipv4_address', '') or '',
+            getattr(att, 'ipv6_address', '') or '',
+            att.date.strftime("%d/%m/%Y") if att.date else '',
+            att.time.strftime("%H:%M:%S") if att.time else '',
+            att.latitude if att.latitude is not None else '',
+            att.longitude if att.longitude is not None else '',
+        ])
+
+    return response
+
 def export_attendance_csv(request, id):
     manage_check = require_manage_page(request)
     if manage_check:
