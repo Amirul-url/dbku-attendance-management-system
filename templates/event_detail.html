@@ -1942,8 +1942,6 @@
                 data-additionalfieldstext="{{ att.additional_fields_text|default:''|escapejs }}"
                 data-ipv4="{{ att.ipv4_address|default:'' }}"
                 data-ipv6="{{ att.ipv6_address|default:'' }}"
-                data-ipv4="{{ att.ipv4_address|default:'' }}"
-                data-ipv6="{{ att.ipv6_address|default:'' }}"
               >
                 <i data-lucide="eye"></i>
               </button>
@@ -2390,6 +2388,14 @@
             <input id="visitor_view_organization" class="form-input" readonly>
           </div>
           <div>
+            <label class="form-label">IPv4 Address</label>
+            <input id="visitor_view_ipv4" class="form-input" readonly>
+          </div>
+          <div>
+            <label class="form-label">IPv6 Address</label>
+            <input id="visitor_view_ipv6" class="form-input" readonly>
+          </div>
+          <div>
             <label class="form-label">Attendance Date</label>
             <input id="visitor_view_date" type="date" class="form-input" readonly>
           </div>
@@ -2534,6 +2540,14 @@
           <div>
             <label class="form-label">Date of Expiry</label>
             <input id="view_date_of_expiry" type="date" class="form-input" readonly>
+          </div>
+          <div>
+            <label class="form-label">IPv4 Address</label>
+            <input id="view_ipv4" class="form-input" readonly>
+          </div>
+          <div>
+            <label class="form-label">IPv6 Address</label>
+            <input id="view_ipv6" class="form-input" readonly>
           </div>
           <div class="col-span-2">
             <label class="form-label">Status</label>
@@ -3418,6 +3432,8 @@
       getEl('visitor_view_phone').value = this.dataset.phone || '';
       getEl('visitor_view_email').value = this.dataset.email || '';
       getEl('visitor_view_organization').value = this.dataset.organization || '';
+      getEl('visitor_view_ipv4').value = this.dataset.ipv4 || '';
+      getEl('visitor_view_ipv6').value = this.dataset.ipv6 || '';
       getEl('visitor_view_date').value = this.dataset.date || '';
       getEl('visitor_view_time').value = this.dataset.time || '';
       getEl('visitor_view_latitude').value = this.dataset.latitude || '';
@@ -3645,6 +3661,8 @@
       getEl('view_date_of_birth').value = normalizeDateForInput(this.dataset.dateofbirth || '');
       getEl('view_date_of_issue').value = normalizeDateForInput(this.dataset.dateofissue || '');
       getEl('view_date_of_expiry').value = normalizeDateForInput(this.dataset.dateofexpiry || '');
+      getEl('view_ipv4').value = this.dataset.ipv4 || '';
+      getEl('view_ipv6').value = this.dataset.ipv6 || '';
       getEl('view_status').value = this.dataset.status || '';
       getEl('view_raw_text').value = getExactPassportRawText(this.dataset);
 
