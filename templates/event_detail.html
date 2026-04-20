@@ -782,10 +782,43 @@
 
 
   .assignment-desc {
-    white-space: pre-line;
+    white-space: normal;
     line-height: 1.55;
     word-break: break-word;
     margin-top: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .qr-action-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .qr-modal-img {
+    width: 100%;
+    max-width: 360px;
+    max-height: 360px;
+    object-fit: contain;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .qr-modal-label {
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 12px;
   }
 
   .assignment-qr-lg {
@@ -1286,6 +1319,24 @@
 
           {% if event.visitor_qr_code %}
             <img src="{{ event.visitor_qr_code.url }}" class="qr-img" alt="Visitor QR">
+            <div class="qr-action-row">
+              <button
+                type="button"
+                class="btn btn-sm btn-blue"
+                onclick="openEventQrModal('Visitor QR (Malaysian)', '{{ event.visitor_qr_code.url }}', 'visitor_qr_{{ event.id }}.png')"
+              >
+                <i data-lucide="eye"></i>
+                View
+              </button>
+              <a
+                href="{{ event.visitor_qr_code.url }}"
+                download="visitor_qr_{{ event.id }}.png"
+                class="btn btn-sm btn-ocean"
+              >
+                <i data-lucide="download"></i>
+                Download
+              </a>
+            </div>
           {% else %}
             <div class="qr-empty">No QR available</div>
           {% endif %}
@@ -1299,6 +1350,24 @@
 
           {% if event.staff_qr_code %}
             <img src="{{ event.staff_qr_code.url }}" class="qr-img" alt="Staff QR">
+            <div class="qr-action-row">
+              <button
+                type="button"
+                class="btn btn-sm btn-blue"
+                onclick="openEventQrModal('Staff QR', '{{ event.staff_qr_code.url }}', 'staff_qr_{{ event.id }}.png')"
+              >
+                <i data-lucide="eye"></i>
+                View
+              </button>
+              <a
+                href="{{ event.staff_qr_code.url }}"
+                download="staff_qr_{{ event.id }}.png"
+                class="btn btn-sm btn-ocean"
+              >
+                <i data-lucide="download"></i>
+                Download
+              </a>
+            </div>
           {% else %}
             <div class="qr-empty">No QR available</div>
           {% endif %}
@@ -1313,6 +1382,24 @@
           {% if event.passport_qr_code %}
             <img src="{{ event.passport_qr_code.url }}" class="qr-img" alt="Passport QR">
             <p class="small-note">For non-Malaysian visitors</p>
+            <div class="qr-action-row">
+              <button
+                type="button"
+                class="btn btn-sm btn-blue"
+                onclick="openEventQrModal('Visitor QR (Non-Malaysian)', '{{ event.passport_qr_code.url }}', 'passport_qr_{{ event.id }}.png')"
+              >
+                <i data-lucide="eye"></i>
+                View
+              </button>
+              <a
+                href="{{ event.passport_qr_code.url }}"
+                download="passport_qr_{{ event.id }}.png"
+                class="btn btn-sm btn-ocean"
+              >
+                <i data-lucide="download"></i>
+                Download
+              </a>
+            </div>
           {% else %}
             <div class="qr-empty">No QR available</div>
           {% endif %}
@@ -1408,7 +1495,7 @@
           <td class="break-cell cell-dept">{{ item.employee.department|default:"—" }}</td>
           <td class="break-cell">
             <div class="text-strong">{{ item.task_title|default:"—" }}</div>
-            <div class="card-sub assignment-desc">{{ item.task_description|default:"No description" }}</div>
+            <div class="card-sub assignment-desc">{{ item.task_description|default:"No description"|truncatechars:120 }}</div>
           </td>
           <td>
             {% if item.assignment_status == 'assigned' %}
@@ -1464,17 +1551,6 @@
               >
                 <i data-lucide="eye"></i>
               </button>
-
-              {% if item.qr_code %}
-              <a
-                href="{{ item.qr_code.url }}"
-                download="assignment_{{ item.id }}_qr.png"
-                class="btn btn-sm btn-ocean"
-                title="Download QR"
-              >
-                <i data-lucide="download"></i>
-              </a>
-              {% endif %}
 
               {% if can_manage %}
               <button
@@ -2016,6 +2092,29 @@
       Next →
     </a>
   {% endif %}
+</div>
+
+
+<div id="eventQrModal" class="modal-overlay" onclick="if(event.target===this)closeEventQrModal()">
+  <div style="width:100%;max-width:520px">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div id="eventQrModalTitle" class="modal-title">QR Preview</div>
+        <button class="modal-close" type="button" onclick="closeEventQrModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="eventQrModalLabel" class="qr-modal-label">—</div>
+        <img id="eventQrModalImage" src="" alt="Event QR" class="qr-modal-img">
+      </div>
+      <div class="modal-footer">
+        <a id="eventQrModalDownload" href="#" download="event_qr.png" class="btn btn-ocean">
+          <i data-lucide="download"></i>
+          Download
+        </a>
+        <button type="button" class="btn btn-ghost" onclick="closeEventQrModal()">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="assignmentViewModal" class="modal-overlay" onclick="if(event.target===this)closeAssignmentViewModal()">
@@ -2933,6 +3032,37 @@
     text = text.replace(/\\\\/g, '\\');
 
     return text;
+  }
+
+
+  function openEventQrModal(title, imageUrl, downloadName) {
+    const modal = getEl('eventQrModal');
+    const titleEl = getEl('eventQrModalTitle');
+    const labelEl = getEl('eventQrModalLabel');
+    const imgEl = getEl('eventQrModalImage');
+    const downloadEl = getEl('eventQrModalDownload');
+
+    if (!modal || !imgEl || !downloadEl || !imageUrl) return;
+
+    titleEl.textContent = title || 'QR Preview';
+    labelEl.textContent = title || 'QR Preview';
+    imgEl.src = imageUrl;
+    downloadEl.href = imageUrl;
+    downloadEl.setAttribute('download', downloadName || 'event_qr.png');
+    modal.classList.add('open');
+
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  }
+
+  function closeEventQrModal() {
+    const modal = getEl('eventQrModal');
+    const imgEl = getEl('eventQrModalImage');
+    const downloadEl = getEl('eventQrModalDownload');
+    if (imgEl) imgEl.src = '';
+    if (downloadEl) downloadEl.href = '#';
+    if (modal) modal.classList.remove('open');
   }
 
   function assignmentValue(value) {
