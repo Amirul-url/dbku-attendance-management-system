@@ -1,12 +1,15 @@
 from django.contrib import admin
 from django.urls import path, include
-from employees.views import login_page
+from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
 
+def home_redirect(request):
+    return redirect('/login-page/')
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', login_page),
+    path('', home_redirect),
     path('api/employees/', include('employees.urls')),
     path('', include('employees.urls')),
 ]
