@@ -781,16 +781,35 @@
   }
 
 
+  .cell-task { min-width: 320px; max-width: 360px; }
+
   .assignment-desc {
-    white-space: normal;
+    white-space: pre-line;
     line-height: 1.55;
     word-break: break-word;
     margin-top: 4px;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
     overflow: hidden;
+    max-height: calc(1.55em * 8);
+  }
+
+  .info-description {
+    white-space: pre-line;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  .qr-action-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 10px;
+    justify-content: center;
+  }
+
+  .qr-action-btn [data-lucide] {
+    width: 16px;
+    height: 16px;
   }
 
   .qr-action-row {
@@ -1300,7 +1319,7 @@
 
         <div class="info-item">
           <div class="info-key">Description</div>
-          <div class="info-val info-val-muted">
+          <div class="info-val info-description">
             {{ event.description|default:"No description provided." }}
           </div>
         </div>
@@ -1319,22 +1338,25 @@
 
           {% if event.visitor_qr_code %}
             <img src="{{ event.visitor_qr_code.url }}" class="qr-img" alt="Visitor QR">
+            <p class="small-note">For Malaysian visitors</p>
             <div class="qr-action-row">
               <button
                 type="button"
-                class="btn btn-sm btn-blue"
+                class="btn btn-sm btn-blue qr-action-btn"
+                title="View QR"
+                aria-label="View Visitor QR"
                 onclick="openEventQrModal('Visitor QR (Malaysian)', '{{ event.visitor_qr_code.url }}', 'visitor_qr_{{ event.id }}.png')"
               >
                 <i data-lucide="eye"></i>
-                View
               </button>
               <a
                 href="{{ event.visitor_qr_code.url }}"
                 download="visitor_qr_{{ event.id }}.png"
-                class="btn btn-sm btn-ocean"
+                class="btn btn-sm btn-ocean qr-action-btn"
+                title="Download QR"
+                aria-label="Download Visitor QR"
               >
                 <i data-lucide="download"></i>
-                Download
               </a>
             </div>
           {% else %}
@@ -1350,22 +1372,25 @@
 
           {% if event.staff_qr_code %}
             <img src="{{ event.staff_qr_code.url }}" class="qr-img" alt="Staff QR">
+            <p class="small-note">For Staff</p>
             <div class="qr-action-row">
               <button
                 type="button"
-                class="btn btn-sm btn-blue"
+                class="btn btn-sm btn-blue qr-action-btn"
+                title="View QR"
+                aria-label="View Staff QR"
                 onclick="openEventQrModal('Staff QR', '{{ event.staff_qr_code.url }}', 'staff_qr_{{ event.id }}.png')"
               >
                 <i data-lucide="eye"></i>
-                View
               </button>
               <a
                 href="{{ event.staff_qr_code.url }}"
                 download="staff_qr_{{ event.id }}.png"
-                class="btn btn-sm btn-ocean"
+                class="btn btn-sm btn-ocean qr-action-btn"
+                title="Download QR"
+                aria-label="Download Staff QR"
               >
                 <i data-lucide="download"></i>
-                Download
               </a>
             </div>
           {% else %}
@@ -1385,19 +1410,21 @@
             <div class="qr-action-row">
               <button
                 type="button"
-                class="btn btn-sm btn-blue"
+                class="btn btn-sm btn-blue qr-action-btn"
+                title="View QR"
+                aria-label="View Non-Malaysian Visitor QR"
                 onclick="openEventQrModal('Visitor QR (Non-Malaysian)', '{{ event.passport_qr_code.url }}', 'passport_qr_{{ event.id }}.png')"
               >
                 <i data-lucide="eye"></i>
-                View
               </button>
               <a
                 href="{{ event.passport_qr_code.url }}"
                 download="passport_qr_{{ event.id }}.png"
-                class="btn btn-sm btn-ocean"
+                class="btn btn-sm btn-ocean qr-action-btn"
+                title="Download QR"
+                aria-label="Download Non-Malaysian Visitor QR"
               >
                 <i data-lucide="download"></i>
-                Download
               </a>
             </div>
           {% else %}
@@ -1493,9 +1520,9 @@
           <td class="text-strong cell-name">{{ item.employee.full_name|default:"—" }}</td>
           <td class="mono-text cell-empid">{{ item.employee.employee_id|default:"—" }}</td>
           <td class="break-cell cell-dept">{{ item.employee.department|default:"—" }}</td>
-          <td class="break-cell">
+          <td class="break-cell cell-task">
             <div class="text-strong">{{ item.task_title|default:"—" }}</div>
-            <div class="card-sub assignment-desc">{{ item.task_description|default:"No description"|truncatechars:120 }}</div>
+            <div class="card-sub assignment-desc">{{ item.task_description|default:"No description" }}</div>
           </td>
           <td>
             {% if item.assignment_status == 'assigned' %}

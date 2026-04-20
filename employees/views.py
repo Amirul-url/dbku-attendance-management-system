@@ -2388,6 +2388,8 @@ def export_event_summary_csv(request, id):
 
     writer = csv.writer(response)
 
+    csv_event_description = (event.description or '-').replace('\r\n', '\n').replace('\r', '\n').strip() or '-'
+
     writer.writerow(['EVENT SUMMARY'])
     writer.writerow(['Event Name', event.name])
     writer.writerow(['Start Date', format_csv_date(event.start_date)])
@@ -2395,7 +2397,7 @@ def export_event_summary_csv(request, id):
     writer.writerow(['Start Time', event.start_time.strftime("%H:%M") if event.start_time else '-'])
     writer.writerow(['End Time', event.end_time.strftime("%H:%M") if event.end_time else '-'])
     writer.writerow(['Location', event.location or '-'])
-    writer.writerow(['Description', event.description if event.description else '-'])
+    writer.writerow(['Description', csv_event_description])
     writer.writerow(['Latitude', event.latitude if event.latitude is not None else '-'])
     writer.writerow(['Longitude', event.longitude if event.longitude is not None else '-'])
     writer.writerow(['Radius (meter)', event.radius_meter if event.radius_meter is not None else '-'])
