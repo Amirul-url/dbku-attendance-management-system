@@ -1,27 +1,31 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.static import serve
 
 
-# Redirect homepage → login page
 def home_redirect(request):
-    return redirect('/login-page/')
+    return redirect("/login-page/")
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-
-    # homepage redirect
-    path('', home_redirect),
-
-    # API routes
-    path('api/employees/', include('employees.urls')),
-
-    # Frontend pages (login, dashboard, etc.)
-    path('', include('employees.urls')),
+    path("admin/", admin.site.urls),
+    path("", home_redirect),
+    path("api/employees/", include("employees.urls")),
+    path("", include("employees.urls")),
 ]
 
-# 🔥 IMPORTANT: serve MEDIA in production (for QR, images, etc.)
+# Development
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Production fallback for media files
+if not settings.DEBUG:
+    urlpatterns += [
+        re_path(
+            r"^media/(?P<path>.*)$",
+            serve,
+            {"document_root": settings.MEDIA_ROOT},
+        ),
+    ]
