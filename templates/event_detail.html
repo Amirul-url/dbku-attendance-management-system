@@ -1740,6 +1740,8 @@
           <th>Phone</th>
           <th>Email</th>
           <th>Organization</th>
+          <th>IPv4</th>
+          <th>IPv6</th>
           <th>Date</th>
           <th>Time</th>
           <th>Latitude</th>
@@ -1755,6 +1757,8 @@
           <td>{{ att.visitor.phone_number|default:"—" }}</td>
           <td>{{ att.visitor.email|default:"—" }}</td>
           <td>{{ att.visitor.organization|default:"—" }}</td>
+          <td class="mono-text">{{ att.ipv4_address|default:"—" }}</td>
+          <td class="mono-text-small">{{ att.ipv6_address|default:"—" }}</td>
           <td>{{ att.date|date:"d/m/Y" }}</td>
           <td>{{ att.time }}</td>
           <td class="mono-text">{{ att.latitude|default:"—" }}</td>
@@ -1771,6 +1775,8 @@
                 data-phone="{{ att.visitor.phone_number }}"
                 data-email="{{ att.visitor.email }}"
                 data-organization="{{ att.visitor.organization }}"
+                data-ipv4="{{ att.ipv4_address|default:'' }}"
+                data-ipv6="{{ att.ipv6_address|default:'' }}"
                 data-date="{{ att.date|date:'Y-m-d' }}"
                 data-time="{{ att.time }}"
                 data-latitude="{{ att.latitude|default:'' }}"
@@ -1787,6 +1793,8 @@
                 data-phone="{{ att.visitor.phone_number }}"
                 data-email="{{ att.visitor.email }}"
                 data-organization="{{ att.visitor.organization }}"
+                data-ipv4="{{ att.ipv4_address|default:'' }}"
+                data-ipv6="{{ att.ipv6_address|default:'' }}"
                 data-date="{{ att.date|date:'Y-m-d' }}"
                 data-time="{{ att.time }}"
                 data-latitude="{{ att.latitude|default:'' }}"
@@ -1808,7 +1816,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="{% if can_manage %}9{% else %}8{% endif %}" class="td-empty">
+          <td colspan="{% if can_manage %}11{% else %}10{% endif %}" class="td-empty">
             No visitor attendance.
           </td>
         </tr>
@@ -1885,6 +1893,8 @@
           <th>Name</th>
           <th>Passport No</th>
           <th>Country</th>
+          <th>IPv4</th>
+          <th>IPv6</th>
           <th>Date</th>
           <th>Time</th>
           <th>Latitude</th>
@@ -1899,6 +1909,8 @@
           <td class="text-strong">{{ att.passport_visitor.full_name|default:"—" }}</td>
           <td class="mono-text">{{ att.passport_visitor.passport_number|default:"—" }}</td>
           <td>{{ att.passport_visitor.country|default:"—" }}</td>
+          <td class="mono-text">{{ att.ipv4_address|default:"—" }}</td>
+          <td class="mono-text-small">{{ att.ipv6_address|default:"—" }}</td>
           <td>{{ att.date|date:"d/m/Y" }}</td>
           <td>{{ att.time }}</td>
           <td class="mono-text">{{ att.latitude|default:"—" }}</td>
@@ -1928,6 +1940,10 @@
                 data-rawtext-id="passport_raw_text_{{ att.id }}"
                 data-additionalfields="{{ att.additional_fields_json|default:'[]'|escapejs }}"
                 data-additionalfieldstext="{{ att.additional_fields_text|default:''|escapejs }}"
+                data-ipv4="{{ att.ipv4_address|default:'' }}"
+                data-ipv6="{{ att.ipv6_address|default:'' }}"
+                data-ipv4="{{ att.ipv4_address|default:'' }}"
+                data-ipv6="{{ att.ipv6_address|default:'' }}"
               >
                 <i data-lucide="eye"></i>
               </button>
@@ -1970,7 +1986,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="{% if can_manage %}8{% else %}7{% endif %}" class="td-empty">
+          <td colspan="{% if can_manage %}10{% else %}9{% endif %}" class="td-empty">
             No non-Malaysian visitor attendance.
           </td>
         </tr>
