@@ -1502,14 +1502,15 @@ def normalize_ip_value(raw_ip):
 
 def get_client_ips(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    remote_addr = request.META.get('REMOTE_ADDR')
 
     candidates = []
+
     if x_forwarded_for:
-        candidates = [ip.strip() for ip in x_forwarded_for.split(',') if ip.strip()]
-    else:
-        remote_addr = request.META.get('REMOTE_ADDR')
-        if remote_addr:
-            candidates = [remote_addr]
+        candidates.extend([ip.strip() for ip in x_forwarded_for.split(',')])
+    
+    if remote_addr:
+        candidates.append(remote_addr)
 
     ipv4_address = None
     ipv6_address = None
@@ -1519,12 +1520,17 @@ def get_client_ips(request):
         if not clean_ip:
             continue
 
-        parsed_ip = ipaddress.ip_address(clean_ip)
+        try:
+            parsed_ip = ipaddress.ip_address(clean_ip)
 
-        if parsed_ip.version == 4 and not ipv4_address:
-            ipv4_address = clean_ip
-        elif parsed_ip.version == 6 and not ipv6_address:
-            ipv6_address = clean_ip
+            if parsed_ip.version == 4 and not ipv4_address:
+                ipv4_address = clean_ip
+
+            elif parsed_ip.version == 6 and not ipv6_address:
+                ipv6_address = clean_ip
+
+        except ValueError:
+            continue
 
     return ipv4_address, ipv6_address
 
@@ -1547,6 +1553,8 @@ def submit_visitor_attendance(request, event_id):
         organization = (data.get('organization') or '').strip()
         latitude = data.get('latitude')
         longitude = data.get('longitude')
+        
+        ipv4_address, ipv6_address = get_client_ips(request)
 
         if not full_name or not phone or not email or not organization:
             return JsonResponse({'error': 'All fields are required'}, status=400)
@@ -1589,7 +1597,9 @@ def submit_visitor_attendance(request, event_id):
             event=event,
             defaults={
                 'latitude': latitude,
-                'longitude': longitude
+                'longitude': longitude,
+                'ipv4_address': ipv4_address,
+                'ipv6_address': ipv6_address,
             }
         )
 
@@ -3545,6 +3555,7 @@ def parse_additional_fields_text_to_list(value):
             })
 
     return result
+
 @csrf_exempt
 def submit_passport_attendance(request, event_id):
     try:
@@ -3592,6 +3603,8 @@ def submit_passport_attendance(request, event_id):
 
         latitude = data.get("latitude")
         longitude = data.get("longitude")
+        
+        ipv4_address, ipv6_address = get_client_ips(request)
 
         # VALIDATION
         if not passport_number:
@@ -3698,6 +3711,8 @@ def submit_passport_attendance(request, event_id):
             defaults={
                 "latitude": latitude,
                 "longitude": longitude,
+                'ipv4_address': ipv4_address,
+                'ipv6_address': ipv6_address,
             },
         )
 

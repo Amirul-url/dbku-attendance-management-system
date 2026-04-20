@@ -84,7 +84,6 @@ class Visitor(models.Model):
     def __str__(self):
         return self.full_name
 
-
 class VisitorAttendance(models.Model):
     visitor = models.ForeignKey(Visitor, on_delete=models.CASCADE)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
@@ -94,6 +93,9 @@ class VisitorAttendance(models.Model):
 
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
+    ipv4_address = models.GenericIPAddressField(null=True, blank=True, protocol='IPv4')
+    ipv6_address = models.GenericIPAddressField(null=True, blank=True, protocol='IPv6')
 
     class Meta:
         unique_together = ('visitor', 'event')
@@ -160,6 +162,9 @@ class PassportAttendance(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
+    ipv4_address = models.GenericIPAddressField(null=True, blank=True, protocol='IPv4')
+    ipv6_address = models.GenericIPAddressField(null=True, blank=True, protocol='IPv6')
+    
     class Meta:
         unique_together = ('passport_visitor', 'event')
 
