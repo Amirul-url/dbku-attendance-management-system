@@ -141,9 +141,12 @@
   }
 
   .info-val-muted {
-    font-weight: 400;
-    color: var(--muted);
-    line-height: 1.6;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.55;
+    white-space: pre-line;
+    word-break: break-word;
+    margin: 0;
   }
 
   .qr-grid {
@@ -514,7 +517,12 @@
   .cell-phone { min-width: 135px; }
   .cell-dept { min-width: 220px; word-break: break-word; }
   .cell-ipv4 { min-width: 130px; }
-  .cell-ipv6 { min-width: 220px; word-break: break-all; }
+  .cell-ipv6 {
+    min-width: 70px;
+    max-width: 100px;
+    width: 80px;
+    word-break: break-all;
+  }
   .cell-date { min-width: 110px; }
   .cell-time { min-width: 90px; }
   .cell-latlon { min-width: 110px; }
@@ -784,12 +792,16 @@
   .cell-task { min-width: 320px; max-width: 360px; }
 
   .assignment-desc {
-    white-space: pre-line;
+    margin-top: 4px;
     line-height: 1.55;
     word-break: break-word;
-    margin-top: 4px;
+    white-space: pre-line;
     overflow: hidden;
-    max-height: calc(1.55em * 8);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 8;
+    line-clamp: 8;
+    max-width: 420px;
   }
 
   .info-description {
@@ -1319,9 +1331,7 @@
 
         <div class="info-item">
           <div class="info-key">Description</div>
-          <div class="info-val info-description">
-            {{ event.description|default:"No description provided." }}
-          </div>
+          <div class="info-val info-val-muted">{{ event.description|default:"No description provided." }}</div>
         </div>
       </div>
     </div>
