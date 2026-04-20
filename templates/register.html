@@ -1,279 +1,909 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <title>Register Employee</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — Staff Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --teal: #0E7C6B;
+      --teal-light: #E6F5F2;
+      --teal-mid: #3DA896;
+      --surface: #F7F8FA;
+      --card: #FFFFFF;
+      --border: #E2E6EE;
+      --text: #1A1D26;
+      --muted: #6B7280;
+      --accent: #075C4E;
+      --success: #16A349;
+      --error: #DC2626;
+      --warning: #D97706;
+      --radius: 14px;
+      --input-h: 52px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--surface);
+      min-height: 100vh;
+      padding: 1.5rem 1rem 3rem;
+      color: var(--text);
+    }
+
+    .page-wrap {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* ORG BADGE */
+    .org-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1.25rem;
+    }
+
+    .org-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .org-logo svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .org-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--teal);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .org-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    /* CARD */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: 0 2px 16px rgba(14, 124, 107, 0.06);
+    }
+
+    /* CARD HEADER */
+    .card-header {
+      background: var(--teal);
+      padding: 1.75rem 1.75rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-header::after {
+      content: '';
+      position: absolute;
+      right: -30px;
+      top: -30px;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+      pointer-events: none;
+    }
+
+    .card-header::before {
+      content: '';
+      position: absolute;
+      right: 40px;
+      bottom: -50px;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      pointer-events: none;
+    }
+
+    .form-type-pill {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.9);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 100px;
+      margin-bottom: 0.75rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.3;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-subtitle {
+      font-size: 13px;
+      color: rgba(255,255,255,0.72);
+      margin-top: 6px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 100px;
+      padding: 5px 12px 5px 8px;
+      margin-top: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .role-badge svg {
+      width: 13px;
+      height: 13px;
+      fill: rgba(255,255,255,0.85);
+    }
+
+    .role-badge span {
+      font-size: 11px;
+      color: rgba(255,255,255,0.85);
+      font-weight: 500;
+    }
+
+    /* MODE TOGGLE */
+    .mode-toggle {
+      display: flex;
+      gap: 8px;
+      margin: 1.5rem 1.75rem 0;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mode-btn {
+      flex: 1;
+      height: 44px;
+      border-radius: 9px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: all 0.15s;
+      color: var(--muted);
+    }
+
+    .mode-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .mode-btn.active-manual {
+      background: var(--teal-light);
+      border-color: var(--teal-mid);
+      color: var(--teal);
+    }
+
+    .mode-btn.active-mykad {
+      background: #F0FDF4;
+      border-color: #86EFAC;
+      color: var(--success);
+    }
+
+    /* FORM BODY */
+    .form-body {
+      padding: 1.5rem 1.75rem 1.75rem;
+    }
+
+    /* SECTION LABEL */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--teal-mid);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* FIELDS */
+    .field-group {
+      margin-bottom: 1.1rem;
+    }
+
+    .field-group.hidden {
+      display: none;
+    }
+
+    .field-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 7px;
+      letter-spacing: 0.02em;
+    }
+
+    .field-num {
+      width: 22px;
+      height: 22px;
+      background: var(--teal-light);
+      color: var(--teal);
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      flex-shrink: 0;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* GRID */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 480px) {
+      .field-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    select {
+      width: 100%;
+      height: var(--input-h);
+      padding: 0 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14.5px;
+      color: var(--text);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input::placeholder {
+      color: #B0B8C9;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(14, 124, 107, 0.1);
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .password-toggle svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    input.has-toggle {
+      padding-right: 44px;
+    }
+
+    /* PASSWORD REQUIREMENTS */
+    .pw-requirements {
+      margin: 1.1rem 0 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.875rem 1rem;
+    }
+
+    .pw-req-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .pw-req-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .pw-req-list li {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: var(--muted);
+      transition: color 0.15s;
+    }
+
+    .pw-req-list li.met {
+      color: var(--success);
+    }
+
+    .req-icon {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+
+    .pw-req-list li.met .req-icon {
+      background: var(--success);
+      border-color: var(--success);
+    }
+
+    .req-icon svg {
+      width: 9px;
+      height: 9px;
+      fill: #fff;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .pw-req-list li.met .req-icon svg {
+      opacity: 1;
+    }
+
+    /* DIVIDER */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.5rem 0;
+    }
+
+    /* BUTTONS */
+    .btn-primary {
+      width: 100%;
+      height: 52px;
+      background: var(--teal);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      margin-bottom: 0.75rem;
+      box-shadow: 0 2px 8px rgba(14, 124, 107, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent);
+      box-shadow: 0 4px 14px rgba(14, 124, 107, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.99);
+    }
+
+    .btn-primary svg {
+      width: 18px;
+      height: 18px;
+      fill: #fff;
+    }
+
+    .btn-secondary {
+      width: 100%;
+      height: 50px;
+      background: var(--teal-light);
+      color: var(--teal);
+      border: 1.5px solid #A8DDD5;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-secondary:hover {
+      background: #CCECe7;
+      border-color: var(--teal-mid);
+    }
+
+    /* MESSAGE */
+    #msg {
+      font-size: 13px;
+      text-align: center;
+      min-height: 20px;
+      margin-top: 1rem;
+      font-weight: 500;
+      border-radius: 8px;
+      padding: 0;
+      transition: all 0.2s;
+    }
+
+    #msg.error {
+      color: var(--error);
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      padding: 10px 14px;
+    }
+
+    #msg.success {
+      color: var(--success);
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      padding: 10px 14px;
+    }
+
+    /* SPIN */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    /* FOOTER */
+    .page-footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 400px) {
+      .form-body,
+      .mode-toggle {
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+      }
+
+      .card-header {
+        padding: 1.25rem 1.25rem 1.1rem;
+      }
+
+      .mode-toggle {
+        margin-left: 1.25rem;
+        margin-right: 1.25rem;
+      }
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center px-4 py-8">
+<body>
 
-<div class="w-full max-w-md bg-white p-6 rounded-xl shadow border border-gray-200">
-  <h2 class="text-2xl font-bold mb-2 text-center">Register Staff</h2>
-  <p class="text-sm text-gray-500 text-center mb-6">
-    Create your staff account. New registrations will be assigned as
-    <span class="font-semibold">Viewer</span> by default.
-  </p>
+<div class="page-wrap">
 
-  <!-- MODE -->
-  <div class="flex gap-2 mb-4">
-    <button id="manualBtn" onclick="manualMode()" type="button"
-      class="bg-blue-500 text-white px-3 py-2 rounded w-full hover:bg-blue-600">
-      Manual
-    </button>
-
-    <button id="mykadBtn" onclick="scanMyKad()" type="button"
-      class="bg-gray-300 text-gray-800 px-3 py-2 rounded w-full hover:bg-gray-400">
-      Scan MyKad
-    </button>
-  </div>
-
-  <!-- FORM -->
-  <div class="space-y-3">
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-      <input id="name" placeholder="Enter full name"
-        class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+  <!-- ORG BADGE -->
+  <div class="org-badge">
+    <div class="org-logo">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L3 7v10l9 5 9-5V7L12 2z" fill="#0E7C6B" opacity="0.15"/>
+        <path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="#0E7C6B" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M12 7l-5 2.8v5.4L12 18l5-2.8V9.8L12 7z" fill="#0E7C6B" opacity="0.4"/>
+      </svg>
     </div>
-
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Staff ID</label>
-      <input id="emp_id" placeholder="Enter staff ID"
-        class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
-    </div>
-
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-      <input id="email" type="email" placeholder="Enter email"
-        class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
-    </div>
-
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
-      <select id="dept" onchange="toggleOtherDepartment()"
-        class="w-full mt-1 p-3 border rounded-lg bg-white">
-        <option value="">-- Select department category --</option>
-        <option value="Administration (ADM)">Administration (ADM)</option>
-        <option value="Internal Audit (AUD)">Internal Audit (AUD)</option>
-        <option value="Building (BLG)">Building (BLG)</option>
-        <option value="Community Development & Services (CDS)">Community Development & Services (CDS)</option>
-        <option value="Contract and Procurement (COP)">Contract and Procurement (COP)</option>
-        <option value="Committee Secretariat (CTS)">Committee Secretariat (CTS)</option>
-        <option value="Engineering Project (ENG)">Engineering Project (ENG)</option>
-        <option value="Enforcement and Security (ENS)">Enforcement and Security (ENS)</option>
-        <option value="Health and Environment (ENV)">Health and Environment (ENV)</option>
-        <option value="Finance (FIN)">Finance (FIN)</option>
-        <option value="Geoinformation and Property Management (GPM)">Geoinformation and Property Management (GPM)</option>
-        <option value="Human Resource Management (HRM)">Human Resource Management (HRM)</option>
-        <option value="Information and Communication Technology (ICT)">Information and Communication Technology (ICT)</option>
-        <option value="Infrastructure Maintenance (IMT)">Infrastructure Maintenance (IMT)</option>
-        <option value="Information Resource (IRD)">Information Resource (IRD)</option>
-        <option value="Legal Affairs (LAW)">Legal Affairs (LAW)</option>
-        <option value="Licensing (LES)">Licensing (LES)</option>
-        <option value="Landscape and Planning (LNP)">Landscape and Planning (LNP)</option>
-        <option value="Mechanical and Electrical (MNE)">Mechanical and Electrical (MNE)</option>
-        <option value="Public Relations (PRD)">Public Relations (PRD)</option>
-        <option value="Special Project & Public Facility (SPF)">Special Project & Public Facility (SPF)</option>
-        <option value="Transformation and Innovation (TRI)">Transformation and Innovation (TRI)</option>
-        <option value="Valuation and Taxation (VAL)">Valuation and Taxation (VAL)</option>
-        <option value="Others">Others</option>
-      </select>
-    </div>
-
-    <div id="otherDeptWrapper" class="hidden">
-      <label class="block text-sm font-medium text-gray-700 mb-1">Please Specify Department</label>
-      <input id="other_dept" placeholder="Enter custom department"
-        class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
-    </div>
-
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-      <input id="password" type="password" placeholder="Enter password"
-        class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
-    </div>
-
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-      <input id="confirm_password" type="password" placeholder="Confirm password"
-        class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <div class="org-name">Staff Portal</div>
+      <div class="org-sub">Attendance & Access Management</div>
     </div>
   </div>
 
-  <!-- PASSWORD GUIDE -->
-  <div class="mt-4 p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm text-gray-600">
-    <div class="font-semibold mb-1">Password Requirements</div>
-    <ul class="list-disc list-inside space-y-1">
-      <li>Minimum 8 characters</li>
-      <li>Must contain at least 1 letter</li>
-      <li>Must contain at least 1 number</li>
-    </ul>
+  <!-- CARD -->
+  <div class="card">
+
+    <!-- HEADER -->
+    <div class="card-header">
+      <div class="form-type-pill">New Account</div>
+      <div class="card-title">Register Staff Account</div>
+      <div class="card-subtitle">Fill in your details to create a staff account</div>
+      <div class="role-badge">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+        <span>New accounts are assigned as Viewer by default</span>
+      </div>
+    </div>
+
+    <!-- MODE TOGGLE -->
+    <div class="mode-toggle">
+      <button id="manualBtn" class="mode-btn active-manual" onclick="setMode('manual')" type="button">
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        Manual Entry
+      </button>
+      <button id="mykadBtn" class="mode-btn" onclick="setMode('mykad')" type="button">
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+        Scan MyKad
+      </button>
+    </div>
+
+    <!-- FORM -->
+    <div class="form-body">
+
+      <div class="section-label">Personal Information</div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="name">
+            <span class="field-num">1</span> Full Name
+          </label>
+          <input type="text" id="name" placeholder="e.g. Ali bin Abu" autocomplete="name">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="emp_id">
+            <span class="field-num">2</span> Staff ID
+          </label>
+          <input type="text" id="emp_id" placeholder="e.g. DBKU001" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="email">
+          <span class="field-num">3</span> Email Address
+        </label>
+        <input type="email" id="email" placeholder="e.g. ali@dbku.gov.my" autocomplete="email">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="dept">
+          <span class="field-num">4</span> Department
+        </label>
+        <select id="dept" onchange="toggleOtherDepartment()">
+          <option value="">-- Select department --</option>
+          <option value="Administration (ADM)">Administration (ADM)</option>
+          <option value="Internal Audit (AUD)">Internal Audit (AUD)</option>
+          <option value="Building (BLG)">Building (BLG)</option>
+          <option value="Community Development &amp; Services (CDS)">Community Development & Services (CDS)</option>
+          <option value="Contract and Procurement (COP)">Contract and Procurement (COP)</option>
+          <option value="Committee Secretariat (CTS)">Committee Secretariat (CTS)</option>
+          <option value="Engineering Project (ENG)">Engineering Project (ENG)</option>
+          <option value="Enforcement and Security (ENS)">Enforcement and Security (ENS)</option>
+          <option value="Health and Environment (ENV)">Health and Environment (ENV)</option>
+          <option value="Finance (FIN)">Finance (FIN)</option>
+          <option value="Geoinformation and Property Management (GPM)">Geoinformation and Property Management (GPM)</option>
+          <option value="Human Resource Management (HRM)">Human Resource Management (HRM)</option>
+          <option value="Information and Communication Technology (ICT)">Information and Communication Technology (ICT)</option>
+          <option value="Infrastructure Maintenance (IMT)">Infrastructure Maintenance (IMT)</option>
+          <option value="Information Resource (IRD)">Information Resource (IRD)</option>
+          <option value="Legal Affairs (LAW)">Legal Affairs (LAW)</option>
+          <option value="Licensing (LES)">Licensing (LES)</option>
+          <option value="Landscape and Planning (LNP)">Landscape and Planning (LNP)</option>
+          <option value="Mechanical and Electrical (MNE)">Mechanical and Electrical (MNE)</option>
+          <option value="Public Relations (PRD)">Public Relations (PRD)</option>
+          <option value="Special Project &amp; Public Facility (SPF)">Special Project & Public Facility (SPF)</option>
+          <option value="Transformation and Innovation (TRI)">Transformation and Innovation (TRI)</option>
+          <option value="Valuation and Taxation (VAL)">Valuation and Taxation (VAL)</option>
+          <option value="Others">Others</option>
+        </select>
+      </div>
+
+      <div id="otherDeptWrapper" class="field-group hidden">
+        <label class="field-label" for="other_dept">
+          <span class="field-num">↳</span> Specify Department
+        </label>
+        <input type="text" id="other_dept" placeholder="Enter your department name">
+      </div>
+
+      <hr class="divider">
+      <div class="section-label">Security</div>
+
+      <div class="field-group">
+        <label class="field-label" for="password">
+          <span class="field-num">5</span> Password
+        </label>
+        <div class="input-wrap">
+          <input type="password" id="password" placeholder="Create a strong password" class="has-toggle" autocomplete="new-password" oninput="checkPasswordStrength()">
+          <button class="password-toggle" type="button" onclick="togglePassword('password', this)" aria-label="Toggle password visibility">
+            <svg id="eyeIcon-password" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="confirm_password">
+          <span class="field-num">6</span> Confirm Password
+        </label>
+        <div class="input-wrap">
+          <input type="password" id="confirm_password" placeholder="Re-enter your password" class="has-toggle" autocomplete="new-password">
+          <button class="password-toggle" type="button" onclick="togglePassword('confirm_password', this)" aria-label="Toggle confirm password visibility">
+            <svg id="eyeIcon-confirm_password" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- PASSWORD REQUIREMENTS -->
+      <div class="pw-requirements">
+        <div class="pw-req-title">Password Requirements</div>
+        <ul class="pw-req-list">
+          <li id="req-length">
+            <span class="req-icon"><svg viewBox="0 0 10 8" xmlns="http://www.w3.org/2000/svg"><path d="M1 4l2.5 2.5L9 1" stroke-width="1.5" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            Minimum 8 characters
+          </li>
+          <li id="req-letter">
+            <span class="req-icon"><svg viewBox="0 0 10 8" xmlns="http://www.w3.org/2000/svg"><path d="M1 4l2.5 2.5L9 1" stroke-width="1.5" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            At least 1 letter
+          </li>
+          <li id="req-number">
+            <span class="req-icon"><svg viewBox="0 0 10 8" xmlns="http://www.w3.org/2000/svg"><path d="M1 4l2.5 2.5L9 1" stroke-width="1.5" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            At least 1 number
+          </li>
+        </ul>
+      </div>
+
+      <p id="msg"></p>
+
+      <hr class="divider">
+
+      <button id="submitBtn" class="btn-primary" onclick="submitForm()" type="button">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        Register Account
+      </button>
+
+      <a href="/api/employees/login-page/" class="btn-secondary" style="margin-top: 0.75rem;">
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="width:17px;height:17px"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        I already have an account
+      </a>
+
+    </div>
   </div>
 
-  <!-- MESSAGE -->
-  <p id="msg" class="mt-4 text-center text-sm font-medium"></p>
-
-  <!-- SUBMIT -->
-  <button id="submitBtn" onclick="submitForm()" type="button"
-    class="bg-blue-500 text-white px-4 py-3 rounded w-full mt-5 hover:bg-blue-600">
-    Register
-  </button>
-
-  <!-- BACK -->
-  <a href="/api/employees/login-page/"
-     class="block text-center bg-gray-300 text-gray-800 px-4 py-3 rounded w-full hover:bg-gray-400 mt-3">
-    I already have an account
-  </a>
+  <div class="page-footer">Staff Portal &copy; 2025 &middot; All rights reserved</div>
 </div>
 
 <script>
-let method = "manual";
+  let method = 'manual';
 
-function setMessage(message, type = "info") {
-  const msg = document.getElementById('msg');
-  msg.innerText = message;
+  function setMode(m) {
+    method = m;
+    const manualBtn = document.getElementById('manualBtn');
+    const mykadBtn = document.getElementById('mykadBtn');
 
-  if (type === "success") {
-    msg.className = "mt-4 text-center text-sm font-medium text-green-600";
-  } else if (type === "error") {
-    msg.className = "mt-4 text-center text-sm font-medium text-red-600";
-  } else {
-    msg.className = "mt-4 text-center text-sm font-medium text-gray-600";
-  }
-}
-
-function manualMode() {
-  method = "manual";
-
-  document.getElementById('manualBtn').className =
-    "bg-blue-500 text-white px-3 py-2 rounded w-full hover:bg-blue-600";
-  document.getElementById('mykadBtn').className =
-    "bg-gray-300 text-gray-800 px-3 py-2 rounded w-full hover:bg-gray-400";
-
-  setMessage("Manual mode selected");
-}
-
-function scanMyKad() {
-  method = "mykad";
-
-  document.getElementById('manualBtn').className =
-    "bg-gray-300 text-gray-800 px-3 py-2 rounded w-full hover:bg-gray-400";
-  document.getElementById('mykadBtn').className =
-    "bg-green-500 text-white px-3 py-2 rounded w-full hover:bg-green-600";
-
-  // simulation
-  document.getElementById('name').value = "Ali bin Abu";
-  document.getElementById('emp_id').value = "DBKU999";
-  document.getElementById('email').value = "ali@dbku.gov.my";
-  document.getElementById('dept').value = "pengurusan sumber manusia (HRM)";
-  document.getElementById('other_dept').value = "";
-  document.getElementById('otherDeptWrapper').classList.add("hidden");
-
-  setMessage("MyKad scanned successfully", "success");
-}
-
-function toggleOtherDepartment() {
-  const dept = document.getElementById('dept').value;
-  const wrapper = document.getElementById('otherDeptWrapper');
-  const otherInput = document.getElementById('other_dept');
-
-  if (dept === "Others") {
-    wrapper.classList.remove("hidden");
-  } else {
-    wrapper.classList.add("hidden");
-    otherInput.value = "";
-  }
-}
-
-function getDepartmentValue() {
-  const selectedDept = document.getElementById('dept').value.trim();
-  const otherDept = document.getElementById('other_dept').value.trim();
-
-  if (selectedDept === "Others") {
-    return otherDept;
-  }
-
-  return selectedDept;
-}
-
-function validateForm() {
-  const fullName = document.getElementById('name').value.trim();
-  const employeeId = document.getElementById('emp_id').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const selectedDept = document.getElementById('dept').value.trim();
-  const otherDept = document.getElementById('other_dept').value.trim();
-  const password = document.getElementById('password').value;
-  const confirmPassword = document.getElementById('confirm_password').value;
-
-  if (!fullName || !employeeId || !email || !selectedDept || !password || !confirmPassword) {
-    setMessage("Please fill in all fields", "error");
-    return false;
-  }
-
-  if (selectedDept === "Others" && !otherDept) {
-    setMessage("Please enter your department", "error");
-    return false;
-  }
-
-  if (password.length < 8) {
-    setMessage("Password must be at least 8 characters", "error");
-    return false;
-  }
-
-  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
-    setMessage("Password must contain letters and numbers", "error");
-    return false;
-  }
-
-  if (password !== confirmPassword) {
-    setMessage("Passwords do not match", "error");
-    return false;
-  }
-
-  return true;
-}
-
-function submitForm() {
-  if (!validateForm()) {
-    return;
-  }
-
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  btn.innerText = "Registering...";
-
-  fetch('/api/employees/register/manual/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      full_name: document.getElementById('name').value.trim(),
-      employee_id: document.getElementById('emp_id').value.trim(),
-      email: document.getElementById('email').value.trim(),
-      department: getDepartmentValue(),
-      password: document.getElementById('password').value,
-      confirm_password: document.getElementById('confirm_password').value,
-      registration_method: method
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.message) {
-      setMessage("Registration successful. Redirecting to login...", "success");
-
-      setTimeout(() => {
-        window.location.href = "/api/employees/login-page/";
-      }, 1500);
+    if (m === 'manual') {
+      manualBtn.className = 'mode-btn active-manual';
+      mykadBtn.className = 'mode-btn';
+      setMsg('', '');
     } else {
-      setMessage(data.error || "Registration failed", "error");
+      manualBtn.className = 'mode-btn';
+      mykadBtn.className = 'mode-btn active-mykad';
+      // Simulate MyKad scan
+      document.getElementById('name').value = 'Ali bin Abu';
+      document.getElementById('emp_id').value = 'DBKU999';
+      document.getElementById('email').value = 'ali@dbku.gov.my';
+      document.getElementById('dept').value = 'Human Resource Management (HRM)';
+      document.getElementById('other_dept').value = '';
+      document.getElementById('otherDeptWrapper').classList.add('hidden');
+      setMsg('MyKad scanned successfully — please set your password below.', 'success');
     }
-  })
-  .catch(() => {
-    setMessage("Error connecting to server", "error");
-  })
-  .finally(() => {
-    btn.disabled = false;
-    btn.innerText = "Register";
-  });
-}
+  }
+
+  function toggleOtherDepartment() {
+    const dept = document.getElementById('dept').value;
+    const wrapper = document.getElementById('otherDeptWrapper');
+    if (dept === 'Others') {
+      wrapper.classList.remove('hidden');
+    } else {
+      wrapper.classList.add('hidden');
+      document.getElementById('other_dept').value = '';
+    }
+  }
+
+  function getDepartmentValue() {
+    const selected = document.getElementById('dept').value.trim();
+    if (selected === 'Others') {
+      return document.getElementById('other_dept').value.trim();
+    }
+    return selected;
+  }
+
+  function checkPasswordStrength() {
+    const pw = document.getElementById('password').value;
+    const toggle = (id, condition) => {
+      document.getElementById(id).classList.toggle('met', condition);
+    };
+    toggle('req-length', pw.length >= 8);
+    toggle('req-letter', /[A-Za-z]/.test(pw));
+    toggle('req-number', /[0-9]/.test(pw));
+  }
+
+  function togglePassword(fieldId, btn) {
+    const input = document.getElementById(fieldId);
+    const icon = document.getElementById('eyeIcon-' + fieldId);
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    icon.innerHTML = isPassword
+      ? `<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`
+      : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+  }
+
+  function setMsg(text, type) {
+    const el = document.getElementById('msg');
+    el.innerText = text;
+    el.className = type || '';
+    if (text) el.style.marginTop = '1rem';
+  }
+
+  function validateForm() {
+    const name = document.getElementById('name').value.trim();
+    const empId = document.getElementById('emp_id').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const dept = document.getElementById('dept').value.trim();
+    const otherDept = document.getElementById('other_dept').value.trim();
+    const pw = document.getElementById('password').value;
+    const confirmPw = document.getElementById('confirm_password').value;
+
+    if (!name || !empId || !email || !dept || !pw || !confirmPw) {
+      setMsg('Please fill in all required fields.', 'error');
+      return false;
+    }
+
+    if (!email.includes('@')) {
+      setMsg('Please enter a valid email address.', 'error');
+      return false;
+    }
+
+    if (dept === 'Others' && !otherDept) {
+      setMsg('Please specify your department.', 'error');
+      return false;
+    }
+
+    if (pw.length < 8) {
+      setMsg('Password must be at least 8 characters.', 'error');
+      return false;
+    }
+
+    if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) {
+      setMsg('Password must contain at least 1 letter and 1 number.', 'error');
+      return false;
+    }
+
+    if (pw !== confirmPw) {
+      setMsg('Passwords do not match.', 'error');
+      return false;
+    }
+
+    return true;
+  }
+
+  function submitForm() {
+    if (!validateForm()) return;
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<div class="spinner"></div> Registering...`;
+
+    fetch('/api/employees/register/manual/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        full_name: document.getElementById('name').value.trim(),
+        employee_id: document.getElementById('emp_id').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        department: getDepartmentValue(),
+        password: document.getElementById('password').value,
+        confirm_password: document.getElementById('confirm_password').value,
+        registration_method: method
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.message) {
+        setMsg('Registration successful! Redirecting to login...', 'success');
+        setTimeout(() => {
+          window.location.href = '/api/employees/login-page/';
+        }, 1500);
+      } else {
+        setMsg(data.error || 'Registration failed. Please try again.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> Register Account`;
+      }
+    })
+    .catch(() => {
+      setMsg('Error connecting to server. Please try again.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> Register Account`;
+    });
+  }
 </script>
 
 </body>
