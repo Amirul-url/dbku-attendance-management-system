@@ -1203,12 +1203,19 @@
   }
 
   function updateGeofenceLayer() {
-    if (!eventMap || !eventMap.getSource("geofence")) return;
+    if (!eventMap || !mapReady) return;
+
+    if (!eventMap.getSource("geofence") || !eventMap.getLayer("geofence-fill") || !eventMap.getLayer("geofence-outline")) {
+      addGeofenceSourceAndLayers();
+    }
+
+    const geofenceSource = eventMap.getSource("geofence");
+    if (!geofenceSource) return;
 
     const position = getLatLngFromInputs();
 
     if (!position) {
-      eventMap.getSource("geofence").setData({
+      geofenceSource.setData({
         type: "FeatureCollection",
         features: [],
       });
@@ -1216,12 +1223,15 @@
     }
 
     const radius = getRadiusValue();
-    const circle = turf.circle([position.lng, position.lat], radius / 1000, {
+    const circleFeature = turf.circle([position.lng, position.lat], radius / 1000, {
       steps: 64,
       units: "kilometers",
     });
 
-    eventMap.getSource("geofence").setData(circle);
+    geofenceSource.setData({
+      type: "FeatureCollection",
+      features: [circleFeature],
+    });
   }
 
   function ensureMarker(position) {
@@ -1235,11 +1245,19 @@
         .setLngLat([position.lng, position.lat])
         .addTo(eventMap);
 
-      eventMarker.on("dragend", function () {
+      eventMarker.on("drag", function () {
         const lngLat = eventMarker.getLngLat();
         setLatLngInputs(lngLat.lat, lngLat.lng);
         updateGeofenceLayer();
         scheduleReverseGeocode(lngLat.lat, lngLat.lng, "Pin moved...");
+        setMapStatus("Pin updated manually", "success");
+      });
+
+      eventMarker.on("dragend", function () {
+        const lngLat = eventMarker.getLngLat();
+        setLatLngInputs(lngLat.lat, lngLat.lng);
+        updateGeofenceLayer();
+        reverseGeocodeNow(lngLat.lat, lngLat.lng, "Pin dropped. Updating address...");
         setMapStatus("Pin updated manually", "success");
       });
     } else {
@@ -1395,18 +1413,13 @@
 
   function scheduleRealtimeGeocode() {
     clearTimeout(geocodeTimer);
-
-    const text = document.getElementById("e_location").value.trim();
-    if (!text || suppressLocationInputGeocode) return;
-
-    geocodeTimer = setTimeout(() => geocodeLocationNow(), 900);
   }
 
   function scheduleReverseGeocode(lat, lng, message) {
     clearTimeout(reverseGeocodeTimer);
     reverseGeocodeTimer = setTimeout(
       () => reverseGeocodeNow(lat, lng, message),
-      250
+      350
     );
   }
 
@@ -1577,7 +1590,7 @@
       setMapMode("2d");
     }
 
-    setMapStatus("Enter full address to auto detect coordinates", "info");
+    setMapStatus("Type address and choose suggestion, or drag pin on map", "info");
   }
 
   function openModal() {
@@ -1764,7 +1777,6 @@
       locationInput.addEventListener("input", function () {
         if (suppressLocationInputGeocode) return;
         scheduleSuggestionFetch();
-        scheduleRealtimeGeocode();
       });
 
       locationInput.addEventListener("focus", function () {
@@ -1773,9 +1785,20 @@
         }
       });
 
-      locationInput.addEventListener("change", function () {
-        if (suppressLocationInputGeocode) return;
-        geocodeLocationNow();
+      locationInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          hideSuggestions();
+          geocodeLocationNow();
+        }
+      });
+
+      locationInput.addEventListener("blur", function () {
+        setTimeout(() => {
+          if (!suggestionsBox.matches(":hover")) {
+            hideSuggestions();
+          }
+        }, 180);
       });
     }
 
