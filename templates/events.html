@@ -1288,16 +1288,17 @@
         const lngLat = eventMarker.getLngLat();
         setLatLngInputs(lngLat.lat, lngLat.lng);
         updateGeofenceLayer();
+        // Update address in real time while dragging (debounced 400ms)
         scheduleReverseGeocode(lngLat.lat, lngLat.lng, "Pin moved...");
-        setMapStatus("Pin updated manually", "success");
       });
 
       eventMarker.on("dragend", function () {
         const lngLat = eventMarker.getLngLat();
         setLatLngInputs(lngLat.lat, lngLat.lng);
         updateGeofenceLayer();
-        reverseGeocodeNow(lngLat.lat, lngLat.lng, "Pin dropped. Updating address...");
-        setMapStatus("Pin updated manually", "success");
+        // Final accurate address update when pin is released
+        clearTimeout(reverseGeocodeTimer);
+        reverseGeocodeNow(lngLat.lat, lngLat.lng, "Getting address...");
       });
     } else {
       eventMarker.setLngLat([position.lng, position.lat]);
@@ -1522,9 +1523,9 @@
     setMapStatus(message, "info");
 
     try {
-      // Use Nominatim (OpenStreetMap) for accurate full address — same as Google Maps format
+      // zoom=18 gets street-level, but misses POI names. Use zoom=18 and check name field too.
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&namedetails=1`,
         {
           headers: {
             "Accept-Language": "en",
@@ -1538,6 +1539,13 @@
       if (requestId !== latestReverseGeocodeRequestId) return;
 
       if (result && result.address) {
+        // If the result has a proper name (e.g. "Padang Merdeka"), inject it as amenity if not already set
+        const a = result.address;
+        const poiName = result.name || result.namedetails?.name || "";
+        if (poiName && !a.amenity && !a.building && !a.tourism && !a.leisure) {
+          a.amenity = poiName;
+        }
+
         const reverseAddress = buildFullAddressFromNominatim(result);
         const finalAddress = reverseAddress || result.display_name || "";
 
@@ -1554,10 +1562,66 @@
           hideSuggestions();
           setMapStatus("Address updated from pin", "success");
         } else {
-          setMapStatus("Pin moved. Preview updated — click 'Use Pin Address' if you want to replace the selected address", "success");
+          setMapStatus("Pin moved. Preview updated — click 'Use Pin Address' to apply", "success");
         }
       } else {
         setPendingPinAddress("");
+        setMapStatus("Coordinates updated", "warning");
+      }
+    } catch {
+      if (requestId !== latestReverseGeocodeRequestId) return;
+      setMapStatus("Failed to update address", "error");
+    }
+  }
+
+  // Reverse geocode but inject a known POI name from map click if Nominatim misses it
+  async function reverseGeocodeWithPoiHint(lat, lng, poiNameHint, message) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    const requestId = ++latestReverseGeocodeRequestId;
+    setMapStatus(message, "info");
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&namedetails=1`,
+        {
+          headers: {
+            "Accept-Language": "en",
+            "User-Agent": "EventManagementApp/1.0"
+          }
+        }
+      );
+
+      const result = await response.json();
+
+      if (requestId !== latestReverseGeocodeRequestId) return;
+
+      if (result && result.address) {
+        const a = result.address;
+        // Use POI name from map click layer if Nominatim doesn't have one
+        const nominatimName = result.name || (result.namedetails && result.namedetails.name) || "";
+        const bestName = nominatimName || poiNameHint || "";
+        if (bestName && !a.amenity && !a.building && !a.tourism && !a.leisure && !a.office && !a.shop) {
+          a.amenity = bestName;
+        }
+
+        const reverseAddress = buildFullAddressFromNominatim(result);
+        const finalAddress = reverseAddress || result.display_name || "";
+
+        if (!finalAddress) {
+          setMapStatus("Pin placed, but no address found", "warning");
+          return;
+        }
+
+        setPendingPinAddress(finalAddress);
+        if (!addressSelectionLocked) {
+          setLocationInputValue(finalAddress);
+          hideSuggestions();
+          setMapStatus("Address updated", "success");
+        } else {
+          setMapStatus("Pin placed. Click 'Use Pin Address' to apply", "success");
+        }
+      } else {
         setMapStatus("Coordinates updated", "warning");
       }
     } catch {
@@ -2034,10 +2098,15 @@
           const lat = event.lngLat.lat;
           const lng = event.lngLat.lng;
 
+          // Try to get the POI/feature name from the clicked map layer first
+          const features = eventMap.queryRenderedFeatures(event.point);
+          const poiFeature = features.find(f => f.properties && (f.properties.name || f.properties.name_en));
+          const clickedPoiName = poiFeature ? (f => f.properties.name_en || f.properties.name)(poiFeature) : null;
+
           setLatLngInputs(lat, lng);
           syncMapFromFields(false);
-          scheduleReverseGeocode(lat, lng, "Map clicked. Updating address...");
-          setMapStatus("Pin updated", "success");
+          // Pass POI name hint to reverse geocode so it shows in address field
+          reverseGeocodeWithPoiHint(lat, lng, clickedPoiName, "Getting address...");
         });
       }
 
