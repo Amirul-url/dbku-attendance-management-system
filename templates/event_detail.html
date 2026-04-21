@@ -3056,10 +3056,285 @@
   </div>
 </div>
 
+
+<script src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+
 <script>
+  const EVENT_DETAIL_MAPTILER_API_KEY = "{{ maptiler_api_key|default:''|escapejs }}";
+  const EVENT_DETAIL_MAP_STYLES = {
+    streets: `https://api.maptiler.com/maps/streets-v2/style.json?key=${EVENT_DETAIL_MAPTILER_API_KEY}`,
+    satellite: `https://api.maptiler.com/maps/hybrid/style.json?key=${EVENT_DETAIL_MAPTILER_API_KEY}`,
+  };
+
+  let eventDetailMap = null;
+  let eventDetailMapMarker = null;
+  let eventDetailMapReady = false;
+  let eventDetailMapStyle = "streets";
+  let eventDetailMapIs3D = false;
+
+  const EVENT_DETAIL_LAT = parseFloat("{{ event.latitude|default:'' }}");
+  const EVENT_DETAIL_LNG = parseFloat("{{ event.longitude|default:'' }}");
+  const EVENT_DETAIL_RADIUS = parseInt("{{ event.radius_meter|default:100 }}", 10) || 100;
+  const EVENT_DETAIL_HAS_COORDS = Number.isFinite(EVENT_DETAIL_LAT) && Number.isFinite(EVENT_DETAIL_LNG);
+  const EVENT_DETAIL_CENTER = EVENT_DETAIL_HAS_COORDS ? [EVENT_DETAIL_LNG, EVENT_DETAIL_LAT] : [110.3592, 1.5533];
+
   function getEl(id) {
     return document.getElementById(id);
   }
+
+
+  function setEventDetailMapStatus(message, type) {
+    const box = getEl('eventDetailMapStatus');
+    if (!box) return;
+    box.textContent = message;
+    box.className = 'map-status ' + (type || 'info');
+  }
+
+  function addEventDetailGeofenceLayers() {
+    if (!eventDetailMap) return;
+
+    if (!eventDetailMap.getSource('event-detail-geofence')) {
+      eventDetailMap.addSource('event-detail-geofence', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+    }
+
+    if (!eventDetailMap.getLayer('event-detail-geofence-fill')) {
+      eventDetailMap.addLayer({
+        id: 'event-detail-geofence-fill',
+        type: 'fill',
+        source: 'event-detail-geofence',
+        paint: {
+          'fill-color': '#003B46',
+          'fill-opacity': 0.12
+        }
+      });
+    }
+
+    if (!eventDetailMap.getLayer('event-detail-geofence-outline')) {
+      eventDetailMap.addLayer({
+        id: 'event-detail-geofence-outline',
+        type: 'line',
+        source: 'event-detail-geofence',
+        paint: {
+          'line-color': '#003B46',
+          'line-width': 2
+        }
+      });
+    }
+  }
+
+  function updateEventDetailGeofence() {
+    if (!eventDetailMap || !eventDetailMapReady || !EVENT_DETAIL_HAS_COORDS) return;
+    addEventDetailGeofenceLayers();
+
+    const source = eventDetailMap.getSource('event-detail-geofence');
+    if (!source) return;
+
+    const circle = turf.circle([EVENT_DETAIL_LNG, EVENT_DETAIL_LAT], EVENT_DETAIL_RADIUS / 1000, {
+      steps: 64,
+      units: 'kilometers'
+    });
+
+    source.setData({
+      type: 'FeatureCollection',
+      features: [circle]
+    });
+  }
+
+  function ensureEventDetailMarker() {
+    if (!eventDetailMap || !EVENT_DETAIL_HAS_COORDS) return;
+
+    if (!eventDetailMapMarker) {
+      eventDetailMapMarker = new maplibregl.Marker({ color: '#003B46' })
+        .setLngLat([EVENT_DETAIL_LNG, EVENT_DETAIL_LAT])
+        .addTo(eventDetailMap);
+    } else {
+      eventDetailMapMarker.setLngLat([EVENT_DETAIL_LNG, EVENT_DETAIL_LAT]);
+    }
+  }
+
+  function restoreEventDetailMapLayers() {
+    if (!eventDetailMap || !eventDetailMapReady) return;
+    addEventDetailGeofenceLayers();
+    ensureEventDetailMarker();
+    updateEventDetailGeofence();
+    if (eventDetailMapIs3D) {
+      enableEventDetail3D();
+    }
+  }
+
+  function enableEventDetail3D() {
+    if (!eventDetailMap || !eventDetailMapReady) return;
+
+    if (!eventDetailMap.getSource('event-detail-terrain')) {
+      eventDetailMap.addSource('event-detail-terrain', {
+        type: 'raster-dem',
+        url: `https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=${EVENT_DETAIL_MAPTILER_API_KEY}`,
+        tileSize: 256
+      });
+    }
+
+    if (typeof eventDetailMap.setTerrain === 'function') {
+      eventDetailMap.setTerrain({
+        source: 'event-detail-terrain',
+        exaggeration: 1.2
+      });
+    }
+
+    const layers = eventDetailMap.getStyle().layers || [];
+    const labelLayerId = layers.find(layer => layer.type === 'symbol' && layer.layout && layer.layout['text-field'])?.id;
+
+    if (!eventDetailMap.getLayer('event-detail-3d-buildings')) {
+      eventDetailMap.addLayer({
+        id: 'event-detail-3d-buildings',
+        source: 'openmaptiles',
+        'source-layer': 'building',
+        type: 'fill-extrusion',
+        minzoom: 15,
+        paint: {
+          'fill-extrusion-color': '#d9dee3',
+          'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8],
+          'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+          'fill-extrusion-opacity': 0.72
+        }
+      }, labelLayerId);
+    }
+  }
+
+  function initEventDetailMap() {
+    const mapEl = getEl('eventDetailMap');
+    if (!mapEl) return;
+
+    if (typeof maplibregl === 'undefined') {
+      setEventDetailMapStatus('Map library failed to load', 'error');
+      return;
+    }
+
+    if (!EVENT_DETAIL_MAPTILER_API_KEY) {
+      setEventDetailMapStatus('MapTiler API key not found', 'error');
+      return;
+    }
+
+    if (!EVENT_DETAIL_HAS_COORDS) {
+      setEventDetailMapStatus('Event location is not available', 'warning');
+      return;
+    }
+
+    eventDetailMap = new maplibregl.Map({
+      container: 'eventDetailMap',
+      style: EVENT_DETAIL_MAP_STYLES[eventDetailMapStyle],
+      center: EVENT_DETAIL_CENTER,
+      zoom: 16,
+      pitch: 0,
+      bearing: 0,
+      antialias: true
+    });
+
+    eventDetailMap.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+    eventDetailMap.on('load', function () {
+      eventDetailMapReady = true;
+      ensureEventDetailMarker();
+      addEventDetailGeofenceLayers();
+      updateEventDetailGeofence();
+      setEventDetailMapStatus('Map ready', 'success');
+    });
+
+    eventDetailMap.on('style.load', function () {
+      if (!eventDetailMapReady) return;
+      restoreEventDetailMapLayers();
+    });
+  }
+
+  function focusEventDetailMap() {
+    if (!eventDetailMap || !EVENT_DETAIL_HAS_COORDS) return;
+    eventDetailMap.flyTo({
+      center: EVENT_DETAIL_CENTER,
+      zoom: 16,
+      essential: true
+    });
+    setEventDetailMapStatus('Focused on event location', 'success');
+  }
+
+  function setEventDetailMapMode(mode) {
+    if (!eventDetailMap || !eventDetailMapReady) return;
+
+    if (mode === '2d') {
+      eventDetailMapIs3D = false;
+
+      if (typeof eventDetailMap.setTerrain === 'function') {
+        eventDetailMap.setTerrain(null);
+      }
+
+      if (eventDetailMap.getLayer('event-detail-3d-buildings')) {
+        eventDetailMap.removeLayer('event-detail-3d-buildings');
+      }
+
+      if (eventDetailMap.getSource('event-detail-terrain')) {
+        eventDetailMap.removeSource('event-detail-terrain');
+      }
+
+      if (typeof eventDetailMap.setProjection === 'function') {
+        eventDetailMap.setProjection({ type: 'mercator' });
+      }
+
+      eventDetailMap.easeTo({
+        pitch: 0,
+        bearing: 0,
+        duration: 700
+      });
+
+      setEventDetailMapStatus('2D view enabled', 'success');
+      return;
+    }
+
+    eventDetailMapIs3D = true;
+
+    if (typeof eventDetailMap.setProjection === 'function') {
+      eventDetailMap.setProjection({ type: 'globe' });
+    }
+
+    enableEventDetail3D();
+
+    eventDetailMap.easeTo({
+      pitch: 65,
+      bearing: 25,
+      duration: 700
+    });
+
+    setEventDetailMapStatus('3D view enabled', 'success');
+  }
+
+  function toggleEventDetailMapStyle() {
+    if (!eventDetailMap || !eventDetailMapReady) return;
+
+    eventDetailMapStyle = eventDetailMapStyle === 'streets' ? 'satellite' : 'streets';
+
+    const center = eventDetailMap.getCenter();
+    const zoom = eventDetailMap.getZoom();
+    const pitch = eventDetailMap.getPitch();
+    const bearing = eventDetailMap.getBearing();
+
+    eventDetailMap.setStyle(EVENT_DETAIL_MAP_STYLES[eventDetailMapStyle]);
+
+    eventDetailMap.once('style.load', function () {
+      eventDetailMap.jumpTo({
+        center: center,
+        zoom: zoom,
+        pitch: pitch,
+        bearing: bearing
+      });
+      restoreEventDetailMapLayers();
+      setEventDetailMapStatus(
+        'Map style: ' + (eventDetailMapStyle === 'streets' ? 'streets' : 'satellite'),
+        'success'
+      );
+    });
+  }
+
 
   function getExactPassportRawText(dataset) {
     const rawTextId = dataset.rawtextId || dataset.rawtextid || '';
