@@ -1377,6 +1377,7 @@ def events_page(request):
 
     context = {
         'events': events,
+        'maptiler_api_key': settings.MAPTILER_API_KEY,
     }
     context.update(role_context(request))
 

@@ -3,9 +3,7 @@
 
 <link
   rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-  crossorigin=""
+  href="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css"
 />
 
 <style>
@@ -555,9 +553,21 @@
     border-radius: 10px;
   }
 
-  .leaflet-container {
+  .maplibregl-map {
     font-family: inherit;
     border-radius: 10px;
+  }
+
+  .maplibregl-canvas {
+    border-radius: 10px;
+  }
+
+  .map-mode-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
   }
 
   /* =========================
@@ -921,15 +931,7 @@
             </div>
           </div>
 
-          <div
-            style="
-              display: flex;
-              gap: 8px;
-              align-items: center;
-              flex-wrap: wrap;
-              margin-bottom: 12px;
-            "
-          >
+          <div class="map-mode-group">
             <button
               type="button"
               onclick="geocodeLocationNow()"
@@ -937,6 +939,33 @@
             >
               <i data-lucide="map-pin"></i>
               Auto Detect from Address
+            </button>
+
+            <button
+              type="button"
+              onclick="setMapMode('2d')"
+              class="btn btn-ghost"
+            >
+              <i data-lucide="map"></i>
+              2D View
+            </button>
+
+            <button
+              type="button"
+              onclick="setMapMode('3d')"
+              class="btn btn-ghost"
+            >
+              <i data-lucide="box"></i>
+              3D View
+            </button>
+
+            <button
+              type="button"
+              onclick="toggleMapStyle()"
+              class="btn btn-ghost"
+            >
+              <i data-lucide="layers-3"></i>
+              Switch Style
             </button>
 
             <div id="mapStatus" class="map-status info">Map loading...</div>
@@ -982,17 +1011,19 @@
 </div>
 {% endif %}
 
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-  crossorigin=""
-></script>
+<script src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 
 <script>
+  const MAPTILER_API_KEY = "{{ maptiler_api_key|default:''|escapejs }}";
+  const MAP_STYLES = {
+    streets: `https://api.maptiler.com/maps/streets-v2/style.json?key=${MAPTILER_API_KEY}`,
+    satellite: `https://api.maptiler.com/maps/hybrid/style.json?key=${MAPTILER_API_KEY}`,
+  };
+
   let editId = null;
   let eventMap = null;
   let eventMarker = null;
-  let eventCircle = null;
 
   let geocodeTimer = null;
   let reverseGeocodeTimer = null;
@@ -1001,12 +1032,16 @@
   let mapReady = false;
   let pendingMapSync = false;
   let suppressLocationInputGeocode = false;
+  let currentMapStyle = "streets";
+  let is3DMode = false;
+  let mapClickListenerAttached = false;
+  let mapControlsBound = false;
 
   let latestGeocodeRequestId = 0;
   let latestReverseGeocodeRequestId = 0;
   let latestSuggestionRequestId = 0;
 
-  const DEFAULT_CENTER = [1.5533, 110.3592];
+  const DEFAULT_CENTER = [110.3592, 1.5533];
 
   function setMapStatus(msg, type = "info") {
     const box = document.getElementById("mapStatus");
@@ -1117,45 +1152,98 @@
 
   function clearMapObjects() {
     if (eventMarker) {
-      eventMap.removeLayer(eventMarker);
+      eventMarker.remove();
       eventMarker = null;
     }
 
-    if (eventCircle) {
-      eventMap.removeLayer(eventCircle);
-      eventCircle = null;
+    if (eventMap && eventMap.getSource("geofence")) {
+      eventMap.getSource("geofence").setData({
+        type: "FeatureCollection",
+        features: [],
+      });
     }
   }
 
-  function ensureMarkerAndCircle(position) {
+  function addGeofenceSourceAndLayers() {
+    if (!eventMap) return;
+
+    if (!eventMap.getSource("geofence")) {
+      eventMap.addSource("geofence", {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [],
+        },
+      });
+    }
+
+    if (!eventMap.getLayer("geofence-fill")) {
+      eventMap.addLayer({
+        id: "geofence-fill",
+        type: "fill",
+        source: "geofence",
+        paint: {
+          "fill-color": "#003B46",
+          "fill-opacity": 0.12,
+        },
+      });
+    }
+
+    if (!eventMap.getLayer("geofence-outline")) {
+      eventMap.addLayer({
+        id: "geofence-outline",
+        type: "line",
+        source: "geofence",
+        paint: {
+          "line-color": "#003B46",
+          "line-width": 2,
+        },
+      });
+    }
+  }
+
+  function updateGeofenceLayer() {
+    if (!eventMap || !eventMap.getSource("geofence")) return;
+
+    const position = getLatLngFromInputs();
+
+    if (!position) {
+      eventMap.getSource("geofence").setData({
+        type: "FeatureCollection",
+        features: [],
+      });
+      return;
+    }
+
+    const radius = getRadiusValue();
+    const circle = turf.circle([position.lng, position.lat], radius / 1000, {
+      steps: 64,
+      units: "kilometers",
+    });
+
+    eventMap.getSource("geofence").setData(circle);
+  }
+
+  function ensureMarker(position) {
     if (!mapReady || !eventMap) return;
 
     if (!eventMarker) {
-      eventMarker = L.marker([position.lat, position.lng], {
+      eventMarker = new maplibregl.Marker({
         draggable: true,
-      }).addTo(eventMap);
+        color: "#003B46",
+      })
+        .setLngLat([position.lng, position.lat])
+        .addTo(eventMap);
 
       eventMarker.on("dragend", function () {
-        const latLng = eventMarker.getLatLng();
-        setLatLngInputs(latLng.lat, latLng.lng);
-        syncMapFromFields(false);
-        scheduleReverseGeocode(latLng.lat, latLng.lng, "Pin moved...");
+        const lngLat = eventMarker.getLngLat();
+        setLatLngInputs(lngLat.lat, lngLat.lng);
+        updateGeofenceLayer();
+        scheduleReverseGeocode(lngLat.lat, lngLat.lng, "Pin moved...");
         setMapStatus("Pin updated manually", "success");
       });
     } else {
-      eventMarker.setLatLng([position.lat, position.lng]);
-    }
-
-    if (!eventCircle) {
-      eventCircle = L.circle([position.lat, position.lng], {
-        radius: getRadiusValue(),
-        color: "#003B46",
-        fillColor: "#003B46",
-        fillOpacity: 0.12,
-      }).addTo(eventMap);
-    } else {
-      eventCircle.setLatLng([position.lat, position.lng]);
-      eventCircle.setRadius(getRadiusValue());
+      eventMarker.setLngLat([position.lng, position.lat]);
     }
   }
 
@@ -1169,15 +1257,24 @@
 
     if (!position) {
       clearMapObjects();
-      eventMap.setView(DEFAULT_CENTER, 12);
+      eventMap.flyTo({
+        center: DEFAULT_CENTER,
+        zoom: 12,
+        essential: true,
+      });
       setMapStatus("Enter address or coordinates to show map", "info");
       return;
     }
 
-    ensureMarkerAndCircle(position);
+    ensureMarker(position);
+    updateGeofenceLayer();
 
     if (pan) {
-      eventMap.setView([position.lat, position.lng], 17);
+      eventMap.flyTo({
+        center: [position.lng, position.lat],
+        zoom: Math.max(eventMap.getZoom() || 12, 17),
+        essential: true,
+      });
     }
 
     setMapStatus("Map synced", "success");
@@ -1195,22 +1292,25 @@
 
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(text)}`,
-        {
-          headers: { Accept: "application/json" },
-        }
+        `https://api.maptiler.com/geocoding/${encodeURIComponent(text)}.json?key=${MAPTILER_API_KEY}&autocomplete=true&limit=5`
       );
 
       const results = await response.json();
 
       if (requestId !== latestSuggestionRequestId) return;
 
-      if (!Array.isArray(results)) {
+      if (!results || !Array.isArray(results.features)) {
         hideSuggestions();
         return;
       }
 
-      renderSuggestions(results);
+      const items = results.features.map((feature) => ({
+        display_name: feature.place_name || feature.text || "",
+        lat: feature.center?.[1],
+        lon: feature.center?.[0],
+      }));
+
+      renderSuggestions(items.filter((item) => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lon))));
     } catch {
       hideSuggestions();
     }
@@ -1229,24 +1329,21 @@
 
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(text)}`,
-        {
-          headers: { Accept: "application/json" },
-        }
+        `https://api.maptiler.com/geocoding/${encodeURIComponent(text)}.json?key=${MAPTILER_API_KEY}&limit=1`
       );
 
       const results = await response.json();
 
       if (requestId !== latestGeocodeRequestId) return;
 
-      if (!Array.isArray(results) || !results.length) {
+      if (!results || !Array.isArray(results.features) || !results.features.length) {
         setMapStatus("Address not found", "error");
         return;
       }
 
-      const first = results[0];
-      const lat = parseFloat(first.lat);
-      const lng = parseFloat(first.lon);
+      const first = results.features[0];
+      const lng = parseFloat(first.center?.[0]);
+      const lat = parseFloat(first.center?.[1]);
 
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         setMapStatus("Invalid coordinates", "error");
@@ -1255,8 +1352,8 @@
 
       setLatLngInputs(lat, lng);
 
-      if (first.display_name) {
-        setLocationInputValue(first.display_name);
+      if (first.place_name) {
+        setLocationInputValue(first.place_name);
       }
 
       syncMapFromFields(true);
@@ -1276,18 +1373,15 @@
 
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=18&lat=${lat}&lon=${lng}`,
-        {
-          headers: { Accept: "application/json" },
-        }
+        `https://api.maptiler.com/geocoding/${lng},${lat}.json?key=${MAPTILER_API_KEY}`
       );
 
       const result = await response.json();
 
       if (requestId !== latestReverseGeocodeRequestId) return;
 
-      if (result && result.display_name) {
-        setLocationInputValue(result.display_name);
+      if (result && Array.isArray(result.features) && result.features.length) {
+        setLocationInputValue(result.features[0].place_name || "");
         hideSuggestions();
         setMapStatus("Address updated from pin", "success");
       } else {
@@ -1321,6 +1415,135 @@
     suggestionTimer = setTimeout(() => fetchAddressSuggestions(), 350);
   }
 
+  function setMapMode(mode) {
+    if (!eventMap || !mapReady) return;
+
+    if (mode === "2d") {
+      is3DMode = false;
+
+      if (typeof eventMap.setTerrain === "function") {
+        eventMap.setTerrain(null);
+      }
+
+      if (eventMap.getLayer("3d-buildings")) {
+        eventMap.removeLayer("3d-buildings");
+      }
+
+      if (eventMap.getSource("maptiler-terrain")) {
+        eventMap.removeSource("maptiler-terrain");
+      }
+
+      if (typeof eventMap.setProjection === "function") {
+        eventMap.setProjection({ type: "mercator" });
+      }
+
+      eventMap.easeTo({
+        pitch: 0,
+        bearing: 0,
+        duration: 800,
+      });
+
+      setMapStatus("2D view enabled", "success");
+      return;
+    }
+
+    is3DMode = true;
+
+    if (typeof eventMap.setProjection === "function") {
+      eventMap.setProjection({ type: "globe" });
+    }
+
+    enable3DLayers();
+
+    eventMap.easeTo({
+      pitch: 65,
+      bearing: 25,
+      duration: 800,
+    });
+
+    setMapStatus("3D view enabled", "success");
+  }
+
+  function enable3DLayers() {
+    if (!eventMap || !mapReady) return;
+
+    if (!eventMap.getSource("maptiler-terrain")) {
+      eventMap.addSource("maptiler-terrain", {
+        type: "raster-dem",
+        url: `https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=${MAPTILER_API_KEY}`,
+        tileSize: 256,
+      });
+    }
+
+    if (typeof eventMap.setTerrain === "function") {
+      eventMap.setTerrain({
+        source: "maptiler-terrain",
+        exaggeration: 1.2,
+      });
+    }
+
+    const layers = eventMap.getStyle().layers || [];
+    const labelLayerId = layers.find(
+      (layer) => layer.type === "symbol" && layer.layout && layer.layout["text-field"]
+    )?.id;
+
+    if (!eventMap.getLayer("3d-buildings")) {
+      eventMap.addLayer(
+        {
+          id: "3d-buildings",
+          source: "openmaptiles",
+          "source-layer": "building",
+          type: "fill-extrusion",
+          minzoom: 15,
+          paint: {
+            "fill-extrusion-color": "#d9dee3",
+            "fill-extrusion-height": ["coalesce", ["get", "render_height"], 8],
+            "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+            "fill-extrusion-opacity": 0.72,
+          },
+        },
+        labelLayerId
+      );
+    }
+  }
+
+  function restoreMapCustomLayers() {
+    if (!eventMap || !mapReady) return;
+    addGeofenceSourceAndLayers();
+    updateGeofenceLayer();
+    const position = getLatLngFromInputs();
+    if (position) {
+      ensureMarker(position);
+    }
+    if (is3DMode) {
+      enable3DLayers();
+    }
+  }
+
+  function toggleMapStyle() {
+    if (!eventMap || !mapReady) return;
+
+    currentMapStyle = currentMapStyle === "streets" ? "satellite" : "streets";
+
+    const center = eventMap.getCenter();
+    const zoom = eventMap.getZoom();
+    const pitch = eventMap.getPitch();
+    const bearing = eventMap.getBearing();
+
+    eventMap.setStyle(MAP_STYLES[currentMapStyle]);
+
+    eventMap.once("style.load", () => {
+      eventMap.jumpTo({
+        center,
+        zoom,
+        pitch,
+        bearing,
+      });
+      restoreMapCustomLayers();
+      setMapStatus(`Map style: ${currentMapStyle === "streets" ? "streets" : "satellite"}`, "success");
+    });
+  }
+
   function resetModalFields() {
     [
       "e_name",
@@ -1346,7 +1569,12 @@
 
     if (mapReady && eventMap) {
       clearMapObjects();
-      eventMap.setView(DEFAULT_CENTER, 12);
+      eventMap.flyTo({
+        center: DEFAULT_CENTER,
+        zoom: 12,
+        essential: true,
+      });
+      setMapMode("2d");
     }
 
     setMapStatus("Enter full address to auto detect coordinates", "info");
@@ -1364,8 +1592,12 @@
 
     setTimeout(() => {
       if (mapReady && eventMap) {
-        eventMap.invalidateSize();
-        eventMap.setView(DEFAULT_CENTER, 12);
+        eventMap.resize();
+        eventMap.flyTo({
+          center: DEFAULT_CENTER,
+          zoom: 12,
+          essential: true,
+        });
       }
     }, 250);
   }
@@ -1491,7 +1723,7 @@
 
       setTimeout(() => {
         if (mapReady && eventMap) {
-          eventMap.invalidateSize();
+          eventMap.resize();
         }
         syncMapFromFields(true);
       }, 250);
@@ -1519,29 +1751,9 @@
     });
   });
 
-  function initEventMap() {
-    const mapElement = document.getElementById("eventMap");
-    if (!mapElement || typeof L === "undefined") return;
-
-    eventMap = L.map("eventMap");
-    eventMap.setView(DEFAULT_CENTER, 12);
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(eventMap);
-
-    mapReady = true;
-
-    eventMap.on("click", function (event) {
-      const lat = event.latlng.lat;
-      const lng = event.latlng.lng;
-
-      setLatLngInputs(lat, lng);
-      syncMapFromFields(false);
-      scheduleReverseGeocode(lat, lng, "Map clicked. Updating address...");
-      setMapStatus("Pin updated", "success");
-    });
+  function bindMapControlInputs() {
+    if (mapControlsBound) return;
+    mapControlsBound = true;
 
     const locationInput = document.getElementById("e_location");
     const latInput = document.getElementById("e_latitude");
@@ -1579,25 +1791,62 @@
 
     if (radiusInput) {
       radiusInput.addEventListener("input", () => {
-        if (eventCircle) {
-          eventCircle.setRadius(getRadiusValue());
-        }
+        updateGeofenceLayer();
       });
 
       radiusInput.addEventListener("change", () => {
-        if (eventCircle) {
-          eventCircle.setRadius(getRadiusValue());
-        }
+        updateGeofenceLayer();
         setMapStatus("Radius updated", "success");
       });
     }
+  }
 
-    if (pendingMapSync) {
-      pendingMapSync = false;
-      syncMapFromFields(true);
-    } else {
-      setMapStatus("Map ready", "success");
+  function initEventMap() {
+    const mapElement = document.getElementById("eventMap");
+    if (!mapElement || typeof maplibregl === "undefined") return;
+
+    if (!MAPTILER_API_KEY) {
+      setMapStatus("MapTiler API key not found", "error");
+      return;
     }
+
+    eventMap = new maplibregl.Map({
+      container: "eventMap",
+      style: MAP_STYLES[currentMapStyle],
+      center: DEFAULT_CENTER,
+      zoom: 12,
+      pitch: 0,
+      bearing: 0,
+      antialias: true,
+    });
+
+    eventMap.addControl(new maplibregl.NavigationControl(), "top-right");
+
+    eventMap.on("load", function () {
+      mapReady = true;
+      addGeofenceSourceAndLayers();
+      bindMapControlInputs();
+
+      if (!mapClickListenerAttached) {
+        mapClickListenerAttached = true;
+        eventMap.on("click", function (event) {
+          const lat = event.lngLat.lat;
+          const lng = event.lngLat.lng;
+
+          setLatLngInputs(lat, lng);
+          syncMapFromFields(false);
+          scheduleReverseGeocode(lat, lng, "Map clicked. Updating address...");
+          setMapStatus("Pin updated", "success");
+        });
+      }
+
+      if (pendingMapSync) {
+        pendingMapSync = false;
+        syncMapFromFields(true);
+      } else {
+        setMapStatus("Map ready", "success");
+      }
+    });
   }
 
   document.addEventListener("click", function (event) {
