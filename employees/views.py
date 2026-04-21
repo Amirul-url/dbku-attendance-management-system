@@ -2136,6 +2136,7 @@ def event_detail(request, id):
     context = {
         'event': event,
         'total_attendance': total_attendance,
+        'maptiler_api_key': settings.MAPTILER_API_KEY,
 
         'employee_attendances': staff_page_obj.object_list,
         'staff_page_obj': staff_page_obj,

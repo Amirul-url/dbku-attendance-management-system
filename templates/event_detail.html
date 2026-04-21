@@ -1,6 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
 
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css"
+/>
+
 <style>
   :root {
     --ocean: #003B46;
@@ -924,6 +930,58 @@
     color: #ef6c00;
   }
 
+
+
+  .event-map-card {
+    margin-top: 18px;
+    border-top: 1px solid var(--border);
+    padding-top: 18px;
+  }
+
+  .event-map-toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .event-map-wrap {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f7f9fa;
+  }
+
+  #eventDetailMap {
+    width: 100%;
+    height: 360px;
+    min-height: 360px;
+    background: #e8eef0;
+  }
+
+  .event-map-note {
+    font-size: 11.5px;
+    color: var(--hint);
+    margin-top: 8px;
+  }
+
+  .event-map-empty {
+    background: #f7f9fa;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
+  .maplibregl-map {
+    font-family: inherit;
+  }
+
+  .maplibregl-canvas {
+    outline: none;
+  }
   @media (max-width: 900px) {
     .info-grid {
       grid-template-columns: 1fr 1fr;
@@ -1337,6 +1395,48 @@
           <div class="info-val info-val-muted">{{ event.description|default:"No description provided." }}</div>
         </div>
       </div>
+    </div>
+
+    <div class="event-map-card">
+      <div class="section-label">Event Map</div>
+
+      {% if event.latitude and event.longitude %}
+      <div class="event-map-toolbar">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="setEventDetailMapMode('2d')">
+          <i data-lucide="map"></i>
+          2D View
+        </button>
+
+        <button type="button" class="btn btn-ghost btn-sm" onclick="setEventDetailMapMode('3d')">
+          <i data-lucide="box"></i>
+          3D View
+        </button>
+
+        <button type="button" class="btn btn-ghost btn-sm" onclick="toggleEventDetailMapStyle()">
+          <i data-lucide="layers-3"></i>
+          Switch Style
+        </button>
+
+        <button type="button" class="btn btn-ghost btn-sm" onclick="focusEventDetailMap()">
+          <i data-lucide="locate-fixed"></i>
+          Focus Event
+        </button>
+
+        <div id="eventDetailMapStatus" class="map-status info">Map loading...</div>
+      </div>
+
+      <div class="event-map-wrap">
+        <div id="eventDetailMap"></div>
+      </div>
+
+      <p class="event-map-note">
+        Event location preview with geofence radius {{ event.radius_meter }}m.
+      </p>
+      {% else %}
+      <div class="event-map-empty">
+        This event does not have latitude and longitude set yet, so the map preview cannot be shown.
+      </div>
+      {% endif %}
     </div>
 
     <div style="border-top:1px solid var(--border);padding-top:18px;margin-top:18px">
@@ -3926,6 +4026,8 @@
     bindOtherToggle('staff_department', 'staff_department_other');
     bindOtherToggle('visitor_organization_field', 'visitor_organization_other');
     bindOtherToggle('edit_nationality', 'edit_nationality_other');
+
+    initEventDetailMap();
 
     if (window.lucide) {
       lucide.createIcons();
