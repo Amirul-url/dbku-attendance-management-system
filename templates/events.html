@@ -986,7 +986,7 @@
           </div>
 
           <p style="font-size: 11.5px; color: var(--hint); margin-top: 8px;">
-            Tip: type place, building, or full address → pick suggestion → drag pin to fine-tune.
+            Tip: type address → pick suggestion → drag pin to fine-tune.
           </p>
         </div>
       </div>
@@ -1041,6 +1041,10 @@
   let latestReverseGeocodeRequestId = 0;
   let latestSuggestionRequestId = 0;
 
+  let addressSelectionLocked = false;
+  let pendingPinAddress = "";
+  let isSuggestionPointerDown = false;
+
   const DEFAULT_CENTER = [110.3592, 1.5533];
 
   function setMapStatus(msg, type = "info") {
@@ -1083,6 +1087,39 @@
     setTimeout(() => {
       suppressLocationInputGeocode = false;
     }, 120);
+  }
+
+  function setAddressLockState(isLocked) {
+    addressSelectionLocked = !!isLocked;
+  }
+
+  function setPendingPinAddress(address) {
+    pendingPinAddress = String(address || "").trim();
+
+    const btn = document.getElementById("usePinAddressBtn");
+    const note = document.getElementById("pinAddressPreview");
+
+    if (btn) {
+      btn.disabled = !pendingPinAddress;
+    }
+
+    if (note) {
+      note.textContent = pendingPinAddress
+        ? `Pin address preview: ${pendingPinAddress}`
+        : "Pin address preview will appear after moving the pin.";
+    }
+  }
+
+  function applyPendingPinAddress() {
+    if (!pendingPinAddress) {
+      setMapStatus("Move the pin first to get an address preview", "warning");
+      return;
+    }
+
+    setLocationInputValue(pendingPinAddress);
+    setAddressLockState(true);
+    hideSuggestions();
+    setMapStatus("Pin address applied", "success");
   }
 
   function hideSuggestions() {
@@ -1144,6 +1181,8 @@
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
     setLocationInputValue(item.display_name || "");
+    setAddressLockState(true);
+    setPendingPinAddress("");
     setLatLngInputs(lat, lng);
     syncMapFromFields(true);
     hideSuggestions();
@@ -1298,46 +1337,6 @@
     setMapStatus("Map synced", "success");
   }
 
-  function getSuggestionProximity() {
-    const position = getLatLngFromInputs();
-
-    if (position) {
-      return `${position.lng},${position.lat}`;
-    }
-
-    return `${DEFAULT_CENTER[0]},${DEFAULT_CENTER[1]}`;
-  }
-
-  function buildMapTilerSearchUrl(query, options = {}) {
-    const params = new URLSearchParams({
-      key: MAPTILER_API_KEY,
-      language: "en",
-      country: "my",
-    });
-
-    if (options.autocomplete) {
-      params.set("autocomplete", "true");
-    }
-
-    if (options.limit) {
-      params.set("limit", String(options.limit));
-    }
-
-    if (options.proximity) {
-      params.set("proximity", options.proximity);
-    }
-
-    if (options.types) {
-      params.set("types", options.types);
-    }
-
-    if (options.fuzzyMatch !== undefined) {
-      params.set("fuzzyMatch", options.fuzzyMatch ? "true" : "false");
-    }
-
-    return `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?${params.toString()}`;
-  }
-
   async function fetchAddressSuggestions() {
     const text = document.getElementById("e_location").value.trim();
 
@@ -1350,13 +1349,7 @@
 
     try {
       const response = await fetch(
-        buildMapTilerSearchUrl(text, {
-          autocomplete: true,
-          limit: 8,
-          proximity: getSuggestionProximity(),
-          types: "poi,address,street,place,locality,neighborhood",
-          fuzzyMatch: true,
-        })
+        `https://api.maptiler.com/geocoding/${encodeURIComponent(text)}.json?key=${MAPTILER_API_KEY}&autocomplete=true&limit=5`
       );
 
       const results = await response.json();
@@ -1368,32 +1361,13 @@
         return;
       }
 
-      const seen = new Set();
-      const items = results.features
-        .map((feature) => ({
-          display_name: feature.place_name || feature.text || "",
-          lat: feature.center?.[1],
-          lon: feature.center?.[0],
-        }))
-        .filter((item) => {
-          const lat = Number(item.lat);
-          const lon = Number(item.lon);
-          const label = String(item.display_name || "").trim();
+      const items = results.features.map((feature) => ({
+        display_name: feature.place_name || feature.text || "",
+        lat: feature.center?.[1],
+        lon: feature.center?.[0],
+      }));
 
-          if (!label || !Number.isFinite(lat) || !Number.isFinite(lon)) {
-            return false;
-          }
-
-          const key = `${label}|${lat}|${lon}`;
-          if (seen.has(key)) {
-            return false;
-          }
-
-          seen.add(key);
-          return true;
-        });
-
-      renderSuggestions(items);
+      renderSuggestions(items.filter((item) => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lon))));
     } catch {
       hideSuggestions();
     }
@@ -1412,13 +1386,7 @@
 
     try {
       const response = await fetch(
-        buildMapTilerSearchUrl(text, {
-          autocomplete: false,
-          limit: 1,
-          proximity: getSuggestionProximity(),
-          types: "poi,address,street,place,locality,neighborhood",
-          fuzzyMatch: true,
-        })
+        `https://api.maptiler.com/geocoding/${encodeURIComponent(text)}.json?key=${MAPTILER_API_KEY}&limit=1`
       );
 
       const results = await response.json();
@@ -1461,13 +1429,8 @@
     setMapStatus(message, "info");
 
     try {
-      const params = new URLSearchParams({
-        key: MAPTILER_API_KEY,
-        language: "en",
-      });
-
       const response = await fetch(
-        `https://api.maptiler.com/geocoding/${lng},${lat}.json?${params.toString()}`
+        `https://api.maptiler.com/geocoding/${lng},${lat}.json?key=${MAPTILER_API_KEY}`
       );
 
       const result = await response.json();
@@ -1475,10 +1438,25 @@
       if (requestId !== latestReverseGeocodeRequestId) return;
 
       if (result && Array.isArray(result.features) && result.features.length) {
-        setLocationInputValue(result.features[0].place_name || "");
-        hideSuggestions();
-        setMapStatus("Address updated from pin", "success");
+        const reverseAddress = result.features[0].place_name || "";
+
+        if (!reverseAddress) {
+          setPendingPinAddress("");
+          setMapStatus("Coordinates updated, but no address found for this pin", "warning");
+          return;
+        }
+
+        setPendingPinAddress(reverseAddress);
+
+        if (!addressSelectionLocked) {
+          setLocationInputValue(reverseAddress);
+          hideSuggestions();
+          setMapStatus("Address updated from pin", "success");
+        } else {
+          setMapStatus("Pin moved. Preview updated — click 'Use Pin Address' if you want to replace the selected address", "success");
+        }
       } else {
+        setPendingPinAddress("");
         setMapStatus("Coordinates updated", "warning");
       }
     } catch {
@@ -1653,6 +1631,8 @@
     latestGeocodeRequestId = 0;
     latestReverseGeocodeRequestId = 0;
     latestSuggestionRequestId = 0;
+    setAddressLockState(false);
+    setPendingPinAddress("");
 
     hideSuggestions();
 
@@ -1804,6 +1784,8 @@
       document.getElementById("e_longitude").value =
         this.dataset.longitude || "";
       document.getElementById("e_radius").value = this.dataset.radius || 100;
+      setAddressLockState(!!(this.dataset.location || "").trim());
+      setPendingPinAddress("");
 
       hideSuggestions();
 
@@ -1852,11 +1834,13 @@
     if (locationInput) {
       locationInput.addEventListener("input", function () {
         if (suppressLocationInputGeocode) return;
+        setAddressLockState(false);
+        setPendingPinAddress("");
         scheduleSuggestionFetch();
       });
 
       locationInput.addEventListener("focus", function () {
-        if (this.value.trim().length >= 3) {
+        if (this.value.trim().length >= 2) {
           scheduleSuggestionFetch();
         }
       });
@@ -1871,10 +1855,27 @@
 
       locationInput.addEventListener("blur", function () {
         setTimeout(() => {
-          if (!suggestionsBox.matches(":hover")) {
+          if (!isSuggestionPointerDown) {
             hideSuggestions();
           }
         }, 180);
+      });
+    }
+
+    const suggestionsBox = document.getElementById("addressSuggestions");
+    if (suggestionsBox) {
+      suggestionsBox.addEventListener("mousedown", function () {
+        isSuggestionPointerDown = true;
+      });
+
+      suggestionsBox.addEventListener("mouseup", function () {
+        setTimeout(() => {
+          isSuggestionPointerDown = false;
+        }, 0);
+      });
+
+      suggestionsBox.addEventListener("mouseleave", function () {
+        isSuggestionPointerDown = false;
       });
     }
 
