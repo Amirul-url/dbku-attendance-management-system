@@ -2560,6 +2560,38 @@
   </div>
 </div>
 
+<script>
+  function openEventQrModal(title, imageUrl, downloadName) {
+    const modal = document.getElementById('eventQrModal');
+    const titleEl = document.getElementById('eventQrModalTitle');
+    const labelEl = document.getElementById('eventQrModalLabel');
+    const imgEl = document.getElementById('eventQrModalImage');
+    const downloadEl = document.getElementById('eventQrModalDownload');
+
+    if (!modal || !imgEl || !downloadEl || !imageUrl) return;
+
+    titleEl.textContent = title || 'QR Preview';
+    labelEl.textContent = title || 'QR Preview';
+    imgEl.src = imageUrl;
+    downloadEl.href = imageUrl;
+    downloadEl.setAttribute('download', downloadName || 'event_qr.png');
+    modal.classList.add('open');
+
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  }
+
+  function closeEventQrModal() {
+    const modal = document.getElementById('eventQrModal');
+    const imgEl = document.getElementById('eventQrModalImage');
+    const downloadEl = document.getElementById('eventQrModalDownload');
+    if (imgEl) imgEl.src = '';
+    if (downloadEl) downloadEl.href = '#';
+    if (modal) modal.classList.remove('open');
+  }
+</script>
+
 <div id="assignmentViewModal" class="modal-overlay" onclick="if(event.target===this)closeAssignmentViewModal()">
   <div style="width:100%;max-width:900px">
     <div class="modal-box">
@@ -3477,36 +3509,6 @@
     return text;
   }
 
-
-  function openEventQrModal(title, imageUrl, downloadName) {
-    const modal = getEl('eventQrModal');
-    const titleEl = getEl('eventQrModalTitle');
-    const labelEl = getEl('eventQrModalLabel');
-    const imgEl = getEl('eventQrModalImage');
-    const downloadEl = getEl('eventQrModalDownload');
-
-    if (!modal || !imgEl || !downloadEl || !imageUrl) return;
-
-    titleEl.textContent = title || 'QR Preview';
-    labelEl.textContent = title || 'QR Preview';
-    imgEl.src = imageUrl;
-    downloadEl.href = imageUrl;
-    downloadEl.setAttribute('download', downloadName || 'event_qr.png');
-    modal.classList.add('open');
-
-    if (window.lucide) {
-      lucide.createIcons();
-    }
-  }
-
-  function closeEventQrModal() {
-    const modal = getEl('eventQrModal');
-    const imgEl = getEl('eventQrModalImage');
-    const downloadEl = getEl('eventQrModalDownload');
-    if (imgEl) imgEl.src = '';
-    if (downloadEl) downloadEl.href = '#';
-    if (modal) modal.classList.remove('open');
-  }
 
   function assignmentValue(value) {
     const decoded = decodeEscapedUnicode(value);
