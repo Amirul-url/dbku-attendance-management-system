@@ -4332,4 +4332,73 @@
 
 {% endif %}
 
+
+<script src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    try { initEventDetailMap(); } catch(e) { console.warn(e); }
+});
+
+window.initEventDetailMap = function () {
+    const lat = parseFloat("{{ event.latitude|default:'0' }}");
+    const lng = parseFloat("{{ event.longitude|default:'0' }}");
+    const radius = parseFloat("{{ event.radius_meter|default:'100' }}");
+    const MAPTILER_KEY = "{{ maptiler_api_key }}";
+
+    if (!lat || !lng || !MAPTILER_KEY) return;
+
+    const map = new maplibregl.Map({
+        container: "eventDetailMap",
+        style: `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`,
+        center: [lng, lat],
+        zoom: 16
+    });
+
+    new maplibregl.Marker().setLngLat([lng, lat]).addTo(map);
+
+    map.on("load", () => {
+        const circle = createGeoJSONCircle([lng, lat], radius / 1000);
+
+        map.addSource("radius", {
+            type: "geojson",
+            data: circle
+        });
+
+        map.addLayer({
+            id: "radius-fill",
+            type: "fill",
+            source: "radius",
+            paint: {
+                "fill-color": "#0E7C6B",
+                "fill-opacity": 0.15
+            }
+        });
+    });
+};
+
+function createGeoJSONCircle(center, radiusInKm, points = 64) {
+    const coords = { latitude: center[1], longitude: center[0] };
+    const ret = [];
+
+    const distanceX = radiusInKm / (111.320 * Math.cos(coords.latitude * Math.PI / 180));
+    const distanceY = radiusInKm / 110.574;
+
+    for (let i = 0; i < points; i++) {
+        const theta = (i / points) * (2 * Math.PI);
+        const x = distanceX * Math.cos(theta);
+        const y = distanceY * Math.sin(theta);
+        ret.push([coords.longitude + x, coords.latitude + y]);
+    }
+    ret.push(ret[0]);
+
+    return {
+        type: "geojson",
+        data: {
+            type: "Feature",
+            geometry: { type: "Polygon", coordinates: [ret] }
+        }
+    };
+}
+</script>
+
 {% endblock %}
